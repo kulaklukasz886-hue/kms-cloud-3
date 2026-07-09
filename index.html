@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>KMS CLOUD 2.3 COMM</title>
+<title>KMS CLOUD 2.3.1 COMM FIX</title>
 <style>
 body{margin:0;font-family:Arial;background:#f3f4f6;color:#111827}.app{display:flex;min-height:100vh}
 aside{width:260px;background:#111827;color:white;padding:16px}main{flex:1;padding:22px;max-width:1500px}
@@ -37,7 +37,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <body>
 <div class="app">
 <aside>
-<h2>KMS CLOUD 2.3 COMM</h2>
+<h2>KMS CLOUD 2.3.1 COMM FIX</h2>
 <div class="small">cloud live + AI Analiza Rysunku LAB</div>
 <div class="nav">
 <button class="active" onclick="show('dash',this)">👔 Pulpit</button>
@@ -61,14 +61,14 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <section id="dash">
 <h1>👔 Pulpit</h1>
 <div class="card">
-<h3>☁️ KMS CLOUD 2.3 COMM</h3>
+<h3>☁️ KMS CLOUD 2.3.1 COMM FIX</h3>
 <button class="primary" onclick="cloudLoadOrders()">Odśwież teraz</button>
 <button class="gray" onclick="cloudSyncLocalOrders()">Wyślij lokalne zlecenia do chmury</button>
 <span id="cloudStatus" class="pill todo">Cloud uruchamia się...</span>
 <div class="small">Automatyczne wczytanie po starcie, synchronizacja co 15 sekund, zapis statusów produkcji do chmury.</div>
 <div id="cloudLog" class="small" style="margin-top:8px">Historia synchronizacji pojawi się tutaj.</div>
 </div>
-<div class="card"><b>🟢 KMS CLOUD 2.3 COMM</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
+<div class="card"><b>🟢 KMS CLOUD 2.3.1 COMM FIX</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
 <div class="grid">
 <div class="card"><h3>Zlecenia</h3><div class="value" id="dOrders">0</div></div>
 <div class="card"><h3>Pliki</h3><div class="value" id="dFiles">0</div></div>
@@ -299,14 +299,18 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 </main>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
+setTimeout(()=>cloudStartCommSync(),2200);
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
+setTimeout(()=>cloudStartCommSync(),2200);
+</script>
 <script>
 if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'}
 const KEY='kms_alpha_1_0_stable';
 let state=JSON.parse(localStorage.getItem(KEY)||'{"orders":[],"waste":[],"comm":[]}'),lastAnalysis=null,pendingDocs=[]; if(!state.waste)state.waste=[]; if(!state.comm)state.comm=[];
 
-// ===== KMS CLOUD 2.3 COMM - API -> SUPABASE =====
+// ===== KMS CLOUD 2.3.1 COMM FIX - API -> SUPABASE =====
 let cloudAutoStarted=false;
 let cloudSyncTimer=null;
 let cloudSaving=false;
@@ -435,7 +439,64 @@ function cloudStartAutoSync(){
   cloudLog('Auto synchronizacja uruchomiona.');
 }
 setTimeout(()=>cloudStartAutoSync(),1200);
-// ===== END KMS CLOUD 2.3 COMM =====
+// ===== END KMS CLOUD 2.3.1 COMM FIX =====
+
+// ===== KMS CLOUD 2.3.1 - COMMUNICATION Hala-Biuro FIX =====
+async function cloudLoadComm(silent=true){
+  try{
+    const data=await kmsApi('/api/messages');
+    state.comm=(data.messages||[]).map(m=>({
+      id:m.id,
+      cloudId:m.id,
+      orderId:m.order_id||'',
+      orderNo:m.order_number||'',
+      client:m.customer||'',
+      station:m.station||'Inne',
+      priority:m.priority||'Normalne',
+      text:m.message||'',
+      answer:m.answer||'',
+      status:m.status||'Otwarte',
+      created:m.created_at?new Date(m.created_at).toLocaleString('pl-PL'):'',
+      closed:m.closed_at?new Date(m.closed_at).toLocaleString('pl-PL'):''
+    }));
+    save();
+    renderComm();
+    if(!silent)cloudLog('Wczytano komunikaty: '+state.comm.length);
+  }catch(e){
+    if(!silent)alert('Błąd komunikatora: '+e.message);
+    console.error('cloudLoadComm',e);
+  }
+}
+async function cloudSaveComm(c){
+  try{
+    const data=await kmsApi('/api/messages',{method:'POST',body:JSON.stringify({message:c})});
+    c.cloudId=data.message?.id||c.cloudId;
+    c.id=c.cloudId||c.id;
+    cloudLog('Dodano komunikat: '+(c.orderNo||c.station||''));
+    save();
+    renderComm();
+  }catch(e){
+    alert('Nie udało się zapisać komunikatu do chmury: '+e.message);
+    console.error('cloudSaveComm',e);
+  }
+}
+async function cloudUpdateComm(c){
+  if(!c||!c.cloudId)return;
+  try{
+    await kmsApi('/api/messages',{method:'PUT',body:JSON.stringify({message:c})});
+    cloudLog('Zaktualizowano komunikat');
+    save();
+  }catch(e){
+    alert('Nie udało się zaktualizować komunikatu: '+e.message);
+    console.error('cloudUpdateComm',e);
+  }
+}
+function cloudStartCommSync(){
+  setTimeout(()=>cloudLoadComm(true),1800);
+  setInterval(()=>cloudLoadComm(true),15000);
+}
+// ===== END KMS CLOUD 2.3.1 COMM FIX =====
+
 function byId(id){return document.getElementById(id)}
 function jsStr(v){return String(v||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
 function norm(v){return(v||'').replace(/\s+/g,' ').trim()}function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -927,6 +988,8 @@ function aiInit(){aiLoadPrices();aiRenderEmpty();}
 
 aiInit();
 renderPendingDocs();render();
+
+setTimeout(()=>cloudStartCommSync(),2200);
 </script>
 </body>
 </html>
