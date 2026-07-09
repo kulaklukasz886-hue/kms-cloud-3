@@ -6,7 +6,7 @@ const SUPABASE_KEY = env('SUPABASE_ANON_KEY') || env('SUPABASE_SERVICE_ROLE_KEY'
 function sendCors(res){
   res.setHeader('Access-Control-Allow-Credentials','true');
   res.setHeader('Access-Control-Allow-Origin','*');
-  res.setHeader('Access-Control-Allow-Methods','GET,POST,PUT,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods','GET,POST,PUT,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization, apikey');
 }
 function headers(extra={}){return{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json',Prefer:'return=representation',...extra};}
@@ -45,6 +45,16 @@ async function insertChildren(orderId,order){
   return{materials:mats.length,tasks:tasks.length,files:files.length};
 }
 async function rollbackOrder(orderId){if(!orderId)return;try{await sb(`orders?id=eq.${orderId}`,{method:'DELETE'})}catch(e){console.error('rollback failed',e)}}
+function orderPayload(order){
+  return {
+    order_number:String(order.orderNo||order.order_number||'').trim()||'BEZ NUMERU',
+    customer:String(order.client||order.customer||'').trim(),
+    status:String(order.status||'NOWE'),
+    amount:order.amount?String(order.amount):null,
+    deadline:order.deadline||null,
+    data:order
+  };
+}
 export default async function handler(req,res){
   sendCors(res);
   if(req.method==='OPTIONS')return res.status(200).json({ok:true});
@@ -56,8 +66,7 @@ export default async function handler(req,res){
     if(req.method==='POST'){
       const body=typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{});
       const order=body.order||body;
-      const payload={order_number:String(order.orderNo||order.order_number||'').trim()||'BEZ NUMERU',customer:String(order.client||order.customer||'').trim(),status:String(order.status||'NOWE'),amount:order.amount?String(order.amount):null,deadline:order.deadline||null,data:order};
-      const inserted=await sb('orders',{method:'POST',body:JSON.stringify(payload)});
+      const inserted=await sb('orders',{method:'POST',body:JSON.stringify(orderPayload(order))});
       const row=Array.isArray(inserted)?inserted[0]:inserted; const orderId=row.id;
       try{const counts=await insertChildren(orderId,order);return res.status(200).json({ok:true,order:row,counts});}
       catch(childError){await rollbackOrder(orderId);throw new Error('Zlecenie cofnięte. Błąd zapisu materiałów/zadań/plików: '+childError.message);}
@@ -66,13 +75,20 @@ export default async function handler(req,res){
       const body=typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{});
       const order=body.order||body; const orderId=order.cloudId||order.id;
       if(!orderId)throw new Error('Brak ID zlecenia do aktualizacji.');
-      const payload={order_number:String(order.orderNo||order.order_number||'').trim()||'BEZ NUMERU',customer:String(order.client||order.customer||'').trim(),status:String(order.status||'NOWE'),amount:order.amount?String(order.amount):null,deadline:order.deadline||null,data:order};
-      const updated=await sb(`orders?id=eq.${orderId}`,{method:'PATCH',body:JSON.stringify(payload)});
+      const updated=await sb(`orders?id=eq.${orderId}`,{method:'PATCH',body:JSON.stringify(orderPayload(order))});
       await deleteChildren(orderId);
       const counts=await insertChildren(orderId,order);
       const row=Array.isArray(updated)?updated[0]:updated;
       return res.status(200).json({ok:true,order:row,counts});
     }
-    return res.status(405).json({ok:false,error:`Method ${req.method} not allowed. Allowed: GET, POST, PUT, OPTIONS.`});
+    if(req.method==='DELETE'){
+      const body=typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{});
+      const id=body.id||body.orderId;
+      if(!id)throw new Error('Brak ID zlecenia do usunięcia.');
+      await deleteChildren(id);
+      await sb(`orders?id=eq.${id}`,{method:'DELETE',headers:{Prefer:'return=minimal'}});
+      return res.status(200).json({ok:true});
+    }
+    return res.status(405).json({ok:false,error:`Method ${req.method} not allowed. Allowed: GET, POST, PUT, DELETE, OPTIONS.`});
   }catch(e){console.error(e);return res.status(500).json({ok:false,error:e.message||'Błąd API orders'});}
 }
