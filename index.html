@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>KMS CLOUD 2.2 LIVE</title>
+<title>KMS CLOUD 2.2.1 PDF FIX</title>
 <style>
 body{margin:0;font-family:Arial;background:#f3f4f6;color:#111827}.app{display:flex;min-height:100vh}
 aside{width:260px;background:#111827;color:white;padding:16px}main{flex:1;padding:22px;max-width:1500px}
@@ -37,7 +37,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <body>
 <div class="app">
 <aside>
-<h2>KMS CLOUD 2.2 LIVE</h2>
+<h2>KMS CLOUD 2.2.1 PDF FIX</h2>
 <div class="small">cloud live + AI Analiza Rysunku LAB</div>
 <div class="nav">
 <button class="active" onclick="show('dash',this)">👔 Pulpit</button>
@@ -61,14 +61,14 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <section id="dash">
 <h1>👔 Pulpit</h1>
 <div class="card">
-<h3>☁️ KMS CLOUD 2.2 LIVE</h3>
+<h3>☁️ KMS CLOUD 2.2.1 PDF FIX</h3>
 <button class="primary" onclick="cloudLoadOrders()">Odśwież teraz</button>
 <button class="gray" onclick="cloudSyncLocalOrders()">Wyślij lokalne zlecenia do chmury</button>
 <span id="cloudStatus" class="pill todo">Cloud uruchamia się...</span>
 <div class="small">Automatyczne wczytanie po starcie, synchronizacja co 15 sekund, zapis statusów produkcji do chmury.</div>
 <div id="cloudLog" class="small" style="margin-top:8px">Historia synchronizacji pojawi się tutaj.</div>
 </div>
-<div class="card"><b>🟢 KMS CLOUD 2.2 LIVE</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
+<div class="card"><b>🟢 KMS CLOUD 2.2.1 PDF FIX</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
 <div class="grid">
 <div class="card"><h3>Zlecenia</h3><div class="value" id="dOrders">0</div></div>
 <div class="card"><h3>Pliki</h3><div class="value" id="dFiles">0</div></div>
@@ -306,7 +306,7 @@ if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudf
 const KEY='kms_alpha_1_0_stable';
 let state=JSON.parse(localStorage.getItem(KEY)||'{"orders":[],"waste":[],"comm":[]}'),lastAnalysis=null,pendingDocs=[]; if(!state.waste)state.waste=[]; if(!state.comm)state.comm=[];
 
-// ===== KMS CLOUD 2.2 LIVE - API -> SUPABASE =====
+// ===== KMS CLOUD 2.2.1 PDF FIX - API -> SUPABASE =====
 let cloudAutoStarted=false;
 let cloudSyncTimer=null;
 let cloudSaving=false;
@@ -435,8 +435,10 @@ function cloudStartAutoSync(){
   cloudLog('Auto synchronizacja uruchomiona.');
 }
 setTimeout(()=>cloudStartAutoSync(),1200);
-// ===== END KMS CLOUD 2.2 LIVE =====
-function byId(id){return document.getElementById(id)}function norm(v){return(v||'').replace(/\s+/g,' ').trim()}function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+// ===== END KMS CLOUD 2.2.1 PDF FIX =====
+function byId(id){return document.getElementById(id)}
+function jsStr(v){return String(v||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+function norm(v){return(v||'').replace(/\s+/g,' ').trim()}function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}function show(id,btn){document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));byId(id).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render()}
 function parseNum(v){return Number(String(v||'').replace(/o/ig,'0').replace(',','.').replace(/[^\d.]/g,''))||0}function money(v){return String(v||'').replace(/\s/g,'').replace(',','.')}
 function fileToDataUrl(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(file)})}
@@ -472,11 +474,11 @@ function createFromCurrent(){if(!lastAnalysis)return alert('Najpierw analizuj PD
 function docsForStation(o,st){return(o.docs||[]).filter(d=>(d.station||'Zamówienie')==='Zamówienie'||(d.station||'')===st)}function docName(d){return d.name||d}
 function docsForStationIndexed(o,st){return(o.docs||[]).map((d,i)=>({d,i})).filter(x=>(x.d.station||'Zamówienie')==='Zamówienie'||(x.d.station||'')===st)}
 function openKmsDocByIndex(orderId,docIndex){
- const o=state.orders.find(x=>x.id===orderId);
- if(!o||!o.docs||!o.docs[docIndex]){alert('Nie znaleziono pliku PDF.');return;}
+ const o=state.orders.find(x=>String(x.id)===String(orderId)||String(x.cloudId)===String(orderId));
+ if(!o||!o.docs||!o.docs[docIndex]){alert('Nie znaleziono pliku PDF przy tym zleceniu.');return;}
  const d=o.docs[docIndex];
- const url=d.url||'';
- if(!url){alert('Brak zapisanego pliku PDF.');return;}
+ const url=d.url||d.file_url||'';
+ if(!url){alert('Plik jest przypisany, ale nie ma zapisanego adresu / danych PDF.');return;}
  try{
    if(url.startsWith('data:')){
      const parts=url.split(',');
@@ -492,22 +494,28 @@ function openKmsDocByIndex(orderId,docIndex){
      if(!win){
        const a=document.createElement('a');
        a.href=blobUrl;
-       a.download=d.name||'plik.pdf';
+       a.download=d.name||d.file_name||'plik.pdf';
        document.body.appendChild(a);a.click();a.remove();
      }
-     setTimeout(()=>URL.revokeObjectURL(blobUrl),60000);
+     setTimeout(()=>URL.revokeObjectURL(blobUrl),120000);
    }else{
      const win=window.open(url,'_blank');
-     if(!win){const a=document.createElement('a');a.href=url;a.download=d.name||'plik.pdf';document.body.appendChild(a);a.click();a.remove();}
+     if(!win){
+       const a=document.createElement('a');
+       a.href=url;
+       a.target='_blank';
+       a.download=d.name||d.file_name||'plik.pdf';
+       document.body.appendChild(a);a.click();a.remove();
+     }
    }
  }catch(e){
-   alert('Nie udało się otworzyć pliku PDF: '+e.message);
+   alert('Nie udało się otworzyć PDF: '+e.message);
  }
 }
 function progressText(a){a=a||[];return a.filter(x=>x.done).length+'/'+a.length}function progressClass(a){a=a||[];let d=a.filter(x=>x.done).length,t=a.length;if(t&&d===t)return'done';if(d)return'progress';return'todo'}
 function matStatus(m){return m.status||'Do zamówienia'}function statusClass(s){return s==='Na hali'?'done':s==='Zamówione'?'progress':s==='Oczekiwanie na dostawę'?'bad':'todo'}
 function materialStatusFor(o,label,pcv){const wanted=String(label||'').toUpperCase();let found=(o.materials||[]).find(x=>String(x.type||'').toUpperCase().startsWith('PCV')===!!pcv&&String(x.material||'').toUpperCase()===wanted);if(!found)found=(o.materials||[]).find(x=>String(x.type||'').toUpperCase().startsWith('PCV')===!!pcv&&(String(x.material||'').toUpperCase().includes(wanted)||wanted.includes(String(x.material||'').toUpperCase())));return found?matStatus(found):'Do zamówienia'}
-function setMaterialStatusByLabel(orderId,label,pcv,status){const o=state.orders.find(x=>x.id===orderId);if(!o)return;const wanted=String(label).toUpperCase();let idx=(o.materials||[]).findIndex(x=>String(x.type||'').toUpperCase().startsWith('PCV')===!!pcv&&String(x.material||'').toUpperCase()===wanted);if(idx<0)idx=(o.materials||[]).findIndex(x=>String(x.type||'').toUpperCase().startsWith('PCV')===!!pcv&&String(x.material||'').toUpperCase().includes(wanted));if(idx>=0){o.materials[idx].status=status;save();render();cloudUpdateOrder(o,'Status materiału')}}
+function setMaterialStatusByLabel(orderId,label,pcv,status){const o=state.orders.find(x=>String(x.id)===String(orderId)||String(x.cloudId)===String(orderId));if(!o)return;const wanted=String(label).toUpperCase();let idx=(o.materials||[]).findIndex(x=>String(x.type||'').toUpperCase().startsWith('PCV')===!!pcv&&String(x.material||'').toUpperCase()===wanted);if(idx<0)idx=(o.materials||[]).findIndex(x=>String(x.type||'').toUpperCase().startsWith('PCV')===!!pcv&&String(x.material||'').toUpperCase().includes(wanted));if(idx>=0){o.materials[idx].status=status;save();render();cloudUpdateOrder(o,'Status materiału')}}
 
 function selectStatusClass(v){
  if(v==='Na hali')return'status-hall';
@@ -522,7 +530,7 @@ function updateStatusColor(sel){
 
 function statusSelectHtml(current,orderId,label,pcv){const opts=['Do zamówienia','Zamówione','Oczekiwanie na dostawę','Na hali'];return`<select class="${selectStatusClass(current)}" onchange="setMaterialStatusByLabel(${orderId},'${String(label).replace(/'/g,"\\'")}',${pcv?'true':'false'},this.value);updateStatusColor(this)">${opts.map(o=>`<option ${current===o?'selected':''}>${o}</option>`).join('')}</select>`}
 function toggleItem(oid,g,i){let o=state.orders.find(x=>x.id===oid),arr=g==='cut'?o.cutItems:(g==='edge'?o.edgeItems:(g==='cnc'?o.cncItems:(o.assemblyItems||[])));arr[i].done=!arr[i].done;let t=(o.tasks||[]).find(x=>String(x.name).includes(g==='cut'?'Cięcie':g==='edge'?'Oklejanie':g==='cnc'?'CNC':'Montaż'));if(t&&arr.length&&arr.every(x=>x.done))t.status='Zakończone';save();render();cloudUpdateOrder(o,'Status produkcji')}
-function stationBlock(o,g,title){let arr=g==='cut'?o.cutItems:(g==='edge'?o.edgeItems:(g==='cnc'?o.cncItems:(o.assemblyItems||[])));if(!arr||!arr.length)return'';let st=g==='cut'?'Cięcie':(g==='edge'?'Oklejanie':(g==='cnc'?'CNC':'Montaż HALA')),done=arr.filter(x=>x.done).length,total=arr.length,all=total&&done===total,label=g==='cut'?'Wycięte':(g==='edge'?'Oklejone':(g==='cnc'?'CNC zrealizowane':'Montaż zakończony')),docs=docsForStationIndexed(o,st).map(x=>x.d.url?`<button class=doc onclick="openKmsDocByIndex(${o.id},${x.i})">📎 Otwórz PDF: ${esc(docName(x.d))}</button>`:`<span class=doc>📎 ${esc(docName(x.d))}</span>`).join('');const rows=arr.map((it,i)=>`<tr><td><input type=checkbox ${it.done?'checked':''} onchange="toggleItem(${o.id},'${g}',${i})"></td><td>${esc(it.label)}</td><td>${esc(it.pcv||'')}</td><td>${esc(it.qty)} ${esc(it.unit)}</td><td>${g==='assembly'?'<span class="stage todo">nie dotyczy</span>':statusSelectHtml(materialStatusFor(o,it.label,g==='edge'),o.id,it.label,g==='edge')}</td><td><span class="stage ${it.done?'done':'todo'}">${it.done?'Wykonane':'Do wykonania'}</span></td></tr>`).join('');return`<div class=card style="box-shadow:none"><h4>${title} <span class="stage ${all?'done':progressClass(arr)}">${all?label+' ✓ ':''}${progressText(arr)}</span></h4>${docs}<table><thead><tr><th></th><th>Pozycja</th><th>Opis</th><th>Ilość</th><th>Materiał</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`}
+function stationBlock(o,g,title){let arr=g==='cut'?o.cutItems:(g==='edge'?o.edgeItems:(g==='cnc'?o.cncItems:(o.assemblyItems||[])));if(!arr||!arr.length)return'';let st=g==='cut'?'Cięcie':(g==='edge'?'Oklejanie':(g==='cnc'?'CNC':'Montaż HALA')),done=arr.filter(x=>x.done).length,total=arr.length,all=total&&done===total,label=g==='cut'?'Wycięte':(g==='edge'?'Oklejone':(g==='cnc'?'CNC zrealizowane':'Montaż zakończony')),docs=docsForStationIndexed(o,st).map(x=>x.d.url?`<button class=doc onclick="openKmsDocByIndex('${jsStr(o.id)}',${x.i})">📎 Otwórz PDF: ${esc(docName(x.d))}</button>`:`<span class=doc>📎 ${esc(docName(x.d))}</span>`).join('');const rows=arr.map((it,i)=>`<tr><td><input type=checkbox ${it.done?'checked':''} onchange="toggleItem(${o.id},'${g}',${i})"></td><td>${esc(it.label)}</td><td>${esc(it.pcv||'')}</td><td>${esc(it.qty)} ${esc(it.unit)}</td><td>${g==='assembly'?'<span class="stage todo">nie dotyczy</span>':statusSelectHtml(materialStatusFor(o,it.label,g==='edge'),o.id,it.label,g==='edge')}</td><td><span class="stage ${it.done?'done':'todo'}">${it.done?'Wykonane':'Do wykonania'}</span></td></tr>`).join('');return`<div class=card style="box-shadow:none"><h4>${title} <span class="stage ${all?'done':progressClass(arr)}">${all?label+' ✓ ':''}${progressText(arr)}</span></h4>${docs}<table><thead><tr><th></th><th>Pozycja</th><th>Opis</th><th>Ilość</th><th>Materiał</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`}
 function markAllMaterials(status){state.orders.forEach(o=>{(o.materials||[]).forEach(m=>m.status=status);cloudUpdateOrder(o,'Status wszystkich materiałów')});save();render();alert('Status wszystkich materiałów: '+status)}
 function materialDisplayName(m){return String(m.type||'').startsWith('PCV')?String(m.type)+' '+String(m.material):String(m.material)}
 function grouped(){let map={};state.orders.forEach(o=>(o.materials||[]).forEach(m=>{let s=supplierForMaterial(m),k=s+'|'+m.type+'|'+m.material+'|'+m.unit+'|'+matStatus(m);if(!map[k])map[k]={supplier:s,type:m.type,material:materialDisplayName(m),qty:0,unit:m.unit,status:matStatus(m),orders:[]};map[k].qty+=Number(m.qty)||0;map[k].orders.push((o.orderNo||'')+' '+(o.client||''))}));return Object.values(map)}
@@ -530,7 +538,7 @@ function generateSupplierOrderView(){const groups=grouped();if(!groups.length)re
 
 // render
 function renderAnalysis(r){byId('client').value=r.client;byId('orderNo').value=r.orderNo;byId('amount').value=r.amount;if(byId('deadline'))byId('deadline').value=r.deadline||'';byId('materialsTable').innerHTML=r.materials.map(m=>`<tr><td>${esc(m.type)}</td><td>${esc(m.material)}</td><td>${esc(m.qty)}</td><td>${esc(m.unit)}</td><td>${esc(supplierForMaterial(m))}</td></tr>`).join('')||'<tr><td colspan=5>Brak</td></tr>';byId('tasksTable').innerHTML=r.tasks.map(t=>`<tr><td>${esc(t.name)}</td><td>${esc(t.qty)} ${esc(t.unit)}</td><td>${esc(t.source)}</td></tr>`).join('')||'<tr><td colspan=3>Brak</td></tr>'}
-function render(){byId('dOrders').textContent=state.orders.length;byId('dFiles').textContent=state.orders.reduce((s,o)=>s+(o.docs||[]).length,0);byId('dMaterials').textContent=state.orders.reduce((s,o)=>s+(o.materials||[]).length,0);byId('dTasks').textContent=state.orders.reduce((s,o)=>s+(o.tasks||[]).length,0);byId('dashOrders').innerHTML=state.orders.map(o=>`<div class=card><b>${esc(o.orderNo)} — ${esc(o.client)}</b> ${o.deadline?'<span class="pill blue">📅 '+esc(o.deadline)+'</span>':''}<br><span class="stage ${progressClass(o.cutItems)}">Cięcie ${progressText(o.cutItems)}</span><span class="stage ${progressClass(o.edgeItems)}">Oklejanie ${progressText(o.edgeItems)}</span><span class="stage ${progressClass(o.cncItems)}">CNC ${progressText(o.cncItems)}</span><span class="stage ${progressClass(o.assemblyItems||[])}">Montaż ${progressText(o.assemblyItems||[])}</span></div>`).join('')||'<span class=small>Brak</span>';byId('productionList').innerHTML=state.orders.map(o=>`<div class=card><h3>${esc(o.orderNo)} — ${esc(o.client)}</h3>${stationBlock(o,'cut','🪚 Cięcie')}${stationBlock(o,'edge','🟢 Oklejanie')}${stationBlock(o,'cnc','⚙️ CNC')}${stationBlock(o,'assembly','🔨 Montaż HALA')}</div>`).join('')||'<div class=card>Brak zleceń</div>';byId('supplierGrouped').innerHTML=grouped().map(g=>`<tr><td><b>${esc(g.supplier)}</b></td><td>${esc(g.type)}</td><td>${esc(g.material)}</td><td><b>${esc(Math.round(g.qty*100)/100)}</b></td><td>${esc(g.unit)}</td><td>${esc([...new Set(g.orders)].join(', '))}</td><td><span class="pill ${statusClass(g.status)}">${esc(g.status)}</span></td></tr>`).join('')||'<tr><td colspan=7>Brak</td></tr>';byId('supplierDetails').innerHTML=state.orders.flatMap((o,oi)=>(o.materials||[]).map((m,mi)=>`<tr><td>${esc(supplierForMaterial(m))}</td><td>${esc(o.orderNo)}</td><td>${esc(o.client)}</td><td>${esc(materialDisplayName(m))}</td><td>${esc(m.qty)}</td><td>${esc(m.unit)}</td><td><select class="${selectStatusClass(matStatus(m))}" onchange="state.orders[${oi}].materials[${mi}].status=this.value;updateStatusColor(this);save();cloudUpdateOrder(state.orders[${oi}],'Status materiału');render()"><option ${matStatus(m)==='Do zamówienia'?'selected':''}>Do zamówienia</option><option ${matStatus(m)==='Zamówione'?'selected':''}>Zamówione</option><option ${matStatus(m)==='Oczekiwanie na dostawę'?'selected':''}>Oczekiwanie na dostawę</option><option ${matStatus(m)==='Na hali'?'selected':''}>Na hali</option></select></td></tr>`)).join('')||'<tr><td colspan=7>Brak</td></tr>';byId('filesList').innerHTML=state.orders.map(o=>`<div class=card><h3>${esc(o.orderNo)} — ${esc(o.client)}</h3>${(o.docs||[]).map((d,di)=>d.url?`<button class=doc onclick="openKmsDocByIndex(${o.id},${di})">📎 Otwórz: ${esc(docName(d))} → ${esc(d.station)}</button>`:`<span class=doc>📎 ${esc(docName(d))}</span>`).join('')}</div>`).join('')||'<div class=card>Brak plików</div>'}
+function render(){byId('dOrders').textContent=state.orders.length;byId('dFiles').textContent=state.orders.reduce((s,o)=>s+(o.docs||[]).length,0);byId('dMaterials').textContent=state.orders.reduce((s,o)=>s+(o.materials||[]).length,0);byId('dTasks').textContent=state.orders.reduce((s,o)=>s+(o.tasks||[]).length,0);byId('dashOrders').innerHTML=state.orders.map(o=>`<div class=card><b>${esc(o.orderNo)} — ${esc(o.client)}</b> ${o.deadline?'<span class="pill blue">📅 '+esc(o.deadline)+'</span>':''}<br><span class="stage ${progressClass(o.cutItems)}">Cięcie ${progressText(o.cutItems)}</span><span class="stage ${progressClass(o.edgeItems)}">Oklejanie ${progressText(o.edgeItems)}</span><span class="stage ${progressClass(o.cncItems)}">CNC ${progressText(o.cncItems)}</span><span class="stage ${progressClass(o.assemblyItems||[])}">Montaż ${progressText(o.assemblyItems||[])}</span></div>`).join('')||'<span class=small>Brak</span>';byId('productionList').innerHTML=state.orders.map(o=>`<div class=card><h3>${esc(o.orderNo)} — ${esc(o.client)}</h3>${stationBlock(o,'cut','🪚 Cięcie')}${stationBlock(o,'edge','🟢 Oklejanie')}${stationBlock(o,'cnc','⚙️ CNC')}${stationBlock(o,'assembly','🔨 Montaż HALA')}</div>`).join('')||'<div class=card>Brak zleceń</div>';byId('supplierGrouped').innerHTML=grouped().map(g=>`<tr><td><b>${esc(g.supplier)}</b></td><td>${esc(g.type)}</td><td>${esc(g.material)}</td><td><b>${esc(Math.round(g.qty*100)/100)}</b></td><td>${esc(g.unit)}</td><td>${esc([...new Set(g.orders)].join(', '))}</td><td><span class="pill ${statusClass(g.status)}">${esc(g.status)}</span></td></tr>`).join('')||'<tr><td colspan=7>Brak</td></tr>';byId('supplierDetails').innerHTML=state.orders.flatMap((o,oi)=>(o.materials||[]).map((m,mi)=>`<tr><td>${esc(supplierForMaterial(m))}</td><td>${esc(o.orderNo)}</td><td>${esc(o.client)}</td><td>${esc(materialDisplayName(m))}</td><td>${esc(m.qty)}</td><td>${esc(m.unit)}</td><td><select class="${selectStatusClass(matStatus(m))}" onchange="state.orders[${oi}].materials[${mi}].status=this.value;updateStatusColor(this);save();cloudUpdateOrder(state.orders[${oi}],'Status materiału');render()"><option ${matStatus(m)==='Do zamówienia'?'selected':''}>Do zamówienia</option><option ${matStatus(m)==='Zamówione'?'selected':''}>Zamówione</option><option ${matStatus(m)==='Oczekiwanie na dostawę'?'selected':''}>Oczekiwanie na dostawę</option><option ${matStatus(m)==='Na hali'?'selected':''}>Na hali</option></select></td></tr>`)).join('')||'<tr><td colspan=7>Brak</td></tr>';byId('filesList').innerHTML=state.orders.map(o=>`<div class=card><h3>${esc(o.orderNo)} — ${esc(o.client)}</h3>${(o.docs||[]).map((d,di)=>d.url?`<button class=doc onclick="openKmsDocByIndex('${jsStr(o.id)}',${di})">📎 Otwórz: ${esc(docName(d))} → ${esc(d.station)}</button>`:`<span class=doc>📎 ${esc(docName(d))}</span>`).join('')}</div>`).join('')||'<div class=card>Brak plików</div>'}
 
 function addWaste(){
  const type=byId('wasteType').value,decor=norm(byId('wasteDecor').value).toUpperCase(),rack=norm(byId('wasteRack').value).toUpperCase();
