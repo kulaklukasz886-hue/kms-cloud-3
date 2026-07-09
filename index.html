@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>KMS CLOUD 2.3.4 STABLE</title>
+<title>KMS CLOUD 2.3.5 UUID CHECKBOX FIX</title>
 <style>
 body{margin:0;font-family:Arial;background:#f3f4f6;color:#111827}.app{display:flex;min-height:100vh}
 aside{width:260px;background:#111827;color:white;padding:16px}main{flex:1;padding:22px;max-width:1500px}
@@ -37,7 +37,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <body>
 <div class="app">
 <aside>
-<h2>KMS CLOUD 2.3.4 STABLE</h2>
+<h2>KMS CLOUD 2.3.5 UUID CHECKBOX FIX</h2>
 <div class="small">cloud live + AI Analiza Rysunku LAB</div>
 <div class="nav">
 <button class="active" onclick="show('dash',this)">👔 Pulpit</button>
@@ -61,14 +61,14 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <section id="dash">
 <h1>👔 Pulpit</h1>
 <div class="card">
-<h3>☁️ KMS CLOUD 2.3.4 STABLE</h3>
+<h3>☁️ KMS CLOUD 2.3.5 UUID CHECKBOX FIX</h3>
 <button class="primary" onclick="cloudLoadOrders()">Odśwież teraz</button>
 <button class="gray" onclick="cloudSyncLocalOrders()">Wyślij lokalne zlecenia do chmury</button>
 <span id="cloudStatus" class="pill todo">Cloud uruchamia się...</span>
 <div class="small">Automatyczne wczytanie po starcie, synchronizacja co 15 sekund, zapis statusów produkcji do chmury.</div>
 <div id="cloudLog" class="small" style="margin-top:8px">Historia synchronizacji pojawi się tutaj.</div>
 </div>
-<div class="card"><b>🟢 KMS CLOUD 2.3.4 STABLE</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
+<div class="card"><b>🟢 KMS CLOUD 2.3.5 UUID CHECKBOX FIX</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
 <div class="grid">
 <div class="card"><h3>Zlecenia</h3><div class="value" id="dOrders">0</div></div>
 <div class="card"><h3>Pliki</h3><div class="value" id="dFiles">0</div></div>
@@ -310,7 +310,7 @@ if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudf
 const KEY='kms_alpha_1_0_stable';
 let state=JSON.parse(localStorage.getItem(KEY)||'{"orders":[],"waste":[],"comm":[]}'),lastAnalysis=null,pendingDocs=[]; if(!state.waste)state.waste=[]; if(!state.comm)state.comm=[];
 
-// ===== KMS CLOUD 2.3.4 STABLE - API -> SUPABASE =====
+// ===== KMS CLOUD 2.3.5 UUID CHECKBOX FIX - API -> SUPABASE =====
 let cloudAutoStarted=false;
 let cloudSyncTimer=null;
 let cloudSaving=false;
@@ -419,7 +419,7 @@ async function cloudUpdateOrder(order, reason='Aktualizacja statusu'){
     const data=await kmsApi('/api/orders',{method:'PUT',body:JSON.stringify({order:{...order,id:order.cloudId,cloudId:order.cloudId}})});
     const c=data.counts||{};
     cloudStatus('🟢 Połączono z chmurą','done');
-    if(typeof cloudLog==='function')cloudLog(`${reason}: ${order.orderNo||''} / mat ${c.materials||0}, zad ${c.tasks||0}, pliki ${c.files||0}`);
+    if(typeof cloudLog==='function')cloudLog(`${reason}: ${order.orderNo||''} / zad ${c.tasks||0}`);
     save();
     return data;
   }catch(e){
@@ -443,7 +443,7 @@ function cloudStartAutoSync(){
   cloudLog('Auto synchronizacja uruchomiona.');
 }
 setTimeout(()=>cloudStartAutoSync(),1200);
-// ===== END KMS CLOUD 2.3.4 STABLE =====
+// ===== END KMS CLOUD 2.3.5 UUID CHECKBOX FIX =====
 
 // ===== KMS CLOUD 2.3.1 - COMMUNICATION Hala-Biuro FIX =====
 async function cloudLoadComm(silent=true){
@@ -499,7 +499,7 @@ function cloudStartCommSync(){
   setTimeout(()=>cloudLoadComm(true),1800);
   setInterval(()=>cloudLoadComm(true),15000);
 }
-// ===== END KMS CLOUD 2.3.4 STABLE =====
+// ===== END KMS CLOUD 2.3.5 UUID CHECKBOX FIX =====
 
 function byId(id){return document.getElementById(id)}
 function jsStr(v){return String(v||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
@@ -604,19 +604,16 @@ function toggleItem(oid,g,i){
 
  const stageName=g==='cut'?'Cięcie':g==='edge'?'Oklejanie':g==='cnc'?'CNC':'Montaż';
  const t=(o.tasks||[]).find(x=>String(x.name||x.task_name||'').includes(stageName)||String(x.station||'').includes(stageName));
-
  if(t&&arr.length){
    t.status=arr.every(x=>x.done)?'Zakończone':'Do wykonania';
  }
 
- // lokalnie od razu, żeby operator widział efekt kliknięcia
  save();
  render();
 
- // chmura: zapisujemy CAŁE zlecenie, w tym cutItems/edgeItems/cncItems/assemblyItems z done true/false
  cloudUpdateOrder(o,'Status produkcji');
 }
-function stationBlock(o,g,title){let arr=g==='cut'?o.cutItems:(g==='edge'?o.edgeItems:(g==='cnc'?o.cncItems:(o.assemblyItems||[])));if(!arr||!arr.length)return'';let st=g==='cut'?'Cięcie':(g==='edge'?'Oklejanie':(g==='cnc'?'CNC':'Montaż HALA')),done=arr.filter(x=>x.done).length,total=arr.length,all=total&&done===total,label=g==='cut'?'Wycięte':(g==='edge'?'Oklejone':(g==='cnc'?'CNC zrealizowane':'Montaż zakończony')),docs=docsForStationIndexed(o,st).map(x=>x.d.url?`<button class=doc onclick="openKmsDocByIndex('${jsStr(o.id)}',${x.i})">📎 Otwórz PDF: ${esc(docName(x.d))}</button>`:`<span class=doc>📎 ${esc(docName(x.d))}</span>`).join('');const rows=arr.map((it,i)=>`<tr><td><input type=checkbox ${it.done?'checked':''} onchange="toggleItem(${o.id},'${g}',${i})"></td><td>${esc(it.label)}</td><td>${esc(it.pcv||'')}</td><td>${esc(it.qty)} ${esc(it.unit)}</td><td>${g==='assembly'?'<span class="stage todo">nie dotyczy</span>':statusSelectHtml(materialStatusFor(o,it.label,g==='edge'),o.id,it.label,g==='edge')}</td><td><span class="stage ${it.done?'done':'todo'}">${it.done?'Wykonane':'Do wykonania'}</span></td></tr>`).join('');return`<div class=card style="box-shadow:none"><h4>${title} <span class="stage ${all?'done':progressClass(arr)}">${all?label+' ✓ ':''}${progressText(arr)}</span></h4>${docs}<table><thead><tr><th></th><th>Pozycja</th><th>Opis</th><th>Ilość</th><th>Materiał</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`}
+function stationBlock(o,g,title){let arr=g==='cut'?o.cutItems:(g==='edge'?o.edgeItems:(g==='cnc'?o.cncItems:(o.assemblyItems||[])));if(!arr||!arr.length)return'';let st=g==='cut'?'Cięcie':(g==='edge'?'Oklejanie':(g==='cnc'?'CNC':'Montaż HALA')),done=arr.filter(x=>x.done).length,total=arr.length,all=total&&done===total,label=g==='cut'?'Wycięte':(g==='edge'?'Oklejone':(g==='cnc'?'CNC zrealizowane':'Montaż zakończony')),docs=docsForStationIndexed(o,st).map(x=>x.d.url?`<button class=doc onclick="openKmsDocByIndex('${jsStr(o.id)}',${x.i})">📎 Otwórz PDF: ${esc(docName(x.d))}</button>`:`<span class=doc>📎 ${esc(docName(x.d))}</span>`).join('');const rows=arr.map((it,i)=>`<tr><td><input type=checkbox ${it.done?'checked':''} onchange="toggleItem('${jsStr(o.id)}','${g}',${i})"></td><td>${esc(it.label)}</td><td>${esc(it.pcv||'')}</td><td>${esc(it.qty)} ${esc(it.unit)}</td><td>${g==='assembly'?'<span class="stage todo">nie dotyczy</span>':statusSelectHtml(materialStatusFor(o,it.label,g==='edge'),o.id,it.label,g==='edge')}</td><td><span class="stage ${it.done?'done':'todo'}">${it.done?'Wykonane':'Do wykonania'}</span></td></tr>`).join('');return`<div class=card style="box-shadow:none"><h4>${title} <span class="stage ${all?'done':progressClass(arr)}">${all?label+' ✓ ':''}${progressText(arr)}</span></h4>${docs}<table><thead><tr><th></th><th>Pozycja</th><th>Opis</th><th>Ilość</th><th>Materiał</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`}
 function markAllMaterials(status){state.orders.forEach(o=>{(o.materials||[]).forEach(m=>m.status=status);cloudUpdateOrder(o,'Status wszystkich materiałów')});save();render();alert('Status wszystkich materiałów: '+status)}
 function materialDisplayName(m){return String(m.type||'').startsWith('PCV')?String(m.type)+' '+String(m.material):String(m.material)}
 function grouped(){let map={};state.orders.forEach(o=>(o.materials||[]).forEach(m=>{let s=supplierForMaterial(m),k=s+'|'+m.type+'|'+m.material+'|'+m.unit+'|'+matStatus(m);if(!map[k])map[k]={supplier:s,type:m.type,material:materialDisplayName(m),qty:0,unit:m.unit,status:matStatus(m),orders:[]};map[k].qty+=Number(m.qty)||0;map[k].orders.push((o.orderNo||'')+' '+(o.client||''))}));return Object.values(map)}
