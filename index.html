@@ -60,6 +60,13 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 
 <section id="dash">
 <h1>👔 Pulpit</h1>
+<div class="card">
+<h3>☁️ KMS CLOUD 2.1</h3>
+<button class="primary" onclick="cloudLoadOrders()">Wczytaj zlecenia z chmury</button>
+<button class="green" onclick="cloudSyncLocalOrders()">Wyślij lokalne zlecenia do chmury</button>
+<span id="cloudStatus" class="pill todo">Cloud gotowy</span>
+<div class="small">KMS korzysta z endpointu /api/orders i tabel Supabase: orders, materials, tasks, files.</div>
+</div>
 <div class="card"><b>🟢 KMS ALPHA 1.1 STABLE</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
 <div class="grid">
 <div class="card"><h3>Zlecenia</h3><div class="value" id="dOrders">0</div></div>
@@ -297,6 +304,72 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'}
 const KEY='kms_alpha_1_0_stable';
 let state=JSON.parse(localStorage.getItem(KEY)||'{"orders":[],"waste":[],"comm":[]}'),lastAnalysis=null,pendingDocs=[]; if(!state.waste)state.waste=[]; if(!state.comm)state.comm=[];
+
+// ===== KMS CLOUD 2.1 - API -> SUPABASE =====
+function cloudStatus(text, cls='todo'){
+  const el=byId('cloudStatus');
+  if(el){ el.className='pill '+cls; el.textContent=text; }
+}
+async function kmsApi(path, options={}){
+  const res=await fetch(path,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok || data.ok===false) throw new Error(data.error || ('HTTP '+res.status));
+  return data;
+}
+function normalizeCloudOrder(row){
+  const data=row.data || {};
+  const order={
+    id: row.id,
+    cloudId: row.id,
+    created: (row.created_at||new Date().toISOString()).slice(0,10),
+    client: row.customer || data.client || '',
+    orderNo: row.order_number || data.orderNo || '',
+    amount: row.amount || data.amount || '',
+    deadline: row.deadline || data.deadline || '',
+    materials: data.materials || [],
+    tasks: data.tasks || [],
+    items: data.items || [],
+    cutItems: data.cutItems || [],
+    edgeItems: data.edgeItems || [],
+    cncItems: data.cncItems || [],
+    assemblyItems: data.assemblyItems || [],
+    docs: data.docs || []
+  };
+  if((row.materials||[]).length && !order.materials.length){
+    order.materials=row.materials.map(m=>({type:m.type||'',material:m.material||'',qty:m.quantity||0,unit:m.unit||'',producer:m.supplier||'',status:m.status||'Do zamówienia'}));
+  }
+  if((row.tasks||[]).length && !order.tasks.length){
+    order.tasks=row.tasks.map(t=>({name:t.task_name||t.station||'Zadanie',status:t.status||'Do wykonania',source:t.source||'Supabase',qty:t.qty||0,unit:t.unit||''}));
+  }
+  if((row.files||[]).length && !order.docs.length){
+    order.docs=row.files.map(f=>({name:f.file_name,station:f.station||'Zamówienie',url:f.file_url||''}));
+  }
+  return order;
+}
+async function cloudLoadOrders(){
+  try{
+    cloudStatus('Wczytuję z chmury...','progress');
+    const data=await kmsApi('/api/orders');
+    state.orders=(data.orders||[]).map(normalizeCloudOrder);
+    save(); render();
+    cloudStatus('Wczytano zlecenia: '+state.orders.length,'done');
+  }catch(e){ cloudStatus('Błąd chmury: '+e.message,'bad'); alert('Błąd odczytu z chmury: '+e.message); }
+}
+async function cloudSaveOrder(order){
+  try{
+    cloudStatus('Zapisuję zlecenie w chmurze...','progress');
+    const data=await kmsApi('/api/orders',{method:'POST',body:JSON.stringify({order})});
+    order.cloudId=data.order?.id || order.cloudId;
+    cloudStatus('Zapisano w chmurze','done');
+    save(); return data;
+  }catch(e){ cloudStatus('Błąd zapisu: '+e.message,'bad'); console.error('KMS cloud save error',e); }
+}
+async function cloudSyncLocalOrders(){
+  if(!state.orders.length){alert('Brak lokalnych zleceń do wysłania.');return;}
+  for(const o of state.orders){ if(!o.cloudId) await cloudSaveOrder(o); }
+  alert('Synchronizacja zakończona.');
+}
+// ===== END KMS CLOUD 2.1 =====
 function byId(id){return document.getElementById(id)}function norm(v){return(v||'').replace(/\s+/g,' ').trim()}function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}function show(id,btn){document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));byId(id).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render()}
 function parseNum(v){return Number(String(v||'').replace(/o/ig,'0').replace(',','.').replace(/[^\d.]/g,''))||0}function money(v){return String(v||'').replace(/\s/g,'').replace(',','.')}
@@ -328,7 +401,7 @@ function parseProforma(text,filename){const clean=norm(text),items=extractItems(
 
 // orders/stations
 function createStationItems(materials,items){return{cutItems:(materials||[]).filter(m=>['Płyta','HDF','Akryl','Blat'].includes(m.type)).map(m=>({label:m.material,qty:m.qty,unit:m.unit,done:false})),edgeItems:(materials||[]).filter(m=>String(m.type).startsWith('PCV')).map(m=>({label:m.material,pcv:m.type,qty:m.qty,unit:m.unit,done:false})),cncItems:(items||[]).filter(i=>i.category==='CNC').map(i=>({label:i.name,qty:i.qty||1,unit:i.unit||'szt',done:false})),assemblyItems:(items||[]).filter(i=>i.category==='Montaż HALA'||i.category==='Drzwi przesuwne').map(i=>({label:i.name,qty:i.qty||1,unit:i.unit||'szt',done:false}))}}
-function createOrder(a,docsExtra){const si=createStationItems(a.materials,a.items);state.orders.push({id:Date.now()+Math.floor(Math.random()*99999),created:new Date().toISOString().slice(0,10),client:a.client,orderNo:a.orderNo,amount:a.amount,deadline:a.deadline||'',materials:a.materials,tasks:a.tasks,items:a.items,cutItems:si.cutItems,edgeItems:si.edgeItems,cncItems:si.cncItems,assemblyItems:si.assemblyItems||[],docs:[{name:a.filename,station:'Zamówienie',url:a.fileUrl||''}].concat(docsExtra||[])})}
+function createOrder(a,docsExtra){const si=createStationItems(a.materials,a.items);const newOrder={id:Date.now()+Math.floor(Math.random()*99999),created:new Date().toISOString().slice(0,10),client:a.client,orderNo:a.orderNo,amount:a.amount,deadline:a.deadline||'',materials:a.materials,tasks:a.tasks,items:a.items,cutItems:si.cutItems,edgeItems:si.edgeItems,cncItems:si.cncItems,assemblyItems:si.assemblyItems||[],docs:[{name:a.filename,station:'Zamówienie',url:a.fileUrl||''}].concat(docsExtra||[])};state.orders.push(newOrder);cloudSaveOrder(newOrder)}
 function createFromCurrent(){if(!lastAnalysis)return alert('Najpierw analizuj PDF');lastAnalysis.client=byId('client').value;lastAnalysis.orderNo=byId('orderNo').value;lastAnalysis.amount=byId('amount').value;lastAnalysis.deadline=byId('deadline')?byId('deadline').value:'';createOrder(lastAnalysis,pendingDocs);pendingDocs=[];renderPendingDocs();save();render();alert('Utworzono kartę zlecenia')}
 function docsForStation(o,st){return(o.docs||[]).filter(d=>(d.station||'Zamówienie')==='Zamówienie'||(d.station||'')===st)}function docName(d){return d.name||d}
 function docsForStationIndexed(o,st){return(o.docs||[]).map((d,i)=>({d,i})).filter(x=>(x.d.station||'Zamówienie')==='Zamówienie'||(x.d.station||'')===st)}
