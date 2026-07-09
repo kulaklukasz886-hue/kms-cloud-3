@@ -6,6 +6,13 @@ const SUPABASE_KEY =
   env('SUPABASE_SERVICE_ROLE_KEY') ||
   env('SUPABASE_PUBLISHABLE_KEY');
 
+function sendCors(res) {
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, apikey');
+}
+
 function headers(extra = {}) {
   return {
     apikey: SUPABASE_KEY,
@@ -22,9 +29,12 @@ async function sb(path, options = {}) {
   }
 
   const url = `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${path}`;
-  const res = await fetch(url, { ...options, headers: headers(options.headers || {}) });
-  const text = await res.text();
+  const res = await fetch(url, {
+    ...options,
+    headers: headers(options.headers || {})
+  });
 
+  const text = await res.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
 
@@ -100,6 +110,12 @@ async function rollbackOrder(orderId) {
 }
 
 export default async function handler(req, res) {
+  sendCors(res);
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).json({ ok: true });
+  }
+
   try {
     if (req.method === 'GET') {
       const rows = await sb('orders?select=*&order=created_at.desc');
@@ -147,7 +163,10 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.status(405).json({ ok: false, error: 'Only GET and POST allowed' });
+    return res.status(405).json({
+      ok: false,
+      error: `Method ${req.method} not allowed. Allowed: GET, POST, OPTIONS.`
+    });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ ok: false, error: e.message || 'Błąd API orders' });
