@@ -357,12 +357,33 @@ async function cloudLoadOrders(){
 }
 async function cloudSaveOrder(order){
   try{
-    cloudStatus('Zapisuję zlecenie w chmurze...','progress');
-    const data=await kmsApi('/api/orders',{method:'POST',body:JSON.stringify({order})});
+    cloudStatus('Zapisuję pełne zlecenie w chmurze...','progress');
+
+    const fullOrder={
+      ...order,
+      materials:Array.isArray(order.materials)?order.materials:[],
+      tasks:Array.isArray(order.tasks)?order.tasks:[],
+      docs:Array.isArray(order.docs)?order.docs:[],
+      items:Array.isArray(order.items)?order.items:[],
+      cutItems:Array.isArray(order.cutItems)?order.cutItems:[],
+      edgeItems:Array.isArray(order.edgeItems)?order.edgeItems:[],
+      cncItems:Array.isArray(order.cncItems)?order.cncItems:[],
+      assemblyItems:Array.isArray(order.assemblyItems)?order.assemblyItems:[]
+    };
+
+    const data=await kmsApi('/api/orders',{method:'POST',body:JSON.stringify({order:fullOrder})});
     order.cloudId=data.order?.id || order.cloudId;
-    cloudStatus('Zapisano w chmurze','done');
-    save(); return data;
-  }catch(e){ cloudStatus('Błąd zapisu: '+e.message,'bad'); console.error('KMS cloud save error',e); }
+
+    const c=data.counts||{};
+    cloudStatus(`Zapisano: materiały ${c.materials||0}, zadania ${c.tasks||0}, pliki ${c.files||0}`,'done');
+
+    save();
+    return data;
+  }catch(e){
+    cloudStatus('Błąd zapisu: '+e.message,'bad');
+    alert('Błąd zapisu do chmury: '+e.message);
+    console.error('KMS cloud save error',e);
+  }
 }
 async function cloudSyncLocalOrders(){
   if(!state.orders.length){alert('Brak lokalnych zleceń do wysłania.');return;}
@@ -402,7 +423,7 @@ function parseProforma(text,filename){const clean=norm(text),items=extractItems(
 // orders/stations
 function createStationItems(materials,items){return{cutItems:(materials||[]).filter(m=>['Płyta','HDF','Akryl','Blat'].includes(m.type)).map(m=>({label:m.material,qty:m.qty,unit:m.unit,done:false})),edgeItems:(materials||[]).filter(m=>String(m.type).startsWith('PCV')).map(m=>({label:m.material,pcv:m.type,qty:m.qty,unit:m.unit,done:false})),cncItems:(items||[]).filter(i=>i.category==='CNC').map(i=>({label:i.name,qty:i.qty||1,unit:i.unit||'szt',done:false})),assemblyItems:(items||[]).filter(i=>i.category==='Montaż HALA'||i.category==='Drzwi przesuwne').map(i=>({label:i.name,qty:i.qty||1,unit:i.unit||'szt',done:false}))}}
 function createOrder(a,docsExtra){const si=createStationItems(a.materials,a.items);const newOrder={id:Date.now()+Math.floor(Math.random()*99999),created:new Date().toISOString().slice(0,10),client:a.client,orderNo:a.orderNo,amount:a.amount,deadline:a.deadline||'',materials:a.materials,tasks:a.tasks,items:a.items,cutItems:si.cutItems,edgeItems:si.edgeItems,cncItems:si.cncItems,assemblyItems:si.assemblyItems||[],docs:[{name:a.filename,station:'Zamówienie',url:a.fileUrl||''}].concat(docsExtra||[])};state.orders.push(newOrder);cloudSaveOrder(newOrder)}
-function createFromCurrent(){if(!lastAnalysis)return alert('Najpierw analizuj PDF');lastAnalysis.client=byId('client').value;lastAnalysis.orderNo=byId('orderNo').value;lastAnalysis.amount=byId('amount').value;lastAnalysis.deadline=byId('deadline')?byId('deadline').value:'';createOrder(lastAnalysis,pendingDocs);pendingDocs=[];renderPendingDocs();save();render();alert('Utworzono kartę zlecenia')}
+function createFromCurrent(){if(!lastAnalysis)return alert('Najpierw analizuj PDF');lastAnalysis.client=byId('client').value;lastAnalysis.orderNo=byId('orderNo').value;lastAnalysis.amount=byId('amount').value;lastAnalysis.deadline=byId('deadline')?byId('deadline').value:'';createOrder(lastAnalysis,pendingDocs);pendingDocs=[];renderPendingDocs();save();render();alert('Utworzono kartę zlecenia i wysłano pełne dane do chmury.')}
 function docsForStation(o,st){return(o.docs||[]).filter(d=>(d.station||'Zamówienie')==='Zamówienie'||(d.station||'')===st)}function docName(d){return d.name||d}
 function docsForStationIndexed(o,st){return(o.docs||[]).map((d,i)=>({d,i})).filter(x=>(x.d.station||'Zamówienie')==='Zamówienie'||(x.d.station||'')===st)}
 function openKmsDocByIndex(orderId,docIndex){
