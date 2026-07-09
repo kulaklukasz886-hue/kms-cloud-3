@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>KMS CLOUD 2.2.1 PDF FIX</title>
+<title>KMS CLOUD 2.3 COMM</title>
 <style>
 body{margin:0;font-family:Arial;background:#f3f4f6;color:#111827}.app{display:flex;min-height:100vh}
 aside{width:260px;background:#111827;color:white;padding:16px}main{flex:1;padding:22px;max-width:1500px}
@@ -37,7 +37,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <body>
 <div class="app">
 <aside>
-<h2>KMS CLOUD 2.2.1 PDF FIX</h2>
+<h2>KMS CLOUD 2.3 COMM</h2>
 <div class="small">cloud live + AI Analiza Rysunku LAB</div>
 <div class="nav">
 <button class="active" onclick="show('dash',this)">👔 Pulpit</button>
@@ -61,14 +61,14 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <section id="dash">
 <h1>👔 Pulpit</h1>
 <div class="card">
-<h3>☁️ KMS CLOUD 2.2.1 PDF FIX</h3>
+<h3>☁️ KMS CLOUD 2.3 COMM</h3>
 <button class="primary" onclick="cloudLoadOrders()">Odśwież teraz</button>
 <button class="gray" onclick="cloudSyncLocalOrders()">Wyślij lokalne zlecenia do chmury</button>
 <span id="cloudStatus" class="pill todo">Cloud uruchamia się...</span>
 <div class="small">Automatyczne wczytanie po starcie, synchronizacja co 15 sekund, zapis statusów produkcji do chmury.</div>
 <div id="cloudLog" class="small" style="margin-top:8px">Historia synchronizacji pojawi się tutaj.</div>
 </div>
-<div class="card"><b>🟢 KMS CLOUD 2.2.1 PDF FIX</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
+<div class="card"><b>🟢 KMS CLOUD 2.3 COMM</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
 <div class="grid">
 <div class="card"><h3>Zlecenia</h3><div class="value" id="dOrders">0</div></div>
 <div class="card"><h3>Pliki</h3><div class="value" id="dFiles">0</div></div>
@@ -141,7 +141,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 
 
 <section id="comm" class="hidden">
-<h1>💬 Komunikacja hala-biuro</h1>
+<h1>💬 Komunikacja hala-biuro</h1><div class="card"><button class="primary" onclick="cloudLoadComm(false)">Odśwież komunikaty z chmury</button><span class="pill done">Komunikacja Cloud 2.3</span></div>
 <div class="card"><b>Cel:</b> nietypowy problem wpisujemy w KMS zamiast biegać do biura. Biuro widzi zgłoszenie i może odpowiedzieć.</div>
 <div class="card">
 <h3>Dodaj zgłoszenie z hali</h3>
@@ -306,7 +306,7 @@ if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudf
 const KEY='kms_alpha_1_0_stable';
 let state=JSON.parse(localStorage.getItem(KEY)||'{"orders":[],"waste":[],"comm":[]}'),lastAnalysis=null,pendingDocs=[]; if(!state.waste)state.waste=[]; if(!state.comm)state.comm=[];
 
-// ===== KMS CLOUD 2.2.1 PDF FIX - API -> SUPABASE =====
+// ===== KMS CLOUD 2.3 COMM - API -> SUPABASE =====
 let cloudAutoStarted=false;
 let cloudSyncTimer=null;
 let cloudSaving=false;
@@ -435,7 +435,7 @@ function cloudStartAutoSync(){
   cloudLog('Auto synchronizacja uruchomiona.');
 }
 setTimeout(()=>cloudStartAutoSync(),1200);
-// ===== END KMS CLOUD 2.2.1 PDF FIX =====
+// ===== END KMS CLOUD 2.3 COMM =====
 function byId(id){return document.getElementById(id)}
 function jsStr(v){return String(v||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
 function norm(v){return(v||'').replace(/\s+/g,' ').trim()}function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -582,33 +582,46 @@ function generateEmailDraft(){
 
 
 function addComm(){
- const oid=Number(byId('commOrder').value);
- const o=state.orders.find(x=>x.id===oid);
+ const oid=String(byId('commOrder').value||'');
+ const o=state.orders.find(x=>String(x.id)===oid||String(x.cloudId)===oid);
  const text=norm(byId('commText').value);
  if(!text)return alert('Wpisz problem lub pytanie.');
- state.comm.push({id:Date.now(),orderId:oid,orderNo:o?o.orderNo:'',client:o?o.client:'',station:byId('commStation').value,priority:byId('commPriority').value,text,answer:'',status:'Otwarte',created:new Date().toLocaleString()});
+ const c={
+   id:Date.now(),
+   orderId:o?(o.cloudId||o.id):'',
+   orderNo:o?o.orderNo:'',
+   client:o?o.client:'',
+   station:byId('commStation').value,
+   priority:byId('commPriority').value,
+   text,
+   answer:'',
+   status:'Otwarte',
+   created:new Date().toLocaleString()
+ };
+ state.comm.push(c);
  byId('commText').value='';
  save();render();
+ cloudSaveComm(c);
 }
 function closeComm(id){
- const c=state.comm.find(x=>x.id===id);
- if(c){c.status='Zamknięte';c.closed=new Date().toLocaleString();save();render();}
+ const c=state.comm.find(x=>String(x.id)===String(id)||String(x.cloudId)===String(id));
+ if(c){c.status='Zamknięte';c.closed=new Date().toLocaleString();save();render();cloudUpdateComm(c);}
 }
 function reopenComm(id){
- const c=state.comm.find(x=>x.id===id);
- if(c){c.status='Otwarte';save();render();}
+ const c=state.comm.find(x=>String(x.id)===String(id)||String(x.cloudId)===String(id));
+ if(c){c.status='Otwarte';save();render();cloudUpdateComm(c);}
 }
 function setCommAnswer(id,val){
- const c=state.comm.find(x=>x.id===id);
- if(c){c.answer=val;save();}
+ const c=state.comm.find(x=>String(x.id)===String(id)||String(x.cloudId)===String(id));
+ if(c){c.answer=val;save();cloudUpdateComm(c);}
 }
 function renderComm(){
  const sel=byId('commOrder'); if(!sel)return;
  sel.innerHTML=state.orders.map(o=>`<option value="${o.id}">${esc(o.orderNo)} — ${esc(o.client)}</option>`).join('')||'<option value="">Brak zleceń</option>';
  const open=(state.comm||[]).filter(c=>c.status!=='Zamknięte');
  const closed=(state.comm||[]).filter(c=>c.status==='Zamknięte');
- byId('commList').innerHTML=open.length?open.map(c=>`<div class="card ${c.priority==='Blokuje pracę'?'status-card-wait':''}"><b>${esc(c.orderNo)} — ${esc(c.client)}</b> <span class="pill ${c.priority==='Blokuje pracę'?'bad':c.priority==='Pilne'?'progress':'todo'}">${esc(c.priority)}</span><br><span class="small">${esc(c.station)} • ${esc(c.created)}</span><p>${esc(c.text)}</p><label>Odpowiedź biura</label><textarea onchange="setCommAnswer(${c.id},this.value)" placeholder="Tu biuro wpisuje odpowiedź">${esc(c.answer||'')}</textarea><button class="green" onclick="closeComm(${c.id})">Zamknij zgłoszenie ✓</button></div>`).join(''):'<span class="small">Brak otwartych zgłoszeń.</span>';
- byId('commClosed').innerHTML=closed.length?closed.map(c=>`<div class="card"><b>${esc(c.orderNo)} — ${esc(c.client)}</b><br><span class="small">${esc(c.station)} • zamknięte: ${esc(c.closed||'')}</span><p>${esc(c.text)}</p>${c.answer?`<p><b>Odpowiedź:</b> ${esc(c.answer)}</p>`:''}<button class="gray" onclick="reopenComm(${c.id})">Przywróć</button></div>`).join(''):'<span class="small">Brak historii.</span>';
+ byId('commList').innerHTML=open.length?open.map(c=>`<div class="card ${c.priority==='Blokuje pracę'?'status-card-wait':''}"><b>${esc(c.orderNo)} — ${esc(c.client)}</b> <span class="pill ${c.priority==='Blokuje pracę'?'bad':c.priority==='Pilne'?'progress':'todo'}">${esc(c.priority)}</span><br><span class="small">${esc(c.station)} • ${esc(c.created)}</span><p>${esc(c.text)}</p><label>Odpowiedź biura</label><textarea onchange="setCommAnswer('${jsStr(c.id)}',this.value)" placeholder="Tu biuro wpisuje odpowiedź">${esc(c.answer||'')}</textarea><button class="green" onclick="closeComm('${jsStr(c.id)}')">Zamknij zgłoszenie ✓</button></div>`).join(''):'<span class="small">Brak otwartych zgłoszeń.</span>';
+ byId('commClosed').innerHTML=closed.length?closed.map(c=>`<div class="card"><b>${esc(c.orderNo)} — ${esc(c.client)}</b><br><span class="small">${esc(c.station)} • zamknięte: ${esc(c.closed||'')}</span><p>${esc(c.text)}</p>${c.answer?`<p><b>Odpowiedź:</b> ${esc(c.answer)}</p>`:''}<button class="gray" onclick="reopenComm('${jsStr(c.id)}')">Przywróć</button></div>`).join(''):'<span class="small">Brak historii.</span>';
 }
 const _kmsBaseRender=render;
 render=function(){
