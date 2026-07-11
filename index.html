@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>KMS CLOUD 2.5 AUTH</title>
+<title>KMS CLOUD 2.5.1 AUTH FIX</title>
 <style>
 body{margin:0;font-family:Arial;background:#f3f4f6;color:#111827}.app{display:flex;min-height:100vh}
 aside{width:260px;background:#111827;color:white;padding:16px}main{flex:1;padding:22px;max-width:1500px}
@@ -66,7 +66,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 </div>
 <div class="app auth-locked" id="kmsApp">
 <aside>
-<h2>KMS CLOUD 2.5 AUTH</h2>
+<h2>KMS CLOUD 2.5.1 AUTH FIX</h2>
 <div class="small">bezpieczne logowanie + role + historia działań</div>
 <div class="nav">
 <button class="active" onclick="show('dash',this)">👔 Pulpit</button>
@@ -99,14 +99,14 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <section id="dash">
 <h1>👔 Pulpit</h1>
 <div class="card">
-<h3>☁️ KMS CLOUD 2.5 AUTH</h3>
+<h3>☁️ KMS CLOUD 2.5.1 AUTH FIX</h3>
 <button class="primary" onclick="cloudLoadOrders()">Odśwież teraz</button>
 <button class="gray" onclick="cloudSyncLocalOrders()">Wyślij lokalne zlecenia do chmury</button>
 <span id="cloudStatus" class="pill todo">Cloud uruchamia się...</span>
 <div class="small">Automatyczne wczytanie po starcie, synchronizacja co 15 sekund, zapis statusów produkcji do chmury.</div>
 <div id="cloudLog" class="small" style="margin-top:8px">Historia synchronizacji pojawi się tutaj.</div>
 </div>
-<div class="card"><b>🟢 KMS CLOUD 2.5 AUTH</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
+<div class="card"><b>🟢 KMS CLOUD 2.5.1 AUTH FIX</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
 <div class="grid">
 <div class="card"><h3>Zlecenia</h3><div class="value" id="dOrders">0</div></div>
 <div class="card"><h3>Pliki</h3><div class="value" id="dFiles">0</div></div>
@@ -388,7 +388,187 @@ if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudf
 const KEY='kms_alpha_1_0_stable';
 let state=JSON.parse(localStorage.getItem(KEY)||'{"orders":[],"waste":[],"comm":[]}'),lastAnalysis=null,pendingDocs=[]; if(!state.waste)state.waste=[]; if(!state.comm)state.comm=[]; if(!state.customers)state.customers=[]; if(!state.completedOrders)state.completedOrders=[];
 
-// ===== KMS CLOUD 2.5 AUTH - API -> SUPABASE =====
+
+// ===== KMS CLOUD 2.5.1 AUTH FIX - FRONTEND AUTH =====
+let authClient=null;
+let authSession=null;
+let authProfile=null;
+let kmsRole='PRODUKCJA';
+let kmsUserName='';
+
+const ROLE_LABELS={
+  ADMIN:'Administrator',
+  BIURO:'Biuro',
+  KOORDYNACJA:'Koordynacja',
+  PILA:'Piła',
+  OKLEINIARKA:'Okleiniarka',
+  CNC:'CNC',
+  MONTAZ:'Montaż',
+  PRODUKCJA:'Produkcja'
+};
+
+const ROLE_SECTIONS={
+  ADMIN:['dash','import','prod','completed','planning','alerts','sup','aiDrawing','files','comm','waste','settlements','emails','customers','users','backup'],
+  BIURO:['dash','import','prod','completed','planning','alerts','sup','files','comm','waste','settlements','emails','customers'],
+  KOORDYNACJA:['dash','prod','completed','planning','alerts','sup','files','comm','waste'],
+  PILA:['dash','prod','files','comm','waste'],
+  OKLEINIARKA:['dash','prod','files','comm','waste'],
+  CNC:['dash','prod','files','comm','waste'],
+  MONTAZ:['dash','prod','files','comm','waste'],
+  PRODUKCJA:['dash','prod','files','comm','waste']
+};
+
+function canAccessSection(id){
+  return (ROLE_SECTIONS[kmsRole]||ROLE_SECTIONS.PRODUKCJA).includes(id);
+}
+
+function roleAllowsGroup(group){
+  if(['ADMIN','BIURO','KOORDYNACJA'].includes(kmsRole))return true;
+  if(kmsRole==='PILA')return group==='cut';
+  if(kmsRole==='OKLEINIARKA')return group==='edge';
+  if(kmsRole==='CNC')return group==='cnc';
+  if(kmsRole==='MONTAZ')return group==='assembly';
+  if(kmsRole==='PRODUKCJA')return ['cut','edge','cnc','assembly'].includes(group);
+  return false;
+}
+
+function adminOnly(){
+  if(kmsRole!=='ADMIN'){
+    alert('Ta funkcja jest dostępna tylko dla administratora.');
+    return false;
+  }
+  return true;
+}
+
+function applyRoleAccess(){
+  const allowed=ROLE_SECTIONS[kmsRole]||ROLE_SECTIONS.PRODUKCJA;
+  document.querySelectorAll('.nav button').forEach(btn=>{
+    const match=(btn.getAttribute('onclick')||'').match(/show\('([^']+)'/);
+    if(match)btn.classList.toggle('role-hidden',!allowed.includes(match[1]));
+  });
+
+  const nameEl=document.getElementById('loggedUserName');
+  const emailEl=document.getElementById('loggedUserEmail');
+  const roleEl=document.getElementById('roleStatus');
+
+  if(nameEl)nameEl.textContent=kmsUserName||authProfile?.full_name||authSession?.user?.email||'Użytkownik';
+  if(emailEl)emailEl.textContent=authSession?.user?.email||'';
+  if(roleEl)roleEl.textContent=ROLE_LABELS[kmsRole]||kmsRole;
+}
+
+function showLogin(message='Zaloguj się swoim kontem firmowym.', clearSession=false){
+  if(clearSession){
+    authSession=null;
+    authProfile=null;
+  }
+  const screen=document.getElementById('authScreen');
+  const app=document.getElementById('kmsApp');
+  const msg=document.getElementById('authMessage');
+  if(screen)screen.classList.remove('hidden');
+  if(app)app.classList.add('auth-locked');
+  if(msg)msg.textContent=message;
+}
+
+function showApp(){
+  const screen=document.getElementById('authScreen');
+  const app=document.getElementById('kmsApp');
+  if(screen)screen.classList.add('hidden');
+  if(app)app.classList.remove('auth-locked');
+  applyRoleAccess();
+  render();
+  cloudStartAutoSync();
+  cloudStartCommSync();
+  cloudLoadCustomers(true);
+}
+
+async function fetchProfile(session){
+  const res=await fetch('/api/me',{
+    headers:{Authorization:`Bearer ${session.access_token}`}
+  });
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok||data.ok===false)throw new Error(data.error||('HTTP '+res.status));
+  return data.profile;
+}
+
+async function applyAuthenticatedSession(session){
+  authSession=session;
+  authProfile=await fetchProfile(session);
+  kmsRole=String(authProfile?.role||'PRODUKCJA').toUpperCase();
+  kmsUserName=authProfile?.full_name||session.user?.email||'';
+  showApp();
+}
+
+async function loginKms(){
+  const email=String(document.getElementById('loginEmail')?.value||'').trim();
+  const password=String(document.getElementById('loginPassword')?.value||'');
+  const msg=document.getElementById('authMessage');
+
+  if(!email||!password){
+    if(msg)msg.textContent='Wpisz e-mail i hasło.';
+    return;
+  }
+  if(!authClient){
+    if(msg)msg.textContent='Połączenie z Supabase nie zostało jeszcze uruchomione.';
+    return;
+  }
+
+  try{
+    if(msg)msg.textContent='Logowanie...';
+    const {data,error}=await authClient.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    if(!data.session)throw new Error('Supabase nie zwrócił sesji.');
+    await applyAuthenticatedSession(data.session);
+  }catch(e){
+    showLogin('Błąd logowania: '+(e.message||'Nieznany błąd'));
+  }
+}
+
+async function logoutKms(){
+  try{
+    if(authClient)await authClient.auth.signOut();
+  }catch(e){}
+  authSession=null;
+  authProfile=null;
+  kmsRole='PRODUKCJA';
+  kmsUserName='';
+  showLogin('Wylogowano.');
+}
+
+async function initKmsAuth(){
+  try{
+    const cfgRes=await fetch('/api/auth-config');
+    const cfg=await cfgRes.json().catch(()=>({}));
+    if(!cfgRes.ok||cfg.ok===false)throw new Error(cfg.error||('HTTP '+cfgRes.status));
+    if(!window.supabase?.createClient)throw new Error('Biblioteka Supabase nie została załadowana.');
+
+    authClient=window.supabase.createClient(cfg.url,cfg.anonKey,{
+      auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+    });
+
+    authClient.auth.onAuthStateChange((event,session)=>{
+      if(event==='SIGNED_OUT'||!session){
+        showLogin('Zaloguj się swoim kontem firmowym.',true);
+        return;
+      }
+      if(event==='TOKEN_REFRESHED')authSession=session;
+    });
+
+    const {data,error}=await authClient.auth.getSession();
+    if(error)throw error;
+
+    if(data.session){
+      await applyAuthenticatedSession(data.session);
+    }else{
+      showLogin('Zaloguj się swoim kontem firmowym.');
+    }
+  }catch(e){
+    showLogin('Błąd uruchomienia logowania: '+(e.message||'Nieznany błąd'));
+  }
+}
+// ===== END KMS CLOUD 2.5.1 AUTH FIX =====
+
+
+// ===== KMS CLOUD 2.5.1 AUTH FIX - API -> SUPABASE =====
 let cloudAutoStarted=false;
 let cloudSyncTimer=null;
 let cloudSaving=false;
@@ -540,7 +720,7 @@ function cloudStartAutoSync(){
   cloudLog('Auto synchronizacja uruchomiona.');
 }
 
-// ===== END KMS CLOUD 2.5 AUTH =====
+// ===== END KMS CLOUD 2.5.1 AUTH FIX =====
 
 // ===== KMS CLOUD 2.3.1 - COMMUNICATION Hala-Biuro FIX =====
 async function cloudLoadComm(silent=true){
@@ -596,7 +776,7 @@ function cloudStartCommSync(){
   setTimeout(()=>cloudLoadComm(true),1800);
   setInterval(()=>cloudLoadComm(true),15000);
 }
-// ===== END KMS CLOUD 2.5 AUTH =====
+// ===== END KMS CLOUD 2.5.1 AUTH FIX =====
 
 
 async function cloudLoadCustomers(silent=true){
@@ -1445,7 +1625,9 @@ function aiGeneratePdf(){
 function aiInit(){aiLoadPrices();aiRenderEmpty();}
 
 aiInit();
-renderPendingDocs();render();
+renderPendingDocs();
+showLogin('Sprawdzam sesję...');
+setTimeout(initKmsAuth,100);
 
 
 </script>
