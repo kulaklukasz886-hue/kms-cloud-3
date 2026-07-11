@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>KMS CLOUD 2.4.1 NOTATKI</title>
+<title>KMS CLOUD 2.4.3 PORZĄDEK PRODUKCJI</title>
 <style>
 body{margin:0;font-family:Arial;background:#f3f4f6;color:#111827}.app{display:flex;min-height:100vh}
 aside{width:260px;background:#111827;color:white;padding:16px}main{flex:1;padding:22px;max-width:1500px}
@@ -40,18 +40,25 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 .note-modal.hidden{display:none}
 .note-modal-card{background:white;width:min(620px,92vw);border-radius:16px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
 .note-modal textarea{min-height:180px}
+
+.order-summary{display:grid;grid-template-columns:120px 1.2fr 1.5fr 120px 120px 130px;gap:10px;align-items:center}
+.order-details{margin-top:10px}
+.completed-card{background:#f0fdf4;border-color:#86efac}
+@media(max-width:1000px){.order-summary{grid-template-columns:1fr 1fr}}
 </style>
+
 
 </head>
 <body>
 <div class="app">
 <aside>
-<h2>KMS CLOUD 2.4.1 NOTATKI</h2>
-<div class="small">role + klienci + usuwanie zleceń</div>
+<h2>KMS CLOUD 2.4.3 PORZĄDEK PRODUKCJI</h2>
+<div class="small">zwijanie + zrealizowane + harmonogram 5+1+1</div>
 <div class="nav">
 <button class="active" onclick="show('dash',this)">👔 Pulpit</button>
 <button onclick="show('import',this)">📄 Proforma / zlecenie</button>
 <button onclick="show('prod',this)">📋 Produkcja</button>
+<button onclick="show('completed',this)">✅ Zrealizowane</button>
 <button onclick="show('planning',this)">📅 Terminy i przerób</button>
 <button onclick="show('alerts',this)">🚨 Alerty</button>
 <button onclick="show('sup',this)">📦 Dostawcy</button>
@@ -96,14 +103,14 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <section id="dash">
 <h1>👔 Pulpit</h1>
 <div class="card">
-<h3>☁️ KMS CLOUD 2.4.1 NOTATKI</h3>
+<h3>☁️ KMS CLOUD 2.4.3 PORZĄDEK PRODUKCJI</h3>
 <button class="primary" onclick="cloudLoadOrders()">Odśwież teraz</button>
 <button class="gray" onclick="cloudSyncLocalOrders()">Wyślij lokalne zlecenia do chmury</button>
 <span id="cloudStatus" class="pill todo">Cloud uruchamia się...</span>
 <div class="small">Automatyczne wczytanie po starcie, synchronizacja co 15 sekund, zapis statusów produkcji do chmury.</div>
 <div id="cloudLog" class="small" style="margin-top:8px">Historia synchronizacji pojawi się tutaj.</div>
 </div>
-<div class="card"><b>🟢 KMS CLOUD 2.4.1 NOTATKI</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
+<div class="card"><b>🟢 KMS CLOUD 2.4.3 PORZĄDEK PRODUKCJI</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
 <div class="grid">
 <div class="card"><h3>Zlecenia</h3><div class="value" id="dOrders">0</div></div>
 <div class="card"><h3>Pliki</h3><div class="value" id="dFiles">0</div></div>
@@ -117,7 +124,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <h1>📄 Proforma / karta zlecenia</h1><div class="card"><b>Test luster:</b> LUSTRO BEZ SZLIFU → MADOR, LUSTRO ZE SZLIFEM → SZKLARZ. Testowo dodane też opcjonalne stanowisko MONTAŻ HALA.</div>
 <div class="card">
 <h3>1. Wczytaj proformę PDF</h3>
-<input id="pdfFile" type="file" accept="application/pdf">
+<input id="pdfFile" type="file" accept="application/pdf,image/jpeg,image/png,image/webp">
 <button class="primary" onclick="analyzePdf()">Analizuj PDF</button>
 <div class="small">W wersji cloud plik byłby zapisany na serwerze i dostępny dla wszystkich stanowisk.</div>
 <div id="status" class="pill todo">Brak analizy</div>
@@ -144,9 +151,20 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 </section>
 
 
+
+<section id="completed" class="hidden">
+<h1>✅ Zrealizowane</h1>
+<div class="card">
+  <b>Historia zakończonych zleceń.</b>
+  <div class="small">Zlecenie trafia tutaj po zakończeniu wszystkich wymaganych etapów produkcji.</div>
+  <input id="completedSearch" placeholder="Szukaj po numerze zlecenia lub kliencie" oninput="renderCompletedOrders()">
+</div>
+<div id="completedList"></div>
+</section>
+
 <section id="planning" class="hidden">
 <h1>📅 Terminy i przerób – TEST</h1>
-<div class="card"><b>Fundament terminów:</b> standard realizacji = <b>7 dni roboczych</b>. Etap 1: 5 dni roboczych (cięcie, oklejanie, frezy/CNC, blaty), Etap 2: +1 dzień wiercenie szafek, Etap 3: +1 dzień montaż szafek/drzwi. Przerób liczony dla 1 zmiany = 8 godzin.</div>
+<div class="card"><b>Fundament terminów:</b> standard realizacji = <b>7 dni roboczych</b>. Etap 1: 5 dni roboczych (cięcie, oklejanie, frezy/CNC, blaty), Etap 2: +1 dzień na wiercenie szafek i składanie drzwi, Etap 3: +1 dzień na składanie szafek. Przerób liczony dla 1 zmiany = 8 godzin.</div>
 <div class="grid">
 <div class="card"><h3>🪚 Cięcie</h3><div class="value">30</div><div class="small">szt./dzień</div></div>
 <div class="card"><h3>🟢 Oklejanie</h3><div class="value">600</div><div class="small">mb/dzień</div></div>
@@ -371,9 +389,9 @@ setTimeout(()=>cloudStartCommSync(),2200);
 <script>
 if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'}
 const KEY='kms_alpha_1_0_stable';
-let state=JSON.parse(localStorage.getItem(KEY)||'{"orders":[],"waste":[],"comm":[]}'),lastAnalysis=null,pendingDocs=[]; if(!state.waste)state.waste=[]; if(!state.comm)state.comm=[]; if(!state.customers)state.customers=[];
+let state=JSON.parse(localStorage.getItem(KEY)||'{"orders":[],"waste":[],"comm":[]}'),lastAnalysis=null,pendingDocs=[]; if(!state.waste)state.waste=[]; if(!state.comm)state.comm=[]; if(!state.customers)state.customers=[]; if(!state.completedOrders)state.completedOrders=[];
 
-// ===== KMS CLOUD 2.4.1 NOTATKI - API -> SUPABASE =====
+// ===== KMS CLOUD 2.4.3 PORZĄDEK PRODUKCJI - API -> SUPABASE =====
 let cloudAutoStarted=false;
 let cloudSyncTimer=null;
 let cloudSaving=false;
@@ -411,6 +429,8 @@ function normalizeCloudOrder(row){
     note: data.note || '',
     noteUpdatedAt: data.noteUpdatedAt || '',
     noteUpdatedBy: data.noteUpdatedBy || '',
+    completed: !!data.completed,
+    completedAt: data.completedAt || '',
     materials: data.materials || [],
     tasks: data.tasks || [],
     items: data.items || [],
@@ -436,7 +456,9 @@ function normalizeCloudOrder(row){
 }
 function mergeCloudOrders(cloudOrders){
   const localUnsaved=state.orders.filter(o=>!o.cloudId && !String(o.id||'').includes('-'));
-  state.orders=[...cloudOrders,...localUnsaved];
+  const localCompleted=(state.completedOrders||[]).filter(o=>!o.cloudId && !String(o.id||'').includes('-'));
+  state.orders=[...cloudOrders.filter(o=>!o.completed),...localUnsaved];
+  state.completedOrders=[...cloudOrders.filter(o=>o.completed),...localCompleted];
 }
 async function cloudLoadOrders(silent=false){
   if(cloudSaving)return;
@@ -502,8 +524,9 @@ async function cloudUpdateOrder(order, reason='Aktualizacja statusu'){
   }
 }
 async function cloudSyncLocalOrders(){
-  if(!state.orders.length){alert('Brak lokalnych zleceń do wysłania.');return;}
-  for(const o of state.orders){ if(!o.cloudId) await cloudSaveOrder(o); }
+  const all=[...(state.orders||[]),...(state.completedOrders||[])];
+  if(!all.length){alert('Brak lokalnych zleceń do wysłania.');return;}
+  for(const o of all){if(!o.cloudId)await cloudSaveOrder(o);}
   alert('Synchronizacja zakończona.');
 }
 function cloudStartAutoSync(){
@@ -515,7 +538,7 @@ function cloudStartAutoSync(){
   cloudLog('Auto synchronizacja uruchomiona.');
 }
 setTimeout(()=>cloudStartAutoSync(),1200);
-// ===== END KMS CLOUD 2.4.1 NOTATKI =====
+// ===== END KMS CLOUD 2.4.3 PORZĄDEK PRODUKCJI =====
 
 // ===== KMS CLOUD 2.3.1 - COMMUNICATION Hala-Biuro FIX =====
 async function cloudLoadComm(silent=true){
@@ -571,7 +594,7 @@ function cloudStartCommSync(){
   setTimeout(()=>cloudLoadComm(true),1800);
   setInterval(()=>cloudLoadComm(true),15000);
 }
-// ===== END KMS CLOUD 2.4.1 NOTATKI =====
+// ===== END KMS CLOUD 2.4.3 PORZĄDEK PRODUKCJI =====
 
 
 const KMS_ROLE_KEY='kms_role_profile_v1';
@@ -583,9 +606,9 @@ const ROLE_LABELS={
   PILA:'Piła', OKLEINIARKA:'Okleiniarka', CNC:'CNC', MONTAZ:'Montaż'
 };
 const ROLE_SECTIONS={
-  ADMIN:['dash','import','prod','planning','alerts','sup','aiDrawing','files','comm','waste','settlements','emails','customers','users','backup'],
-  BIURO:['dash','import','prod','planning','alerts','sup','files','comm','waste','settlements','emails','customers'],
-  KOORDYNACJA:['dash','prod','planning','alerts','sup','files','comm','waste'],
+  ADMIN:['dash','import','prod','completed','planning','alerts','sup','aiDrawing','files','comm','waste','settlements','emails','customers','users','backup'],
+  BIURO:['dash','import','prod','completed','planning','alerts','sup','files','comm','waste','settlements','emails','customers'],
+  KOORDYNACJA:['dash','prod','completed','planning','alerts','sup','files','comm','waste'],
   PILA:['dash','prod','files','comm'],
   OKLEINIARKA:['dash','prod','files','comm'],
   CNC:['dash','prod','files','comm'],
@@ -735,16 +758,189 @@ function jsStr(v){return String(v||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")
 function norm(v){return(v||'').replace(/\s+/g,' ').trim()}function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}function show(id,btn){if(!canAccessSection(id)){alert('Brak dostępu do tego modułu na tym stanowisku.');id='dash'}document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));byId(id).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render();applyRoleAccess()}
 function parseNum(v){return Number(String(v||'').replace(/o/ig,'0').replace(',','.').replace(/[^\d.]/g,''))||0}function money(v){return String(v||'').replace(/\s/g,'').replace(',','.')}
-function fileToDataUrl(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(file)})}
-async function pdfText(file){const b=await file.arrayBuffer(),pdf=await pdfjsLib.getDocument({data:b}).promise;let text='';for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i),c=await p.getTextContent();text+=c.items.map(x=>x.str).join(' ')+'\\n'}return text}
-async function analyzePdf(){const f=byId('pdfFile').files[0];if(!f)return alert('Wybierz PDF');byId('status').textContent='Analizuję...';const text=await pdfText(f);byId('rawText').value=text.trim();lastAnalysis=parseProforma(text,f.name);lastAnalysis.fileUrl=await fileToDataUrl(f);renderAnalysis(lastAnalysis);byId('status').textContent='Analiza gotowa'}
-async function addSelectedDocs(){const fs=byId('extraDocs').files,st=byId('docStation').value;if(!fs.length)return alert('Wybierz plik');for(let i=0;i<fs.length;i++)pendingDocs.push({name:fs[i].name,station:st,url:await fileToDataUrl(fs[i])});byId('extraDocs').value='';renderPendingDocs()}
+
+function fileToDataUrl(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+    r.readAsDataURL(file);
+  });
+}
+function dataUrlToBlob(dataUrl){
+  const parts=String(dataUrl).split(',');
+  const mime=(parts[0].match(/data:([^;]+)/)||[])[1]||'application/octet-stream';
+  const binary=atob(parts.slice(1).join(','));
+  const bytes=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+  return new Blob([bytes],{type:mime});
+}
+function loadImageFromFile(file){
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{URL.revokeObjectURL(url);resolve(img)};
+    img.onerror=e=>{URL.revokeObjectURL(url);reject(e)};
+    img.src=url;
+  });
+}
+async function compressImageFile(file,maxSide=2000,quality=.82){
+  const img=await loadImageFromFile(file);
+  const ratio=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
+  const w=Math.max(1,Math.round(img.naturalWidth*ratio));
+  const h=Math.max(1,Math.round(img.naturalHeight*ratio));
+  const canvas=document.createElement('canvas');
+  canvas.width=w;canvas.height=h;
+  const ctx=canvas.getContext('2d',{alpha:false});
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
+  ctx.drawImage(img,0,0,w,h);
+  return canvas.toDataURL('image/jpeg',quality);
+}
+async function compressPdfForCloud(file,maxPageSide=1600,quality=.72){
+  const buffer=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buffer}).promise;
+  const {jsPDF}=window.jspdf;
+  const out=new jsPDF({unit:'pt',format:'a4',compress:true});
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const base=page.getViewport({scale:1});
+    const scale=Math.min(2,maxPageSide/Math.max(base.width,base.height));
+    const vp=page.getViewport({scale});
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.round(vp.width);canvas.height=Math.round(vp.height);
+    const ctx=canvas.getContext('2d',{alpha:false});
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+    await page.render({canvasContext:ctx,viewport:vp}).promise;
+    const img=canvas.toDataURL('image/jpeg',quality);
+    if(i>1)out.addPage('a4','portrait');
+    const pw=out.internal.pageSize.getWidth(),ph=out.internal.pageSize.getHeight();
+    const r=Math.min(pw/canvas.width,ph/canvas.height);
+    const iw=canvas.width*r,ih=canvas.height*r;
+    out.addImage(img,'JPEG',(pw-iw)/2,(ph-ih)/2,iw,ih,undefined,'FAST');
+  }
+  const blob=out.output('blob');
+  return await fileToDataUrl(new File([blob],file.name.replace(/\.pdf$/i,'')+'_opt.pdf',{type:'application/pdf'}));
+}
+async function fileToCloudDataUrl(file){
+  const type=String(file.type||'').toLowerCase();
+  const sizeMb=file.size/1024/1024;
+  if(type.startsWith('image/')){
+    if(sizeMb<=2.5)return await fileToDataUrl(file);
+    return await compressImageFile(file,2000,.82);
+  }
+  if(type==='application/pdf'||/\.pdf$/i.test(file.name)){
+    if(sizeMb<=4)return await fileToDataUrl(file);
+    return await compressPdfForCloud(file,1600,.72);
+  }
+  return await fileToDataUrl(file);
+}
+async function pdfText(file){
+  const type=String(file.type||'').toLowerCase();
+  if(type.startsWith('image/'))return '';
+  const b=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:b}).promise;
+  let text='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const p=await pdf.getPage(i),c=await p.getTextContent();
+    text+=c.items.map(x=>x.str).join(' ')+'\n';
+  }
+  return text;
+}
+async function analyzePdf(){
+  const f=byId('pdfFile').files[0];
+  if(!f)return alert('Wybierz PDF lub zdjęcie');
+  byId('status').textContent='Analizuję i optymalizuję plik...';
+  try{
+    const text=await pdfText(f);
+    byId('rawText').value=text.trim();
+    lastAnalysis=parseProforma(text,f.name);
+    lastAnalysis.fileUrl=await fileToCloudDataUrl(f);
+    lastAnalysis.filename=f.name;
+    renderAnalysis(lastAnalysis);
+    const original=(f.size/1024/1024).toFixed(1);
+    const optimizedBlob=dataUrlToBlob(lastAnalysis.fileUrl);
+    const optimized=(optimizedBlob.size/1024/1024).toFixed(1);
+    byId('status').textContent=`Analiza gotowa. Plik: ${original} MB → ${optimized} MB do chmury`;
+  }catch(e){
+    byId('status').textContent='Błąd analizy: '+e.message;
+    alert('Nie udało się przygotować pliku: '+e.message);
+  }
+}
+async function addSelectedDocs(){
+  const fs=byId('extraDocs').files,st=byId('docStation').value;
+  if(!fs.length)return alert('Wybierz plik');
+  byId('status').textContent='Optymalizuję dodatkowe pliki...';
+  try{
+    for(let i=0;i<fs.length;i++){
+      pendingDocs.push({name:fs[i].name,station:st,url:await fileToCloudDataUrl(fs[i])});
+    }
+    byId('extraDocs').value='';
+    renderPendingDocs();
+    byId('status').textContent='Dodatkowe pliki gotowe';
+  }catch(e){
+    alert('Nie udało się dodać pliku: '+e.message);
+  }
+}
 function renderPendingDocs(){byId('pendingDocs').innerHTML=pendingDocs.length?pendingDocs.map((d,i)=>`<span class=doc>📎 ${esc(d.name)} → ${esc(d.station)} <button class=gray onclick="pendingDocs.splice(${i},1);renderPendingDocs()">x</button></span>`).join(''):'<span class=small>Brak dodatkowych plików.</span>'}
 
 // parser KMS
-function cleanBuyer(v){let b=norm(v).replace(/\s+(NIP|REGON|PESEL)\b.*$/i,'').replace(/\s+\d{2}-\d{3}\b.*$/i,'').replace(/\s+(ul\.?|al\.?|os\.?)\s+.*$/i,'');if(/Kułak|Kulak|Usługi Stolarskie|Kruszcowa|BREXPLPWMBK|M bank|kulak-meble|955193/i.test(b))return'';return b}
-function findBuyer(clean){let m=clean.match(/BREXPLPWMBK\s*\|\s*PLN\s+(.+?)\s+LP\s+Nazwa/i);if(m){let c=cleanBuyer(m[1]);if(c)return c}m=clean.match(/Nabywca\s+(.+?)\s+LP\s+Nazwa/i);return m?(cleanBuyer(m[1])||'Nie wykryto klienta'):'Nie wykryto klienta'}
-function findOrderNo(clean,filename){const m=clean.match(/DOTYCZY\s+ZLECENIA\s+NR\s+([0-9A-Za-z\/.\-]+)/i)||clean.match(/DOTYCZY\s+ZLECENIA\s+([0-9A-Za-z\/.\-]+)/i)||clean.match(/ZLECENIA\s+([0-9A-Za-z\/.\-]+)/i);if(m)return m[1];const f=filename.match(/(\d{1,6})/);return f?f[1]:''}
+
+function isSellerLine(v){
+  return /Kułak|Kulak|Usługi Stolarskie|Uslugi Stolarskie|Kruszcowa|kulak-meble|501712407|955-193|955193|Rachunek bankowy|M bank|BREXPLPWMBK|BDO/i.test(v||'');
+}
+function cleanBuyerName(v){
+  let b=norm(v);
+  b=b.replace(/^[:\-–]+/,'');
+  b=b.replace(/^(Nabywca|Dane nabywcy|Klient|Odbiorca)\s*[:\-–]?\s*/i,'');
+  b=b.replace(/\s+(NIP|REGON|PESEL)\b.*$/i,'');
+  b=b.replace(/\s+\d{2}-\d{3}\b.*$/i,'');
+  b=b.replace(/\s+(ul\.?|al\.?|os\.?|pl\.?)\s+.*$/i,'');
+  b=norm(b);
+  if(!b||/^(LP|Lp\.?|Nazwa|Razem|Uwagi|Sprzedawca|Wystawca|Rachunek bankowy)$/i.test(b))return'';
+  if(isSellerLine(b))return'';
+  return b;
+}
+function findBuyer(clean){
+  const lines=String(clean||'').split(/\n/).map(norm).filter(Boolean);
+  const bankBuyer=clean.match(/BREXPLPWMBK\s*\|\s*PLN\s+(.+?)\s+LP\s+Nazwa/i);
+  if(bankBuyer){
+    let block=bankBuyer[1];
+    block=block.replace(/\s+(Filaretów|Filaretow|Kruszcowa|ul\.|al\.|os\.)\b.*$/i,'');
+    const c=cleanBuyerName(block);
+    if(c)return c;
+  }
+  const patterns=[
+    /Nabywca\s+(.+?)\s+LP\s+Nazwa/i,
+    /Nabywca\s*[:\-–]?\s+(.+?)\s+(?:NIP|REGON|PESEL)\b/i,
+    /Nabywca\s*[:\-–]?\s+(.+?)\s+\d{2}-\d{3}\b/i,
+    /Nabywca\s*[:\-–]?\s+(.+?)(?:\s+(?:Odbiorca|Płatnik|Platnik|Sprzedawca|Wystawca|LP|Lp\.?|Nazwa|Razem|Uwagi)\b|$)/i
+  ];
+  for(const re of patterns){
+    const m=clean.match(re);
+    if(m){
+      let block=m[1].replace(/Usługi Stolarskie.*?BREXPLPWMBK\s*\|\s*PLN/i,'');
+      const c=cleanBuyerName(block);
+      if(c)return c;
+    }
+  }
+  return'Nie wykryto klienta – sprawdź Nabywcę';
+}
+function findOrderNo(clean,filename){
+  const uwagiMatch=String(clean||'').match(/Uwagi\s*:\s*(.+?)(?=\s+(?:Do zapłaty|Kwota opłacona|Słownie|Imię i nazwisko wystawcy|Numer KSeF|Strona\s+\d|$))/i);
+  const uwagi=uwagiMatch?norm(uwagiMatch[1]):'';
+  if(!uwagi)return'';
+  const patterns=[
+    /DOTYCZY\s+ZLECENIA\s+NR\s*[:#\-]?\s*([0-9A-Za-z\/.\-]+)/i,
+    /DOTYCZY\s+ZLECENIA\s*[:#\-]?\s*([0-9A-Za-z\/.\-]+)/i,
+    /ZLECENIE\s+NR\s*[:#\-]?\s*([0-9A-Za-z\/.\-]+)/i,
+    /ZLECENIA\s*[:#\-]?\s*([0-9A-Za-z\/.\-]+)/i
+  ];
+  for(const re of patterns){
+    const m=uwagi.match(re);
+    if(m)return m[1];
+  }
+  return'';
+}
 function findAmount(clean){const m=clean.match(/Do zapłaty\s+(\d[\d\s]*(?:[,.]\d{2})?)\s*PLN/i)||clean.match(/Kwota opłacona\s+(\d[\d\s]*(?:[,.]\d{2})?)\s*PLN/i)||clean.match(/Wartość brutto\s+(\d[\d\s]*(?:[,.]\d{2})?)\s*PLN/i);return m?money(m[1]):''}
 function parseParenParams(raw){const m=String(raw||'').match(/\(([^)]*)\)/);return m?m[1].split('/').map(x=>norm(x)).filter(Boolean):[]}
 function paramQtySzt(params,raw){for(const p of params){const m=p.match(/([0-9oO]+(?:[,.][0-9]+)?)\s*S?\s*Z?\s*T/i);if(m)return parseNum(m[1])}const m=String(raw||'').match(/([0-9oO]+(?:[,.][0-9]+)?)\s*S?\s*Z?\s*T/i);return m?parseNum(m[1]):0}
@@ -763,7 +959,7 @@ function parseProforma(text,filename){const clean=norm(text),items=extractItems(
 
 // orders/stations
 function createStationItems(materials,items){return{cutItems:(materials||[]).filter(m=>['Płyta','HDF','Akryl','Blat'].includes(m.type)).map(m=>({label:m.material,qty:m.qty,unit:m.unit,done:false})),edgeItems:(materials||[]).filter(m=>String(m.type).startsWith('PCV')).map(m=>({label:m.material,pcv:m.type,qty:m.qty,unit:m.unit,done:false})),cncItems:(items||[]).filter(i=>i.category==='CNC').map(i=>({label:i.name,qty:i.qty||1,unit:i.unit||'szt',done:false})),assemblyItems:(items||[]).filter(i=>i.category==='Montaż HALA'||i.category==='Drzwi przesuwne').map(i=>({label:i.name,qty:i.qty||1,unit:i.unit||'szt',done:false}))}}
-function createOrder(a,docsExtra){const si=createStationItems(a.materials,a.items);const newOrder={id:Date.now()+Math.floor(Math.random()*99999),created:new Date().toISOString().slice(0,10),client:a.client,orderNo:a.orderNo,amount:a.amount,deadline:a.deadline||'',materials:a.materials,tasks:a.tasks,items:a.items,cutItems:si.cutItems,edgeItems:si.edgeItems,cncItems:si.cncItems,assemblyItems:si.assemblyItems||[],docs:[{name:a.filename,station:'Zamówienie',url:a.fileUrl||''}].concat(docsExtra||[])};state.orders.push(newOrder);cloudSaveOrder(newOrder)}
+function createOrder(a,docsExtra){const si=createStationItems(a.materials,a.items);const createdDate=new Date();createdDate.setHours(0,0,0,0);const defaultDeadline=fmtDate(addWorkdays(createdDate,6));const newOrder={id:Date.now()+Math.floor(Math.random()*99999),created:new Date().toISOString().slice(0,10),client:a.client,orderNo:a.orderNo,amount:a.amount,deadline:a.deadline||defaultDeadline,materials:a.materials,tasks:a.tasks,items:a.items,cutItems:si.cutItems,edgeItems:si.edgeItems,cncItems:si.cncItems,assemblyItems:si.assemblyItems||[],docs:[{name:a.filename,station:'Zamówienie',url:a.fileUrl||''}].concat(docsExtra||[])};state.orders.push(newOrder);cloudSaveOrder(newOrder)}
 function createFromCurrent(){if(!lastAnalysis)return alert('Najpierw analizuj PDF');lastAnalysis.client=byId('client').value;lastAnalysis.orderNo=byId('orderNo').value;lastAnalysis.amount=byId('amount').value;lastAnalysis.deadline=byId('deadline')?byId('deadline').value:'';const c=(state.customers||[]).find(x=>String(x.name||'').trim().toUpperCase()===String(lastAnalysis.client||'').trim().toUpperCase());if(c){lastAnalysis.customerId=c.id;lastAnalysis.customerEmail=c.email||'';lastAnalysis.customerPhone=c.phone||''}createOrder(lastAnalysis,pendingDocs);pendingDocs=[];renderPendingDocs();save();render();alert('Utworzono kartę zlecenia. KMS zapisuje ją w chmurze automatycznie.')}
 function docsForStation(o,st){return(o.docs||[]).filter(d=>(d.station||'Zamówienie')==='Zamówienie'||(d.station||'')===st)}function docName(d){return d.name||d}
 function docsForStationIndexed(o,st){return(o.docs||[]).map((d,i)=>({d,i})).filter(x=>(x.d.station||'Zamówienie')==='Zamówienie'||(x.d.station||'')===st)}
@@ -842,6 +1038,83 @@ function toggleItem(oid,g,i){
 
  cloudUpdateOrder(o,'Status produkcji');
 }
+
+const KMS_EXPANDED_KEY='kms_expanded_orders_v1';
+let expandedOrders=new Set(JSON.parse(localStorage.getItem(KMS_EXPANDED_KEY)||'[]').map(String));
+function saveExpandedOrders(){localStorage.setItem(KMS_EXPANDED_KEY,JSON.stringify([...expandedOrders]))}
+function toggleOrderExpanded(id){
+  const k=String(id);
+  if(expandedOrders.has(k))expandedOrders.delete(k);else expandedOrders.add(k);
+  saveExpandedOrders();render();
+}
+function orderStageArrays(o){
+  return [o.cutItems||[],o.edgeItems||[],o.cncItems||[],o.assemblyItems||[]].filter(a=>a.length);
+}
+function isOrderProductionComplete(o){
+  const arrays=orderStageArrays(o);
+  return arrays.length>0 && arrays.every(a=>a.every(x=>x.done));
+}
+async function completeOrder(orderId){
+  const o=state.orders.find(x=>String(x.id)===String(orderId)||String(x.cloudId)===String(orderId));
+  if(!o)return alert('Nie znaleziono zlecenia.');
+  if(!isOrderProductionComplete(o)){
+    return alert('Nie wszystkie wymagane etapy produkcji są zakończone.');
+  }
+  if(!confirm(`Przenieść zlecenie ${o.orderNo} do modułu Zrealizowane?`))return;
+  o.completed=true;
+  o.completedAt=new Date().toISOString();
+  state.orders=state.orders.filter(x=>x!==o);
+  state.completedOrders=state.completedOrders||[];
+  state.completedOrders.unshift(o);
+  expandedOrders.delete(String(o.id));
+  saveExpandedOrders();save();render();
+  await cloudUpdateOrder(o,'Zlecenie zrealizowane');
+}
+async function restoreCompletedOrder(orderId){
+  const o=(state.completedOrders||[]).find(x=>String(x.id)===String(orderId)||String(x.cloudId)===String(orderId));
+  if(!o)return;
+  if(!confirm(`Przywrócić zlecenie ${o.orderNo} do aktywnej produkcji?`))return;
+  o.completed=false;o.completedAt='';
+  state.completedOrders=state.completedOrders.filter(x=>x!==o);
+  state.orders.unshift(o);
+  save();render();
+  await cloudUpdateOrder(o,'Przywrócono do produkcji');
+}
+function renderCompletedOrders(){
+  const el=byId('completedList');if(!el)return;
+  const q=String(byId('completedSearch')?.value||'').trim().toUpperCase();
+  const rows=(state.completedOrders||[]).filter(o=>!q||String(o.orderNo||'').toUpperCase().includes(q)||String(o.client||'').toUpperCase().includes(q));
+  el.innerHTML=rows.map(o=>`<div class="card completed-card">
+    <div class="order-summary">
+      <div><b>${esc(o.orderNo)}</b></div>
+      <div>${esc(o.client)}</div>
+      <div>${o.note?'<span class="note-badge">NOTATKA</span> ':''}${esc(o.note||'')}</div>
+      <div><span class="pill done">ZREALIZOWANE</span></div>
+      <div>${o.completedAt?new Date(o.completedAt).toLocaleDateString('pl-PL'):'-'}</div>
+      <div><button class="gray" onclick="restoreCompletedOrder('${jsStr(o.id)}')">Przywróć</button></div>
+    </div>
+  </div>`).join('')||'<div class="card">Brak zrealizowanych zleceń.</div>';
+}
+function productionOrderCard(o){
+  const id=String(o.id);
+  const expanded=expandedOrders.has(id);
+  const complete=isOrderProductionComplete(o);
+  return `<div class="card">
+    <div class="order-summary">
+      <div><b>${esc(o.orderNo)}</b></div>
+      <div><b>${esc(o.client)}</b></div>
+      <div>${o.note?'<span class="note-badge">NOTATKA</span> ':''}${esc(o.note||'')}</div>
+      <div><span class="stage ${progressClass(o.cutItems)}">Cięcie ${progressText(o.cutItems)}</span></div>
+      <div><span class="stage ${progressClass(o.edgeItems)}">Oklejanie ${progressText(o.edgeItems)}</span></div>
+      <div>
+        <button class="primary" onclick="toggleOrderExpanded('${jsStr(o.id)}')">${expanded?'Zwiń':'Rozwiń'}</button>
+        ${complete?`<button class="green" onclick="completeOrder('${jsStr(o.id)}')">Zrealizuj</button>`:''}
+      </div>
+    </div>
+    ${expanded?`<div class="order-details">${orderNoteHtml(o)}${stationBlock(o,'cut','🪚 Cięcie')}${stationBlock(o,'edge','🟢 Oklejanie')}${stationBlock(o,'cnc','⚙️ CNC')}${stationBlock(o,'assembly','🔨 Montaż HALA')}</div>`:''}
+  </div>`;
+}
+
 function stationBlock(o,g,title){if(!roleAllowsGroup(g))return'';let arr=g==='cut'?o.cutItems:(g==='edge'?o.edgeItems:(g==='cnc'?o.cncItems:(o.assemblyItems||[])));if(!arr||!arr.length)return'';let st=g==='cut'?'Cięcie':(g==='edge'?'Oklejanie':(g==='cnc'?'CNC':'Montaż HALA')),done=arr.filter(x=>x.done).length,total=arr.length,all=total&&done===total,label=g==='cut'?'Wycięte':(g==='edge'?'Oklejone':(g==='cnc'?'CNC zrealizowane':'Montaż zakończony')),docs=docsForStationIndexed(o,st).map(x=>x.d.url?`<button class=doc onclick="openKmsDocByIndex('${jsStr(o.id)}',${x.i})">📎 Otwórz PDF: ${esc(docName(x.d))}</button>`:`<span class=doc>📎 ${esc(docName(x.d))}</span>`).join('');const rows=arr.map((it,i)=>`<tr><td><input type=checkbox ${it.done?'checked':''} onchange="toggleItem('${jsStr(o.id)}','${g}',${i})"></td><td>${esc(it.label)}</td><td>${esc(it.pcv||'')}</td><td>${esc(it.qty)} ${esc(it.unit)}</td><td>${g==='assembly'?'<span class="stage todo">nie dotyczy</span>':statusSelectHtml(materialStatusFor(o,it.label,g==='edge'),o.id,it.label,g==='edge')}</td><td><span class="stage ${it.done?'done':'todo'}">${it.done?'Wykonane':'Do wykonania'}</span></td></tr>`).join('');return`<div class=card style="box-shadow:none"><h4>${title} <span class="stage ${all?'done':progressClass(arr)}">${all?label+' ✓ ':''}${progressText(arr)}</span></h4>${docs}<table><thead><tr><th></th><th>Pozycja</th><th>Opis</th><th>Ilość</th><th>Materiał</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`}
 function markAllMaterials(status){state.orders.forEach(o=>{(o.materials||[]).forEach(m=>m.status=status);cloudUpdateOrder(o,'Status wszystkich materiałów')});save();render();alert('Status wszystkich materiałów: '+status)}
 function materialDisplayName(m){return String(m.type||'').startsWith('PCV')?String(m.type)+' '+String(m.material):String(m.material)}
@@ -849,8 +1122,8 @@ function grouped(){let map={};state.orders.forEach(o=>(o.materials||[]).forEach(
 function generateSupplierOrderView(){const groups=grouped();if(!groups.length)return alert('Brak pozycji');let suppliers=[...new Set(groups.map(g=>g.supplier))],htmlOut='<div class=card><h3>📄 Gotowe zamówienia</h3><button class=green onclick="window.print()">Drukuj / zapisz jako PDF</button></div>';suppliers.forEach(s=>{htmlOut+=`<div class=card><h2>Zamówienie do hurtowni: ${esc(s)}</h2><table><thead><tr><th>Materiał</th><th>Ilość</th><th>Jm</th><th>Uwagi</th></tr></thead><tbody>`;groups.filter(g=>g.supplier===s).forEach(r=>htmlOut+=`<tr><td>${esc(r.material)}</td><td>${esc(Math.round(r.qty*100)/100)}</td><td>${esc(r.unit)}</td><td>${esc([...new Set(r.orders)].join(', '))}</td></tr>`);htmlOut+='</tbody></table></div>'});byId('supplierPrintView').innerHTML=htmlOut;state.orders.forEach(o=>(o.materials||[]).forEach(m=>{if(matStatus(m)==='Do zamówienia')m.status='Zamówione'}));save();render();byId('supplierPrintView').innerHTML=htmlOut}
 
 // render
-function renderAnalysis(r){byId('client').value=r.client;byId('orderNo').value=r.orderNo;byId('amount').value=r.amount;if(byId('deadline'))byId('deadline').value=r.deadline||'';byId('materialsTable').innerHTML=r.materials.map(m=>`<tr><td>${esc(m.type)}</td><td>${esc(m.material)}</td><td>${esc(m.qty)}</td><td>${esc(m.unit)}</td><td>${esc(supplierForMaterial(m))}</td></tr>`).join('')||'<tr><td colspan=5>Brak</td></tr>';byId('tasksTable').innerHTML=r.tasks.map(t=>`<tr><td>${esc(t.name)}</td><td>${esc(t.qty)} ${esc(t.unit)}</td><td>${esc(t.source)}</td></tr>`).join('')||'<tr><td colspan=3>Brak</td></tr>'}
-function render(){byId('dOrders').textContent=state.orders.length;byId('dFiles').textContent=state.orders.reduce((s,o)=>s+(o.docs||[]).length,0);byId('dMaterials').textContent=state.orders.reduce((s,o)=>s+(o.materials||[]).length,0);byId('dTasks').textContent=state.orders.reduce((s,o)=>s+(o.tasks||[]).length,0);byId('dashOrders').innerHTML=state.orders.map(o=>`<div class=card><b>${esc(o.orderNo)} — ${esc(o.client)}</b>${kmsRole==='ADMIN'?` <button class="red" onclick="deleteCloudOrder('${jsStr(o.id)}')">🗑️ Usuń</button>`:''}${orderNoteHtml(o)} ${o.deadline?'<span class="pill blue">📅 '+esc(o.deadline)+'</span>':''}<br><span class="stage ${progressClass(o.cutItems)}">Cięcie ${progressText(o.cutItems)}</span><span class="stage ${progressClass(o.edgeItems)}">Oklejanie ${progressText(o.edgeItems)}</span><span class="stage ${progressClass(o.cncItems)}">CNC ${progressText(o.cncItems)}</span><span class="stage ${progressClass(o.assemblyItems||[])}">Montaż ${progressText(o.assemblyItems||[])}</span></div>`).join('')||'<span class=small>Brak</span>';byId('productionList').innerHTML=state.orders.map(o=>`<div class=card><h3>${esc(o.orderNo)} — ${esc(o.client)}</h3>${orderNoteHtml(o)}${stationBlock(o,'cut','🪚 Cięcie')}${stationBlock(o,'edge','🟢 Oklejanie')}${stationBlock(o,'cnc','⚙️ CNC')}${stationBlock(o,'assembly','🔨 Montaż HALA')}</div>`).join('')||'<div class=card>Brak zleceń</div>';byId('supplierGrouped').innerHTML=grouped().map(g=>`<tr><td><b>${esc(g.supplier)}</b></td><td>${esc(g.type)}</td><td>${esc(g.material)}</td><td><b>${esc(Math.round(g.qty*100)/100)}</b></td><td>${esc(g.unit)}</td><td>${esc([...new Set(g.orders)].join(', '))}</td><td><span class="pill ${statusClass(g.status)}">${esc(g.status)}</span></td></tr>`).join('')||'<tr><td colspan=7>Brak</td></tr>';byId('supplierDetails').innerHTML=state.orders.flatMap((o,oi)=>(o.materials||[]).map((m,mi)=>`<tr><td>${esc(supplierForMaterial(m))}</td><td>${esc(o.orderNo)}</td><td>${esc(o.client)}</td><td>${esc(materialDisplayName(m))}</td><td>${esc(m.qty)}</td><td>${esc(m.unit)}</td><td><select class="${selectStatusClass(matStatus(m))}" onchange="state.orders[${oi}].materials[${mi}].status=this.value;updateStatusColor(this);save();cloudUpdateOrder(state.orders[${oi}],'Status materiału');render()"><option ${matStatus(m)==='Do zamówienia'?'selected':''}>Do zamówienia</option><option ${matStatus(m)==='Zamówione'?'selected':''}>Zamówione</option><option ${matStatus(m)==='Oczekiwanie na dostawę'?'selected':''}>Oczekiwanie na dostawę</option><option ${matStatus(m)==='Na hali'?'selected':''}>Na hali</option></select></td></tr>`)).join('')||'<tr><td colspan=7>Brak</td></tr>';byId('filesList').innerHTML=state.orders.map(o=>`<div class=card><h3>${esc(o.orderNo)} — ${esc(o.client)}</h3>${orderNoteHtml(o)}${(o.docs||[]).map((d,di)=>d.url?`<button class=doc onclick="openKmsDocByIndex('${jsStr(o.id)}',${di})">📎 Otwórz: ${esc(docName(d))} → ${esc(d.station)}</button>`:`<span class=doc>📎 ${esc(docName(d))}</span>`).join('')}</div>`).join('')||'<div class=card>Brak plików</div>';renderCustomers();applyRoleAccess()}
+function renderAnalysis(r){byId('client').value=r.client;byId('orderNo').value=r.orderNo;byId('amount').value=r.amount;if(!r.orderNo)alert('Nie znaleziono numeru zlecenia w sekcji Uwagi. Wpisz numer ręcznie.');if(byId('deadline'))byId('deadline').value=r.deadline||'';byId('materialsTable').innerHTML=r.materials.map(m=>`<tr><td>${esc(m.type)}</td><td>${esc(m.material)}</td><td>${esc(m.qty)}</td><td>${esc(m.unit)}</td><td>${esc(supplierForMaterial(m))}</td></tr>`).join('')||'<tr><td colspan=5>Brak</td></tr>';byId('tasksTable').innerHTML=r.tasks.map(t=>`<tr><td>${esc(t.name)}</td><td>${esc(t.qty)} ${esc(t.unit)}</td><td>${esc(t.source)}</td></tr>`).join('')||'<tr><td colspan=3>Brak</td></tr>'}
+function render(){byId('dOrders').textContent=state.orders.length;byId('dFiles').textContent=state.orders.reduce((s,o)=>s+(o.docs||[]).length,0);byId('dMaterials').textContent=state.orders.reduce((s,o)=>s+(o.materials||[]).length,0);byId('dTasks').textContent=state.orders.reduce((s,o)=>s+(o.tasks||[]).length,0);byId('dashOrders').innerHTML=state.orders.map(o=>`<div class=card><b>${esc(o.orderNo)} — ${esc(o.client)}</b>${kmsRole==='ADMIN'?` <button class="red" onclick="deleteCloudOrder('${jsStr(o.id)}')">🗑️ Usuń</button>`:''}${orderNoteHtml(o)} ${o.deadline?'<span class="pill blue">📅 '+esc(o.deadline)+'</span>':''}<br><span class="stage ${progressClass(o.cutItems)}">Cięcie ${progressText(o.cutItems)}</span><span class="stage ${progressClass(o.edgeItems)}">Oklejanie ${progressText(o.edgeItems)}</span><span class="stage ${progressClass(o.cncItems)}">CNC ${progressText(o.cncItems)}</span><span class="stage ${progressClass(o.assemblyItems||[])}">Montaż ${progressText(o.assemblyItems||[])}</span></div>`).join('')||'<span class=small>Brak</span>';byId('productionList').innerHTML=state.orders.map(productionOrderCard).join('')||'<div class=card>Brak aktywnych zleceń</div>';byId('supplierGrouped').innerHTML=grouped().map(g=>`<tr><td><b>${esc(g.supplier)}</b></td><td>${esc(g.type)}</td><td>${esc(g.material)}</td><td><b>${esc(Math.round(g.qty*100)/100)}</b></td><td>${esc(g.unit)}</td><td>${esc([...new Set(g.orders)].join(', '))}</td><td><span class="pill ${statusClass(g.status)}">${esc(g.status)}</span></td></tr>`).join('')||'<tr><td colspan=7>Brak</td></tr>';byId('supplierDetails').innerHTML=state.orders.flatMap((o,oi)=>(o.materials||[]).map((m,mi)=>`<tr><td>${esc(supplierForMaterial(m))}</td><td>${esc(o.orderNo)}</td><td>${esc(o.client)}</td><td>${esc(materialDisplayName(m))}</td><td>${esc(m.qty)}</td><td>${esc(m.unit)}</td><td><select class="${selectStatusClass(matStatus(m))}" onchange="state.orders[${oi}].materials[${mi}].status=this.value;updateStatusColor(this);save();cloudUpdateOrder(state.orders[${oi}],'Status materiału');render()"><option ${matStatus(m)==='Do zamówienia'?'selected':''}>Do zamówienia</option><option ${matStatus(m)==='Zamówione'?'selected':''}>Zamówione</option><option ${matStatus(m)==='Oczekiwanie na dostawę'?'selected':''}>Oczekiwanie na dostawę</option><option ${matStatus(m)==='Na hali'?'selected':''}>Na hali</option></select></td></tr>`)).join('')||'<tr><td colspan=7>Brak</td></tr>';byId('filesList').innerHTML=state.orders.map(o=>`<div class=card><h3>${esc(o.orderNo)} — ${esc(o.client)}</h3>${orderNoteHtml(o)}${(o.docs||[]).map((d,di)=>d.url?`<button class=doc onclick="openKmsDocByIndex('${jsStr(o.id)}',${di})">📎 Otwórz: ${esc(docName(d))} → ${esc(d.station)}</button>`:`<span class=doc>📎 ${esc(docName(d))}</span>`).join('')}</div>`).join('')||'<div class=card>Brak plików</div>';renderCustomers();renderCompletedOrders();applyRoleAccess()}
 
 function addWaste(){
  const type=byId('wasteType').value,decor=norm(byId('wasteDecor').value).toUpperCase(),rack=norm(byId('wasteRack').value).toUpperCase();
@@ -874,7 +1147,7 @@ function renderWaste(){
 }
 function renderSettlements(){
  const el=byId('settlementsTable');if(!el)return;
- el.innerHTML=state.orders.map(o=>`<tr><td>${esc(o.orderNo)}</td><td>${esc(o.client)}</td><td>${esc(o.amount||'')}</td><td><input placeholder="koszt" value="${esc(o.materialCost||'')}" onchange="o.materialCost=this.value;save()"></td><td><input placeholder="usługi" value="${esc(o.serviceCost||'')}" onchange="o.serviceCost=this.value;save()"></td><td><select onchange="o.paid=this.value;save();render()"><option ${o.paid==='Nie'?'selected':''}>Nie</option><option ${o.paid==='Częściowo'?'selected':''}>Częściowo</option><option ${o.paid==='Tak'?'selected':''}>Tak</option></select></td><td><span class="pill ${o.paid==='Tak'?'done':'progress'}">${esc(o.paid||'Nie')}</span></td></tr>`).join('')||'<tr><td colspan=7>Brak zleceń.</td></tr>';
+ el.innerHTML=[...(state.orders||[]),...(state.completedOrders||[])].map(o=>`<tr><td>${esc(o.orderNo)}</td><td>${esc(o.client)}</td><td>${esc(o.amount||'')}</td><td><input placeholder="koszt" value="${esc(o.materialCost||'')}" onchange="o.materialCost=this.value;save()"></td><td><input placeholder="usługi" value="${esc(o.serviceCost||'')}" onchange="o.serviceCost=this.value;save()"></td><td><select onchange="o.paid=this.value;save();render()"><option ${o.paid==='Nie'?'selected':''}>Nie</option><option ${o.paid==='Częściowo'?'selected':''}>Częściowo</option><option ${o.paid==='Tak'?'selected':''}>Tak</option></select></td><td><span class="pill ${o.paid==='Tak'?'done':'progress'}">${esc(o.paid||'Nie')}</span></td></tr>`).join('')||'<tr><td colspan=7>Brak zleceń.</td></tr>';
 }
 function renderEmailOrders(){
  const el=byId('emailOrder');if(!el)return;
@@ -952,6 +1225,7 @@ render=function(){
 
 const CAPACITY={cut:30,edge:600,cnc:32,assembly:20};
 const STANDARD_LEAD_WORKDAYS=7;
+const STANDARD_LEAD_GAP=6;
 function isWorkday(d){const day=d.getDay();return day!==0&&day!==6}
 function addWorkdays(date,days){
  const d=new Date(date); d.setHours(0,0,0,0);
@@ -969,12 +1243,12 @@ function fmtDate(d){return d?d.toISOString().slice(0,10):''}
 function orderSchedule(o){
  if(!o.deadline)return null;
  const due=new Date(o.deadline); due.setHours(0,0,0,0);
- const start=subWorkdays(due,STANDARD_LEAD_WORKDAYS);
+ const start=subWorkdays(due,STANDARD_LEAD_GAP);
  return {
   start:fmtDate(start),
-  stage1:fmtDate(addWorkdays(start,5)),
-  drilling:fmtDate(addWorkdays(start,6)),
-  assembly:fmtDate(due)
+  stage1:fmtDate(addWorkdays(start,4)),
+  drilling:fmtDate(addWorkdays(start,5)),
+  assembly:fmtDate(addWorkdays(start,6))
  };
 }
 function orderLoads(o){
@@ -1000,7 +1274,7 @@ function orderRisk(o){
  const left=workdaysToDeadline(o);
  if(left===null)return {level:'todo',text:'Brak terminu'};
  if(left<0)return {level:'bad',text:'Termin przekroczony'};
- if(left<STANDARD_LEAD_WORKDAYS)return {level:'bad',text:'Mniej niż 7 dni roboczych'};
+ if(left<STANDARD_LEAD_GAP)return {level:'bad',text:'Mniej niż pełny cykl 5+1+1'};
  if(maxDays>left)return {level:'bad',text:'Termin zagrożony'};
  if(maxDays>=Math.max(1,left-1))return {level:'progress',text:'Mały zapas'};
  return {level:'done',text:'Bezpiecznie'};
@@ -1046,7 +1320,7 @@ function renderAlerts(){
 
 function exportData(){let blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='kms_cloud_test_backup.json';a.click()}
 function importData(){let f=byId('backupFile').files[0];if(!f)return;let r=new FileReader();r.onload=()=>{state=JSON.parse(r.result);save();render()};r.readAsText(f)}
-function clearTestData(){if(confirm('Wyczyścić dane?')){state={orders:[]};save();render()}}
+function clearTestData(){if(confirm('Wyczyścić dane?')){state={orders:[],completedOrders:[],waste:[],comm:[],customers:[]};save();render()}}
 
 /* ===== KMS LAB: AI Analiza Rysunku ===== */
 const AI_PRICE_KEY='kms_ai_analiza_rysunku_prices_v11';
