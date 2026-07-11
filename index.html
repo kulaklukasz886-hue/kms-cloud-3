@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>KMS CLOUD 2.4.3 PORZĄDEK PRODUKCJI</title>
+<title>KMS CLOUD 2.5 AUTH</title>
 <style>
 body{margin:0;font-family:Arial;background:#f3f4f6;color:#111827}.app{display:flex;min-height:100vh}
 aside{width:260px;background:#111827;color:white;padding:16px}main{flex:1;padding:22px;max-width:1500px}
@@ -45,15 +45,29 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 .order-details{margin-top:10px}
 .completed-card{background:#f0fdf4;border-color:#86efac}
 @media(max-width:1000px){.order-summary{grid-template-columns:1fr 1fr}}
+
+.auth-screen{position:fixed;inset:0;background:linear-gradient(135deg,#0f172a,#1e293b);display:flex;align-items:center;justify-content:center;z-index:20000;padding:18px}
+.auth-screen.hidden{display:none}.auth-card{width:min(440px,94vw);background:white;border-radius:20px;padding:24px;box-shadow:0 25px 80px rgba(0,0,0,.4)}
+.auth-card h1{margin-top:0}.auth-error{background:#fee2e2;color:#991b1b;border-radius:10px;padding:10px;margin-top:10px}.auth-user{background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:10px;margin-bottom:12px}.app.auth-locked{display:none}
 </style>
 
 
 </head>
 <body>
-<div class="app">
+<div id="authScreen" class="auth-screen">
+  <div class="auth-card">
+    <h1>🔐 KMS CLOUD</h1>
+    <p>Zaloguj się swoim kontem firmowym.</p>
+    <label>E-mail</label><input id="loginEmail" type="email" autocomplete="username" placeholder="np. ewa@firma.pl">
+    <label>Hasło</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Hasło" onkeydown="if(event.key==='Enter')loginKms()">
+    <button class="primary" style="width:100%;margin-top:12px" onclick="loginKms()">Zaloguj</button>
+    <div id="authMessage" class="small" style="margin-top:10px">Sprawdzam sesję...</div>
+  </div>
+</div>
+<div class="app auth-locked" id="kmsApp">
 <aside>
-<h2>KMS CLOUD 2.4.3 PORZĄDEK PRODUKCJI</h2>
-<div class="small">zwijanie + zrealizowane + harmonogram 5+1+1</div>
+<h2>KMS CLOUD 2.5 AUTH</h2>
+<div class="small">bezpieczne logowanie + role + historia działań</div>
 <div class="nav">
 <button class="active" onclick="show('dash',this)">👔 Pulpit</button>
 <button onclick="show('import',this)">📄 Proforma / zlecenie</button>
@@ -75,42 +89,24 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 </aside>
 <main>
 
-<div class="card" id="rolePanel">
-  <div class="grid3">
-    <div>
-      <label><b>STANOWISKO / DOSTĘP</b></label>
-      <select id="kmsRole" onchange="setKmsRole(this.value)">
-        <option value="ADMIN">Administrator</option>
-        <option value="BIURO">Biuro</option>
-        <option value="KOORDYNACJA">Koordynacja</option>
-        <option value="PILA">Piła</option>
-        <option value="OKLEINIARKA">Okleiniarka</option>
-        <option value="CNC">CNC</option>
-        <option value="MONTAZ">Montaż</option>
-      </select>
-    </div>
-    <div>
-      <label><b>UŻYTKOWNIK / STANOWISKO</b></label>
-      <input id="kmsUserName" placeholder="np. Łukasz, Ewa, Dominik" onchange="saveRoleProfile()">
-    </div>
-    <div style="align-self:end">
-      <span id="roleStatus" class="pill blue">Administrator</span>
-    </div>
-  </div>
-  <div class="small">Profil zapisuje się na tym komputerze. Administrator ma pełny dostęp i może usuwać zlecenia.</div>
+<div class="auth-user" id="loggedUserPanel">
+  <b id="loggedUserName">Użytkownik</b> <span id="roleStatus" class="pill blue"></span>
+  <span id="loggedUserEmail" class="small"></span>
+  <button class="gray" style="float:right" onclick="logoutKms()">Wyloguj</button>
+  <div style="clear:both"></div>
 </div>
 
 <section id="dash">
 <h1>👔 Pulpit</h1>
 <div class="card">
-<h3>☁️ KMS CLOUD 2.4.3 PORZĄDEK PRODUKCJI</h3>
+<h3>☁️ KMS CLOUD 2.5 AUTH</h3>
 <button class="primary" onclick="cloudLoadOrders()">Odśwież teraz</button>
 <button class="gray" onclick="cloudSyncLocalOrders()">Wyślij lokalne zlecenia do chmury</button>
 <span id="cloudStatus" class="pill todo">Cloud uruchamia się...</span>
 <div class="small">Automatyczne wczytanie po starcie, synchronizacja co 15 sekund, zapis statusów produkcji do chmury.</div>
 <div id="cloudLog" class="small" style="margin-top:8px">Historia synchronizacji pojawi się tutaj.</div>
 </div>
-<div class="card"><b>🟢 KMS CLOUD 2.4.3 PORZĄDEK PRODUKCJI</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
+<div class="card"><b>🟢 KMS CLOUD 2.5 AUTH</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
 <div class="grid">
 <div class="card"><h3>Zlecenia</h3><div class="value" id="dOrders">0</div></div>
 <div class="card"><h3>Pliki</h3><div class="value" id="dFiles">0</div></div>
@@ -380,18 +376,19 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 </main>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
-setTimeout(()=>cloudStartCommSync(),2200);
+
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
-setTimeout(()=>cloudStartCommSync(),2200);
+
 </script>
 <script>
 if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'}
 const KEY='kms_alpha_1_0_stable';
 let state=JSON.parse(localStorage.getItem(KEY)||'{"orders":[],"waste":[],"comm":[]}'),lastAnalysis=null,pendingDocs=[]; if(!state.waste)state.waste=[]; if(!state.comm)state.comm=[]; if(!state.customers)state.customers=[]; if(!state.completedOrders)state.completedOrders=[];
 
-// ===== KMS CLOUD 2.4.3 PORZĄDEK PRODUKCJI - API -> SUPABASE =====
+// ===== KMS CLOUD 2.5 AUTH - API -> SUPABASE =====
 let cloudAutoStarted=false;
 let cloudSyncTimer=null;
 let cloudSaving=false;
@@ -407,10 +404,14 @@ function cloudLog(text){
   const old=(el.innerHTML||'').split('<br>').filter(Boolean).slice(0,5);
   el.innerHTML=[esc(`${now}  ${text}`),...old].join('<br>');
 }
-async function kmsApi(path, options={}){
-  const res=await fetch(path,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});
+async function kmsApi(path,options={}){
+  const token=authSession?.access_token||'';
+  const headers={'Content-Type':'application/json',...(options.headers||{})};
+  if(token)headers.Authorization=`Bearer ${token}`;
+  const res=await fetch(path,{...options,headers});
   const data=await res.json().catch(()=>({}));
-  if(!res.ok || data.ok===false) throw new Error(data.error || ('HTTP '+res.status));
+  if(res.status===401){showLogin('Sesja wygasła. Zaloguj się ponownie.',true)}
+  if(!res.ok||data.ok===false)throw new Error(data.error||('HTTP '+res.status));
   return data;
 }
 function normalizeCloudOrder(row){
@@ -510,7 +511,7 @@ async function cloudUpdateOrder(order, reason='Aktualizacja statusu'){
   try{
     cloudSaving=true;
     cloudStatus('Zapisuję status w chmurze...','progress');
-    const data=await kmsApi('/api/orders',{method:'PUT',body:JSON.stringify({order:{...order,id:order.cloudId,cloudId:order.cloudId}})});
+    const data=await kmsApi('/api/orders',{method:'PUT',body:JSON.stringify({order:{...order,id:order.cloudId,cloudId:order.cloudId},reason})});
     const c=data.counts||{};
     cloudStatus('🟢 Połączono z chmurą','done');
     if(typeof cloudLog==='function')cloudLog(`${reason}: ${order.orderNo||''} / zad ${c.tasks||0}`);
@@ -530,6 +531,7 @@ async function cloudSyncLocalOrders(){
   alert('Synchronizacja zakończona.');
 }
 function cloudStartAutoSync(){
+  if(!authSession)return;
   if(cloudAutoStarted)return;
   cloudAutoStarted=true;
   setTimeout(()=>cloudLoadOrders(true),800);
@@ -537,8 +539,8 @@ function cloudStartAutoSync(){
   cloudSyncTimer=setInterval(()=>cloudLoadOrders(true),15000);
   cloudLog('Auto synchronizacja uruchomiona.');
 }
-setTimeout(()=>cloudStartAutoSync(),1200);
-// ===== END KMS CLOUD 2.4.3 PORZĄDEK PRODUKCJI =====
+
+// ===== END KMS CLOUD 2.5 AUTH =====
 
 // ===== KMS CLOUD 2.3.1 - COMMUNICATION Hala-Biuro FIX =====
 async function cloudLoadComm(silent=true){
@@ -594,79 +596,8 @@ function cloudStartCommSync(){
   setTimeout(()=>cloudLoadComm(true),1800);
   setInterval(()=>cloudLoadComm(true),15000);
 }
-// ===== END KMS CLOUD 2.4.3 PORZĄDEK PRODUKCJI =====
+// ===== END KMS CLOUD 2.5 AUTH =====
 
-
-const KMS_ROLE_KEY='kms_role_profile_v1';
-let kmsRole='ADMIN';
-let kmsUserName='';
-
-const ROLE_LABELS={
-  ADMIN:'Administrator', BIURO:'Biuro', KOORDYNACJA:'Koordynacja',
-  PILA:'Piła', OKLEINIARKA:'Okleiniarka', CNC:'CNC', MONTAZ:'Montaż'
-};
-const ROLE_SECTIONS={
-  ADMIN:['dash','import','prod','completed','planning','alerts','sup','aiDrawing','files','comm','waste','settlements','emails','customers','users','backup'],
-  BIURO:['dash','import','prod','completed','planning','alerts','sup','files','comm','waste','settlements','emails','customers'],
-  KOORDYNACJA:['dash','prod','completed','planning','alerts','sup','files','comm','waste'],
-  PILA:['dash','prod','files','comm'],
-  OKLEINIARKA:['dash','prod','files','comm'],
-  CNC:['dash','prod','files','comm'],
-  MONTAZ:['dash','prod','files','comm']
-};
-
-function loadRoleProfile(){
-  try{
-    const p=JSON.parse(localStorage.getItem(KMS_ROLE_KEY)||'{}');
-    kmsRole=p.role||'ADMIN';
-    kmsUserName=p.userName||'';
-  }catch(e){kmsRole='ADMIN';kmsUserName=''}
-  if(byId('kmsRole'))byId('kmsRole').value=kmsRole;
-  if(byId('kmsUserName'))byId('kmsUserName').value=kmsUserName;
-  applyRoleAccess();
-}
-function saveRoleProfile(){
-  kmsUserName=norm(byId('kmsUserName')?.value||'');
-  localStorage.setItem(KMS_ROLE_KEY,JSON.stringify({role:kmsRole,userName:kmsUserName}));
-  applyRoleAccess();
-}
-function setKmsRole(role){
-  kmsRole=role||'ADMIN';
-  saveRoleProfile();
-  show('dash',document.querySelector('.nav button'));
-}
-function canAccessSection(id){return(ROLE_SECTIONS[kmsRole]||ROLE_SECTIONS.ADMIN).includes(id)}
-function applyRoleAccess(){
-  const allowed=ROLE_SECTIONS[kmsRole]||ROLE_SECTIONS.ADMIN;
-  document.querySelectorAll('.nav button').forEach(btn=>{
-    const m=(btn.getAttribute('onclick')||'').match(/show\('([^']+)'/);
-    if(m)btn.classList.toggle('role-hidden',!allowed.includes(m[1]));
-  });
-  if(byId('roleStatus'))byId('roleStatus').textContent=(ROLE_LABELS[kmsRole]||kmsRole)+(kmsUserName?' — '+kmsUserName:'');
-}
-function roleAllowsGroup(g){
-  if(['ADMIN','BIURO','KOORDYNACJA'].includes(kmsRole))return true;
-  return(kmsRole==='PILA'&&g==='cut')||(kmsRole==='OKLEINIARKA'&&g==='edge')||(kmsRole==='CNC'&&g==='cnc')||(kmsRole==='MONTAZ'&&g==='assembly');
-}
-function adminOnly(){
-  if(kmsRole!=='ADMIN'){alert('Ta funkcja jest dostępna tylko dla administratora.');return false}
-  return true;
-}
-async function deleteCloudOrder(orderId){
-  if(!adminOnly())return;
-  const o=state.orders.find(x=>String(x.id)===String(orderId)||String(x.cloudId)===String(orderId));
-  if(!o)return alert('Nie znaleziono zlecenia.');
-  const check=prompt(`USUWANIE ZLECENIA\n\n${o.orderNo} — ${o.client}\n\nWpisz numer zlecenia, aby potwierdzić:`);
-  if(String(check||'').trim()!==String(o.orderNo||'').trim())return alert('Usuwanie anulowane — numer zlecenia nie zgadza się.');
-  try{
-    cloudStatus('Usuwam zlecenie z chmury...','progress');
-    await kmsApi('/api/orders',{method:'DELETE',body:JSON.stringify({id:o.cloudId||o.id})});
-    state.orders=state.orders.filter(x=>String(x.id)!==String(o.id)&&String(x.cloudId)!==String(o.cloudId||o.id));
-    save();render();
-    cloudStatus('🟢 Zlecenie usunięte','done');
-    if(typeof cloudLog==='function')cloudLog('Usunięto zlecenie '+(o.orderNo||''));
-  }catch(e){cloudStatus('🔴 Błąd usuwania: '+e.message,'bad');alert('Nie udało się usunąć zlecenia: '+e.message)}
-}
 
 async function cloudLoadCustomers(silent=true){
   try{
@@ -709,7 +640,7 @@ function copyEmailDraft(){
   const txt=byId('emailDraft')?.value||'';if(!txt)return alert('Brak wiadomości do skopiowania.');
   navigator.clipboard?.writeText(txt).then(()=>alert('Wiadomość skopiowana.')).catch(()=>alert('Nie udało się skopiować.'));
 }
-setTimeout(()=>{loadRoleProfile();cloudLoadCustomers(true)},1800);
+
 
 
 function openOrderNote(orderId){
@@ -1516,7 +1447,7 @@ function aiInit(){aiLoadPrices();aiRenderEmpty();}
 aiInit();
 renderPendingDocs();render();
 
-setTimeout(()=>cloudStartCommSync(),2200);
+
 </script>
 
 <div id="orderNoteModal" class="note-modal hidden">
