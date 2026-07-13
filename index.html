@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>KMS CLOUD 2.5.1 AUTH FIX</title>
+<title>KMS CLOUD 2.5.2 STORAGE FIX</title>
 <style>
 body{margin:0;font-family:Arial;background:#f3f4f6;color:#111827}.app{display:flex;min-height:100vh}
 aside{width:260px;background:#111827;color:white;padding:16px}main{flex:1;padding:22px;max-width:1500px}
@@ -66,7 +66,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 </div>
 <div class="app auth-locked" id="kmsApp">
 <aside>
-<h2>KMS CLOUD 2.5.1 AUTH FIX</h2>
+<h2>KMS CLOUD 2.5.2 STORAGE FIX</h2>
 <div class="small">bezpieczne logowanie + role + historia działań</div>
 <div class="nav">
 <button class="active" onclick="show('dash',this)">👔 Pulpit</button>
@@ -99,14 +99,16 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <section id="dash">
 <h1>👔 Pulpit</h1>
 <div class="card">
-<h3>☁️ KMS CLOUD 2.5.1 AUTH FIX</h3>
+<h3>☁️ KMS CLOUD 2.5.2 STORAGE FIX</h3>
 <button class="primary" onclick="cloudLoadOrders()">Odśwież teraz</button>
 <button class="gray" onclick="cloudSyncLocalOrders()">Wyślij lokalne zlecenia do chmury</button>
+<button class="gray" onclick="runStorageRepair(true)">Napraw pamięć lokalną</button>
 <span id="cloudStatus" class="pill todo">Cloud uruchamia się...</span>
-<div class="small">Automatyczne wczytanie po starcie, synchronizacja co 15 sekund, zapis statusów produkcji do chmury.</div>
+<span id="localStorageStatus" class="pill todo">Pamięć lokalna: sprawdzam...</span>
+<div class="small">Automatyczne wczytanie po starcie, synchronizacja co 15 sekund, zapis statusów produkcji do chmury. Duże pliki są przechowywane poza localStorage, aby nie blokować KMS.</div>
 <div id="cloudLog" class="small" style="margin-top:8px">Historia synchronizacji pojawi się tutaj.</div>
 </div>
-<div class="card"><b>🟢 KMS CLOUD 2.5.1 AUTH FIX</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
+<div class="card"><b>🟢 KMS CLOUD 2.5.2 STORAGE FIX</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
 <div class="grid">
 <div class="card"><h3>Zlecenia</h3><div class="value" id="dOrders">0</div></div>
 <div class="card"><h3>Pliki</h3><div class="value" id="dFiles">0</div></div>
@@ -386,10 +388,24 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <script>
 if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'}
 const KEY='kms_alpha_1_0_stable';
-let state=JSON.parse(localStorage.getItem(KEY)||'{"orders":[],"waste":[],"comm":[]}'),lastAnalysis=null,pendingDocs=[]; if(!state.waste)state.waste=[]; if(!state.comm)state.comm=[]; if(!state.customers)state.customers=[]; if(!state.completedOrders)state.completedOrders=[];
+const KMS_FILE_DB='kms_cloud_large_files_v1';
+const KMS_FILE_STORE='files';
+function kmsDefaultState(){return{orders:[],completedOrders:[],waste:[],comm:[],customers:[]}}
+function kmsReadInitialState(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(!raw)return kmsDefaultState();
+    const parsed=JSON.parse(raw);
+    return parsed&&typeof parsed==='object'?parsed:kmsDefaultState();
+  }catch(e){
+    console.error('KMS local state read error',e);
+    return kmsDefaultState();
+  }
+}
+let state=kmsReadInitialState(),lastAnalysis=null,pendingDocs=[]; if(!state.orders)state.orders=[]; if(!state.waste)state.waste=[]; if(!state.comm)state.comm=[]; if(!state.customers)state.customers=[]; if(!state.completedOrders)state.completedOrders=[];
 
 
-// ===== KMS CLOUD 2.5.1 AUTH FIX - FRONTEND AUTH =====
+// ===== KMS CLOUD 2.5.2 STORAGE FIX - FRONTEND AUTH =====
 let authClient=null;
 let authSession=null;
 let authProfile=null;
@@ -565,10 +581,10 @@ async function initKmsAuth(){
     showLogin('Błąd uruchomienia logowania: '+(e.message||'Nieznany błąd'));
   }
 }
-// ===== END KMS CLOUD 2.5.1 AUTH FIX =====
+// ===== END KMS CLOUD 2.5.2 STORAGE FIX =====
 
 
-// ===== KMS CLOUD 2.5.1 AUTH FIX - API -> SUPABASE =====
+// ===== KMS CLOUD 2.5.2 STORAGE FIX - API -> SUPABASE =====
 let cloudAutoStarted=false;
 let cloudSyncTimer=null;
 let cloudSaving=false;
@@ -651,7 +667,7 @@ async function cloudLoadOrders(silent=false){
     cloudStatus('🟢 Połączono z chmurą','done');
     if(!silent)cloudLog('Wczytano zlecenia: '+state.orders.length);
   }catch(e){
-    cloudStatus('🔴 Brak połączenia: '+e.message,'bad');
+    cloudStatus((kmsIsQuotaError(e)?'🟠 Pamięć lokalna pełna — uruchom naprawę':'🔴 Brak połączenia: '+e.message),'bad');
     if(!silent)alert('Błąd odczytu z chmury: '+e.message);
   }
 }
@@ -720,7 +736,7 @@ function cloudStartAutoSync(){
   cloudLog('Auto synchronizacja uruchomiona.');
 }
 
-// ===== END KMS CLOUD 2.5.1 AUTH FIX =====
+// ===== END KMS CLOUD 2.5.2 STORAGE FIX =====
 
 // ===== KMS CLOUD 2.3.1 - COMMUNICATION Hala-Biuro FIX =====
 async function cloudLoadComm(silent=true){
@@ -776,7 +792,7 @@ function cloudStartCommSync(){
   setTimeout(()=>cloudLoadComm(true),1800);
   setInterval(()=>cloudLoadComm(true),15000);
 }
-// ===== END KMS CLOUD 2.5.1 AUTH FIX =====
+// ===== END KMS CLOUD 2.5.2 STORAGE FIX =====
 
 
 async function cloudLoadCustomers(silent=true){
@@ -867,7 +883,195 @@ function orderNoteHtml(o){
 function byId(id){return document.getElementById(id)}
 function jsStr(v){return String(v||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
 function norm(v){return(v||'').replace(/\s+/g,' ').trim()}function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function save(){localStorage.setItem(KEY,JSON.stringify(state))}function show(id,btn){if(!canAccessSection(id)){alert('Brak dostępu do tego modułu na tym stanowisku.');id='dash'}document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));byId(id).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render();applyRoleAccess()}
+
+// ===== KMS CLOUD 2.5.2 STORAGE FIX =====
+let kmsStorageSaveRunning=false;
+let kmsStorageSaveAgain=false;
+let kmsLastStorageMode='normal';
+
+function kmsStorageStatus(text,cls='todo'){
+  const el=byId('localStorageStatus');
+  if(el){el.className='pill '+cls;el.textContent=text}
+}
+function kmsIsDataUrl(v){return typeof v==='string'&&v.startsWith('data:')}
+function kmsIsQuotaError(e){
+  return !!e&&(e.name==='QuotaExceededError'||e.name==='NS_ERROR_DOM_QUOTA_REACHED'||/quota|storage/i.test(String(e.message||'')));
+}
+function kmsOpenFileDb(){
+  return new Promise((resolve,reject)=>{
+    if(!window.indexedDB)return reject(new Error('IndexedDB niedostępne'));
+    const req=indexedDB.open(KMS_FILE_DB,1);
+    req.onupgradeneeded=()=>{
+      const db=req.result;
+      if(!db.objectStoreNames.contains(KMS_FILE_STORE))db.createObjectStore(KMS_FILE_STORE);
+    };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error||new Error('Błąd IndexedDB'));
+  });
+}
+async function kmsIdbPut(key,value){
+  const db=await kmsOpenFileDb();
+  try{
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(KMS_FILE_STORE,'readwrite');
+      tx.objectStore(KMS_FILE_STORE).put(value,key);
+      tx.oncomplete=()=>resolve();
+      tx.onerror=()=>reject(tx.error||new Error('Błąd zapisu IndexedDB'));
+      tx.onabort=()=>reject(tx.error||new Error('Przerwany zapis IndexedDB'));
+    });
+  }finally{db.close()}
+}
+async function kmsIdbGet(key){
+  const db=await kmsOpenFileDb();
+  try{
+    return await new Promise((resolve,reject)=>{
+      const tx=db.transaction(KMS_FILE_STORE,'readonly');
+      const req=tx.objectStore(KMS_FILE_STORE).get(key);
+      req.onsuccess=()=>resolve(req.result);
+      req.onerror=()=>reject(req.error||new Error('Błąd odczytu IndexedDB'));
+    });
+  }finally{db.close()}
+}
+async function kmsIdbClear(){
+  const db=await kmsOpenFileDb();
+  try{
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(KMS_FILE_STORE,'readwrite');
+      tx.objectStore(KMS_FILE_STORE).clear();
+      tx.oncomplete=()=>resolve();
+      tx.onerror=()=>reject(tx.error||new Error('Błąd czyszczenia IndexedDB'));
+    });
+  }finally{db.close()}
+}
+function kmsDocKey(order,doc,index){
+  const oid=String(order.cloudId||order.id||'local').replace(/[^a-z0-9_-]/gi,'_');
+  const name=String(doc.name||doc.file_name||'plik').replace(/[^a-z0-9_.-]/gi,'_').slice(0,80);
+  return `order_${oid}_doc_${index}_${name}`;
+}
+async function kmsArchiveLargeDocs(){
+  const lists=[state.orders||[],state.completedOrders||[]];
+  let archived=0,failed=0;
+  for(const orders of lists){
+    for(const order of orders){
+      const docs=Array.isArray(order.docs)?order.docs:[];
+      for(let i=0;i<docs.length;i++){
+        const d=docs[i]||{};
+        const url=d.url||d.file_url||'';
+        if(!kmsIsDataUrl(url))continue;
+        const key=d.localBlobKey||kmsDocKey(order,d,i);
+        try{
+          if(!d.localBlobKey){
+            const existing=await kmsIdbGet(key).catch(()=>undefined);
+            if(!existing)await kmsIdbPut(key,{url,name:d.name||d.file_name||'',savedAt:new Date().toISOString()});
+          }
+          d.localBlobKey=key;
+          d.localStorageMode='indexeddb';
+          archived++;
+        }catch(e){
+          failed++;
+          console.error('KMS file archive error',e);
+        }
+      }
+    }
+  }
+  return{archived,failed};
+}
+function kmsCompactState(mode='normal'){
+  const snapshot=JSON.parse(JSON.stringify(state));
+  const compactOrders=orders=>(orders||[]).map(order=>{
+    const o={...order};
+    o.docs=(o.docs||[]).map((d,i)=>{
+      const doc={...d};
+      const url=doc.url||doc.file_url||'';
+      if(kmsIsDataUrl(url)){
+        const live=(order.docs||[])[i]||{};
+        const canStrip=!!live.localBlobKey||!!order.cloudId||String(order.id||'').includes('-');
+        if(canStrip){
+          doc.localBlobKey=live.localBlobKey||doc.localBlobKey||kmsDocKey(order,doc,i);
+          doc.url='';
+          if('file_url'in doc)doc.file_url='';
+          doc.localStorageMode='indexeddb-or-cloud';
+        }
+      }
+      return doc;
+    });
+    return o;
+  });
+  snapshot.orders=compactOrders(snapshot.orders);
+  snapshot.completedOrders=compactOrders(snapshot.completedOrders);
+  snapshot._storage={version:2,mode,savedAt:new Date().toISOString()};
+  if(mode==='cloud-cache-minimal'){
+    snapshot.orders=(snapshot.orders||[]).filter(o=>!o.cloudId&&!String(o.id||'').includes('-'));
+    snapshot.completedOrders=(snapshot.completedOrders||[]).filter(o=>!o.cloudId&&!String(o.id||'').includes('-'));
+    snapshot.comm=[];
+    snapshot.customers=[];
+  }
+  return snapshot;
+}
+function kmsWriteSnapshot(snapshot){
+  localStorage.setItem(KEY,JSON.stringify(snapshot));
+}
+async function kmsSaveStateSafe(showResult=false){
+  if(kmsStorageSaveRunning){kmsStorageSaveAgain=true;return}
+  kmsStorageSaveRunning=true;
+  kmsStorageSaveAgain=false;
+  try{
+    kmsStorageStatus('Pamięć lokalna: porządkuję...','progress');
+    const archive=await kmsArchiveLargeDocs();
+    try{
+      kmsWriteSnapshot(kmsCompactState('normal'));
+      kmsLastStorageMode='normal';
+      kmsStorageStatus('Pamięć lokalna: OK','done');
+      if(showResult)alert(`Pamięć lokalna naprawiona. Duże pliki przeniesione poza localStorage: ${archive.archived}.`);
+    }catch(e){
+      if(!kmsIsQuotaError(e))throw e;
+      kmsWriteSnapshot(kmsCompactState('cloud-cache-minimal'));
+      kmsLastStorageMode='cloud-cache-minimal';
+      kmsStorageStatus('Pamięć lokalna: tryb odchudzony','progress');
+      if(showResult)alert('Pamięć lokalna została odchudzona. Zlecenia zapisane w chmurze nie są dublowane w localStorage.');
+    }
+  }catch(e){
+    console.error('KMS safe storage error',e);
+    kmsStorageStatus('Pamięć lokalna: błąd — dane w pamięci bieżącej','bad');
+    if(showResult)alert('Nie udało się naprawić pamięci lokalnej: '+(e.message||e));
+  }finally{
+    kmsStorageSaveRunning=false;
+    if(kmsStorageSaveAgain)setTimeout(()=>kmsSaveStateSafe(false),0);
+  }
+}
+function save(){void kmsSaveStateSafe(false);return true}
+async function runStorageRepair(showResult=false){await kmsSaveStateSafe(showResult)}
+async function kmsHydrateLocalDocs(){
+  let restored=0;
+  for(const orders of [state.orders||[],state.completedOrders||[]]){
+    for(const order of orders){
+      for(const d of (order.docs||[])){
+        if((d.url||d.file_url)||!d.localBlobKey)continue;
+        try{
+          const stored=await kmsIdbGet(d.localBlobKey);
+          if(stored?.url){d.url=stored.url;restored++}
+        }catch(e){console.error('KMS hydrate file error',e)}
+      }
+    }
+  }
+  return restored;
+}
+async function kmsStorageBootstrap(){
+  try{
+    kmsStorageStatus('Pamięć lokalna: migracja...','progress');
+    await kmsHydrateLocalDocs();
+    await kmsSaveStateSafe(false);
+  }catch(e){
+    console.error('KMS storage bootstrap',e);
+    kmsStorageStatus('Pamięć lokalna: tryb awaryjny','bad');
+  }
+}
+window.addEventListener('beforeunload',()=>{
+  try{kmsWriteSnapshot(kmsCompactState(kmsLastStorageMode))}catch(e){}
+});
+// ===== END KMS CLOUD 2.5.2 STORAGE FIX =====
+
+function show(id,btn){if(!canAccessSection(id)){alert('Brak dostępu do tego modułu na tym stanowisku.');id='dash'}document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));byId(id).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render();applyRoleAccess()}
 function parseNum(v){return Number(String(v||'').replace(/o/ig,'0').replace(',','.').replace(/[^\d.]/g,''))||0}function money(v){return String(v||'').replace(/\s/g,'').replace(',','.')}
 
 function fileToDataUrl(file){
@@ -1074,12 +1278,15 @@ function createOrder(a,docsExtra){const si=createStationItems(a.materials,a.item
 function createFromCurrent(){if(!lastAnalysis)return alert('Najpierw analizuj PDF');lastAnalysis.client=byId('client').value;lastAnalysis.orderNo=byId('orderNo').value;lastAnalysis.amount=byId('amount').value;lastAnalysis.deadline=byId('deadline')?byId('deadline').value:'';const c=(state.customers||[]).find(x=>String(x.name||'').trim().toUpperCase()===String(lastAnalysis.client||'').trim().toUpperCase());if(c){lastAnalysis.customerId=c.id;lastAnalysis.customerEmail=c.email||'';lastAnalysis.customerPhone=c.phone||''}createOrder(lastAnalysis,pendingDocs);pendingDocs=[];renderPendingDocs();save();render();alert('Utworzono kartę zlecenia. KMS zapisuje ją w chmurze automatycznie.')}
 function docsForStation(o,st){return(o.docs||[]).filter(d=>(d.station||'Zamówienie')==='Zamówienie'||(d.station||'')===st)}function docName(d){return d.name||d}
 function docsForStationIndexed(o,st){return(o.docs||[]).map((d,i)=>({d,i})).filter(x=>(x.d.station||'Zamówienie')==='Zamówienie'||(x.d.station||'')===st)}
-function openKmsDocByIndex(orderId,docIndex){
+async function openKmsDocByIndex(orderId,docIndex){
  const o=state.orders.find(x=>String(x.id)===String(orderId)||String(x.cloudId)===String(orderId));
  if(!o||!o.docs||!o.docs[docIndex]){alert('Nie znaleziono pliku PDF przy tym zleceniu.');return;}
  const d=o.docs[docIndex];
- const url=d.url||d.file_url||'';
- if(!url){alert('Plik jest przypisany, ale nie ma zapisanego adresu / danych PDF.');return;}
+ let url=d.url||d.file_url||'';
+ if(!url&&d.localBlobKey){
+   try{const stored=await kmsIdbGet(d.localBlobKey);if(stored?.url){url=stored.url;d.url=url}}catch(e){console.error(e)}
+ }
+ if(!url){alert('Plik jest przypisany, ale nie ma lokalnej kopii. Odśwież dane z chmury.');return;}
  try{
    if(url.startsWith('data:')){
      const parts=url.split(',');
@@ -1430,8 +1637,8 @@ function renderAlerts(){
 }
 
 function exportData(){let blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='kms_cloud_test_backup.json';a.click()}
-function importData(){let f=byId('backupFile').files[0];if(!f)return;let r=new FileReader();r.onload=()=>{state=JSON.parse(r.result);save();render()};r.readAsText(f)}
-function clearTestData(){if(confirm('Wyczyścić dane?')){state={orders:[],completedOrders:[],waste:[],comm:[],customers:[]};save();render()}}
+function importData(){let f=byId('backupFile').files[0];if(!f)return;let r=new FileReader();r.onload=()=>{state=JSON.parse(r.result);if(!state.orders)state.orders=[];if(!state.completedOrders)state.completedOrders=[];if(!state.waste)state.waste=[];if(!state.comm)state.comm=[];if(!state.customers)state.customers=[];save();render()};r.readAsText(f)}
+async function clearTestData(){if(confirm('Wyczyścić dane testowe i lokalne kopie plików?')){state={orders:[],completedOrders:[],waste:[],comm:[],customers:[]};try{await kmsIdbClear()}catch(e){}save();render()}}
 
 /* ===== KMS LAB: AI Analiza Rysunku ===== */
 const AI_PRICE_KEY='kms_ai_analiza_rysunku_prices_v11';
@@ -1627,7 +1834,10 @@ function aiInit(){aiLoadPrices();aiRenderEmpty();}
 aiInit();
 renderPendingDocs();
 showLogin('Sprawdzam sesję...');
-setTimeout(initKmsAuth,100);
+(async()=>{
+  await kmsStorageBootstrap();
+  setTimeout(initKmsAuth,100);
+})();
 
 
 </script>
