@@ -1,8 +1,11 @@
 {
-  "version": "2.5.3",
-  "stable_parser_sha256": "c5a84185c79f3ee9259f1dce335bba87f94a11afda7a5fb03db0b534da03ac03",
-  "parser_exact_match": true,
-  "admin_order_delete": true,
-  "admin_note_delete_only": true,
-  "storage_fix": true
+  "version": "2.6.1-test-order-analysis-clean-deploy",
+  "base_version": "2.5.3-parser-admin-fix",
+  "stable_untouched": true,
+  "order_analysis_stage1": true,
+  "order_technology_stage2": true,
+  "csv_stage3": true,
+  "route_to_production": true,
+  "countertop_ai_removed": true,
+  "warning": "TEST ONLY - deploy on separate GitHub branch and separate Vercel project/domain"
 }
