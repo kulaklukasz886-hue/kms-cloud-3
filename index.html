@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>KMS TESTOWY 2.6.2 — ANALIZA ZAMÓWIEŃ 1→2→3</title>
+<title>KMS TESTOWY 2.6.3 — ANALIZA ZAMÓWIEŃ 1→2→3</title>
 <style>
 body{margin:0;font-family:Arial;background:#f3f4f6;color:#111827}.app{display:flex;min-height:100vh}
 aside{width:260px;background:#111827;color:white;padding:16px}main{flex:1;padding:22px;max-width:1500px}
@@ -73,7 +73,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 </div>
 <div class="app auth-locked" id="kmsApp">
 <aside>
-<h2>KMS TESTOWY 2.6.2</h2>
+<h2>KMS TESTOWY 2.6.3</h2>
 <div class="small">Analiza zamówień → CSV → produkcja</div>
 <div class="nav">
 <button class="active" onclick="show('dash',this)">👔 Pulpit</button>
@@ -106,7 +106,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <section id="dash">
 <h1>👔 Pulpit</h1>
 <div class="card">
-<h3>☁️ KMS TESTOWY 2.6.2 — ANALIZA ZAMÓWIEŃ</h3>
+<h3>☁️ KMS TESTOWY 2.6.3 — ANALIZA ZAMÓWIEŃ</h3>
 <button class="primary" onclick="cloudLoadOrders()">Odśwież teraz</button>
 <button class="gray" onclick="cloudSyncLocalOrders()">Wyślij lokalne zlecenia do chmury</button>
 <button class="gray" onclick="runStorageRepair(true)">Napraw pamięć lokalną</button>
@@ -115,7 +115,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <div class="small">Automatyczne wczytanie po starcie, synchronizacja co 15 sekund i zapis statusów do chmury. Duże pliki są przechowywane poza localStorage, aby nie blokować KMS.</div>
 <div id="cloudLog" class="small" style="margin-top:8px">Historia synchronizacji pojawi się tutaj.</div>
 </div>
-<div class="card"><b>🧪 KMS TESTOWY 2.6.2</b><br>Wersja testowa na osobną gałąź/adres. Nie podmieniać działającej wersji STABLE bez zakończenia testów.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
+<div class="card"><b>🧪 KMS TESTOWY 2.6.3</b><br>Wersja testowa na osobną gałąź/adres. Nie podmieniać działającej wersji STABLE bez zakończenia testów.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
 <div class="grid">
 <div class="card"><h3>Zlecenia</h3><div class="value" id="dOrders">0</div></div>
 <div class="card"><h3>Pliki</h3><div class="value" id="dFiles">0</div></div>
@@ -331,11 +331,11 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
     <div class="card">
       <h3>Źródło zamówienia</h3>
       <div class="grid2">
-        <div><label>Nr zlecenia</label><input id="oaOrderNo" placeholder="np. 154/07/2026"></div>
-        <div><label>Klient</label><input id="oaClient" placeholder="Nazwa klienta"></div>
+        <div><label>Nr zlecenia</label><input id="oaOrderNo" placeholder="np. 154/07/2026" oninput="oaCaptureDraftMeta()"></div>
+        <div><label>Klient</label><input id="oaClient" placeholder="Nazwa klienta" oninput="oaCaptureDraftMeta()"></div>
       </div>
       <div class="grid2">
-        <div><label>Termin</label><input id="oaDeadline" type="date"></div>
+        <div><label>Termin</label><input id="oaDeadline" type="date" onchange="oaCaptureDraftMeta()"></div>
         <div><label>Plik: zdjęcie / PDF / Excel / CSV</label><input id="oaFile" type="file" accept="image/*,.pdf,.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" onchange="oaPreviewFile(event)"></div>
       </div>
       <div class="oa-btnline">
@@ -1599,6 +1599,39 @@ function clearTestData(){if(confirm('Wyczyścić dane?')){state={orders:[],compl
 let oaCurrentId='';
 let oaSelectedFile=null;
 let oaSaveTimer=null;
+let oaDraftOpen=false;
+let oaDraftMeta={orderNo:'',client:'',deadline:'',fileName:''};
+const OA_DRAFT_KEY='kms_order_analysis_draft_v263';
+function oaPersistDraft(){
+ try{sessionStorage.setItem(OA_DRAFT_KEY,JSON.stringify({open:oaDraftOpen,meta:oaDraftMeta}))}catch(e){console.warn('KMS draft save',e)}
+}
+function oaClearDraft(){
+ oaDraftOpen=false;oaDraftMeta={orderNo:'',client:'',deadline:'',fileName:''};
+ try{sessionStorage.removeItem(OA_DRAFT_KEY)}catch(e){}
+}
+function oaCaptureDraftMeta(){
+ if(oaCurrent())return;
+ oaDraftOpen=true;
+ oaDraftMeta={
+  orderNo:byId('oaOrderNo')?.value||'',
+  client:byId('oaClient')?.value||'',
+  deadline:byId('oaDeadline')?.value||'',
+  fileName:oaSelectedFile?.name||oaDraftMeta.fileName||''
+ };
+ oaPersistDraft();
+}
+function oaRestoreDraft(){
+ try{
+  const saved=JSON.parse(sessionStorage.getItem(OA_DRAFT_KEY)||'null');
+  if(!saved?.open)return;
+  oaDraftOpen=true;oaDraftMeta={orderNo:'',client:'',deadline:'',fileName:'',...(saved.meta||{})};
+  byId('oaWorkspace')?.classList.remove('hidden');
+  if(byId('oaOrderNo'))byId('oaOrderNo').value=oaDraftMeta.orderNo||'';
+  if(byId('oaClient'))byId('oaClient').value=oaDraftMeta.client||'';
+  if(byId('oaDeadline'))byId('oaDeadline').value=oaDraftMeta.deadline||'';
+  if(oaDraftMeta.fileName&&byId('oaPreview'))byId('oaPreview').innerHTML=`<span class="pill progress">Poprzednio wybrano: ${esc(oaDraftMeta.fileName)}</span><br><span class="small">Po odświeżeniu strony plik trzeba wskazać ponownie, ale dane formularza zostały zachowane.</span>`;
+ }catch(e){console.warn('KMS draft restore',e)}
+}
 const OA_TECH=[
   ['STANDARD','STANDARD — bez zmiany'],
   ['36MM','36MM — klejenie 2 × 18MM'],
@@ -1618,7 +1651,11 @@ function oaStatusClass(s){return s==='PRODUCTION'?'done':s==='STAGE3_READY'?'blu
 function oaEdgeOptions(v){return['','1MM','2MM'].map(x=>`<option value="${x}" ${v===x?'selected':''}>${x||'-'}</option>`).join('')}
 function oaTechOptions(v){return OA_TECH.map(x=>`<option value="${x[0]}" ${v===x[0]?'selected':''}>${x[1]}</option>`).join('')}
 function oaDateNow(){return new Date().toISOString()}
-function oaNewOrder(){oaCurrentId='';oaSelectedFile=null;byId('oaWorkspace').classList.remove('hidden');byId('oaOrderNo').value='';byId('oaClient').value='';byId('oaDeadline').value='';byId('oaFile').value='';byId('oaPreview').innerHTML='<span class="small">Wybierz zdjęcie, PDF, Excel lub CSV.</span>';byId('oaAnalyzeStatus').className='pill todo';byId('oaAnalyzeStatus').textContent='Brak rozpoczętej analizy';oaRenderOrdersList();oaRenderFlow({kmsWorkflow:{status:'STAGE1_REVIEW'}});oaRenderStage1(null);oaRenderStage2(null);oaRenderStage3(null);byId('oaApprove1Btn').disabled=true}
+function oaNewOrder(){
+ if(oaDraftOpen&&(oaDraftMeta.orderNo||oaDraftMeta.client||oaSelectedFile)&&!confirm('Wyczyścić aktualnie rozpoczęte zamówienie robocze i zacząć nowe?'))return;
+ oaCurrentId='';oaSelectedFile=null;oaDraftOpen=true;oaDraftMeta={orderNo:'',client:'',deadline:'',fileName:''};oaPersistDraft();
+ byId('oaWorkspace').classList.remove('hidden');byId('oaOrderNo').value='';byId('oaClient').value='';byId('oaDeadline').value='';byId('oaFile').value='';byId('oaPreview').innerHTML='<span class="small">Wybierz zdjęcie, PDF, Excel lub CSV.</span>';byId('oaAnalyzeStatus').className='pill todo';byId('oaAnalyzeStatus').textContent='Brak rozpoczętej analizy';oaRenderOrdersList();oaRenderFlow({kmsWorkflow:{status:'STAGE1_REVIEW'}});oaRenderStage1(null);oaRenderStage2(null);oaRenderStage3(null);byId('oaApprove1Btn').disabled=true
+}
 function oaIsSpreadsheetFile(file){const n=String(file?.name||'').toLowerCase();const t=String(file?.type||'').toLowerCase();return /\.(xlsx|xls|csv)$/.test(n)||t.includes('spreadsheet')||t.includes('excel')||t==='text/csv'}
 async function oaSpreadsheetToText(file){
  if(!window.XLSX)throw new Error('Nie załadowano biblioteki Excel. Odśwież stronę Ctrl+F5.');
@@ -1635,6 +1672,7 @@ async function oaSpreadsheetToText(file){
 }
 function oaPreviewFile(ev){
  oaSelectedFile=ev.target.files?.[0]||null;
+ oaDraftOpen=true;oaDraftMeta.fileName=oaSelectedFile?.name||'';oaCaptureDraftMeta();
  const box=byId('oaPreview');
  if(!oaSelectedFile){box.innerHTML='<span class="small">Wybierz zdjęcie, PDF, Excel lub CSV.</span>';return}
  const name=String(oaSelectedFile.name||'');
@@ -1647,11 +1685,14 @@ function oaPreviewFile(ev){
 async function oaCreateOrUpdateDraft(result,fileUrl='',fileName=''){
  let o=oaCurrent();
  if(!o){
-  o={id:Date.now()+Math.floor(Math.random()*99999),created:new Date().toISOString().slice(0,10),client:result.client||byId('oaClient').value||'',orderNo:result.orderNo||byId('oaOrderNo').value||'',amount:'',deadline:byId('oaDeadline').value||'',materials:[],tasks:[],items:[],cutItems:[],edgeItems:[],cncItems:[],assemblyItems:[],docs:[],kmsWorkflow:{version:'2.6.2-test',status:'STAGE1_REVIEW',createdAt:oaDateNow(),stage1:{approved:false,items:[],notes:'',confidence:0},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}}};
-  state.orders.unshift(o);oaCurrentId=String(o.id)
+  const draftNo=byId('oaOrderNo').value||oaDraftMeta.orderNo||'';
+  const draftClient=byId('oaClient').value||oaDraftMeta.client||'';
+  const draftDeadline=byId('oaDeadline').value||oaDraftMeta.deadline||'';
+  o={id:Date.now()+Math.floor(Math.random()*99999),created:new Date().toISOString().slice(0,10),client:result.client||draftClient,orderNo:result.orderNo||draftNo,amount:'',deadline:draftDeadline,materials:[],tasks:[],items:[],cutItems:[],edgeItems:[],cncItems:[],assemblyItems:[],docs:[],kmsWorkflow:{version:'2.6.3-test',status:'STAGE1_REVIEW',createdAt:oaDateNow(),stage1:{approved:false,items:[],notes:'',confidence:0},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}}};
+  state.orders.unshift(o);oaCurrentId=String(o.id);oaClearDraft()
  }
  o.client=result.client||byId('oaClient').value||o.client||'';o.orderNo=result.orderNo||byId('oaOrderNo').value||o.orderNo||'';o.deadline=byId('oaDeadline').value||o.deadline||'';
- o.kmsWorkflow=o.kmsWorkflow||{version:'2.6.2-test',status:'STAGE1_REVIEW',stage1:{approved:false,items:[]},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}};
+ o.kmsWorkflow=o.kmsWorkflow||{version:'2.6.3-test',status:'STAGE1_REVIEW',stage1:{approved:false,items:[]},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}};
  o.kmsWorkflow.status='STAGE1_REVIEW';o.kmsWorkflow.stage1={approved:false,items:(result.items||[oaEmptyItem()]).map(x=>({...oaEmptyItem(),...x})),notes:result.notes||result.rawSummary||'',confidence:Number(result.confidence)||0,analyzedAt:oaDateNow()};
  o.kmsWorkflow.stage2={approved:false,items:[],materials:[]};o.kmsWorkflow.stage3={approved:false};
  if(fileUrl){o.docs=o.docs||[];o.docs.unshift({name:fileName||'zamowienie',station:'Zamówienie',url:fileUrl});o.kmsWorkflow.sourceFileName=fileName||''}
@@ -1695,7 +1736,7 @@ async function oaLoadTestExample(){
   {element:'5',material:'U788 ST9',length:1164,width:50,qty:2,thickness:18,edge1:'1MM',pcvCode:'U788 ST9 1MM',technology:'ZBIORCZY_2',info:'ROZ X 50 MM X 2SZT',uncertain:false}
  ]};await oaCreateOrUpdateDraft(result)
 }
-function oaOpen(id){oaCurrentId=String(id);const o=oaCurrent();if(!o)return;byId('oaWorkspace').classList.remove('hidden');byId('oaOrderNo').value=o.orderNo||'';byId('oaClient').value=o.client||'';byId('oaDeadline').value=o.deadline||'';const d=(o.docs||[])[0];if(d?.url){if(String(d.url).startsWith('data:image'))byId('oaPreview').innerHTML=`<img src="${d.url}">`;else byId('oaPreview').innerHTML=`<button class="doc" onclick="openKmsDocByIndex('${jsStr(o.id)}',0)">📎 Otwórz ${esc(d.name||'plik')}</button>`}else byId('oaPreview').innerHTML='<span class="small">Brak zapisanego podglądu.</span>';oaRender()}
+function oaOpen(id){oaClearDraft();oaCurrentId=String(id);const o=oaCurrent();if(!o)return;byId('oaWorkspace').classList.remove('hidden');byId('oaOrderNo').value=o.orderNo||'';byId('oaClient').value=o.client||'';byId('oaDeadline').value=o.deadline||'';const d=(o.docs||[])[0];if(d?.url){if(String(d.url).startsWith('data:image'))byId('oaPreview').innerHTML=`<img src="${d.url}">`;else byId('oaPreview').innerHTML=`<button class="doc" onclick="openKmsDocByIndex('${jsStr(o.id)}',0)">📎 Otwórz ${esc(d.name||'plik')}</button>`}else byId('oaPreview').innerHTML='<span class="small">Brak zapisanego podglądu.</span>';oaRender()}
 function oaUpdateStage1(i,k,v){const o=oaCurrent();if(!o)return;if(o.kmsWorkflow.stage1.approved){if(!confirm('Ta zmiana cofnie zatwierdzenie Etapu 1 i usunie wynik Etapu 2/3. Kontynuować?')){oaRender();return}o.kmsWorkflow.stage1.approved=false;o.kmsWorkflow.stage2={approved:false,items:[],materials:[]};o.kmsWorkflow.stage3={approved:false};o.kmsWorkflow.status='STAGE1_REVIEW'}const it=o.kmsWorkflow.stage1.items[i];if(['length','width','qty','thickness','confidence'].includes(k))v=Number(v)||0;if(k==='uncertain')v=!!v;it[k]=v;oaLocalChanged()}
 function oaUpdateStage2(i,k,v){const o=oaCurrent();if(!o)return;if(o.kmsWorkflow.stage2.approved){if(!confirm('Ta zmiana cofnie zatwierdzenie Etapu 2 i zablokuje dotychczasowy CSV. Kontynuować?')){oaRender();return}o.kmsWorkflow.stage2.approved=false;o.kmsWorkflow.stage3={approved:false};o.kmsWorkflow.status='STAGE2_REVIEW'}const it=o.kmsWorkflow.stage2.items[i];if(['length','width','qty','thickness'].includes(k))v=Number(v)||0;if(['requiresConfirmation','confirmed'].includes(k))v=!!v;it[k]=v;oaRecalcStage2Summaries(o);oaLocalChanged();oaRenderStage2(o)}
 function oaLocalChanged(){save();clearTimeout(oaSaveTimer);oaSaveTimer=setTimeout(()=>{},500)}
@@ -1740,10 +1781,22 @@ function oaRenderStage1(o){const rows=o?.kmsWorkflow?.stage1?.items||[];byId('oa
 function oaRenderStage2(o){const unlocked=!!o?.kmsWorkflow?.stage1?.approved;byId('oaStage2').classList.toggle('oa-stage-locked',!unlocked);const s=o?.kmsWorkflow?.stage2||{items:[],materials:[]};byId('oaMaterialsRows').innerHTML=(s.materials||[]).map(m=>`<tr><td><b>${esc(m.material)}</b></td><td>${m.positions}</td><td>${Number(m.area).toFixed(3)}</td><td>${Number(m.pcv).toFixed(3)}</td><td>${Number(m.pcvOrder).toFixed(3)}</td><td><select onchange="oaSetRotation('${jsStr(m.material)}',this.value)"><option value="" ${m.rotation===''?'selected':''}>DO POTWIERDZENIA</option><option value="0" ${String(m.rotation)==='0'?'selected':''}>0 — NIEOBROTOWO</option><option value="1" ${String(m.rotation)==='1'?'selected':''}>1 — OBROTOWO</option></select></td><td><span class="pill ${['0','1'].includes(String(m.rotation))?'done':'progress'}">${['0','1'].includes(String(m.rotation))?'OK':'BRAK OBROTOWO'}</span></td></tr>`).join('')||'<tr><td colspan="7">Brak danych.</td></tr>';byId('oaStage2Rows').innerHTML=(s.items||[]).map((x,i)=>`<tr class="${x.requiresConfirmation&&!x.confirmed?'oa-review':''}"><td>${i+1}</td><td><input class="notes" value="${esc(x.info||'')}" onchange="oaUpdateStage2(${i},'info',this.value)"></td><td><input class="wide" value="${esc(x.element||'')}" onchange="oaUpdateStage2(${i},'element',this.value)"></td><td><input class="wide" value="${esc(x.material||'')}" onchange="oaUpdateStage2(${i},'material',this.value)"></td><td><input type="number" value="${Number(x.length)||''}" onchange="oaUpdateStage2(${i},'length',this.value)"></td><td><input type="number" value="${Number(x.width)||''}" onchange="oaUpdateStage2(${i},'width',this.value)"></td><td><input type="number" value="${Number(x.qty)||''}" onchange="oaUpdateStage2(${i},'qty',this.value)"></td><td><input type="number" value="${Number(x.thickness)||''}" onchange="oaUpdateStage2(${i},'thickness',this.value)"></td><td>${esc(x.rotation??'')}</td><td><select onchange="oaUpdateStage2(${i},'edge1',this.value)">${oaEdgeOptions(x.edge1)}</select></td><td><select onchange="oaUpdateStage2(${i},'edge2',this.value)">${oaEdgeOptions(x.edge2)}</select></td><td><select onchange="oaUpdateStage2(${i},'edge3',this.value)">${oaEdgeOptions(x.edge3)}</select></td><td><select onchange="oaUpdateStage2(${i},'edge4',this.value)">${oaEdgeOptions(x.edge4)}</select></td><td>${esc(x.rule||'STANDARD')}<br><span class="small">${esc(x.notes||'')}</span></td><td style="text-align:center">${x.requiresConfirmation?`<input type="checkbox" ${x.confirmed?'checked':''} onchange="oaUpdateStage2(${i},'confirmed',this.checked)">`:'✓'}</td><td><button class="red" onclick="oaDeleteStage2Row(${i})">×</button></td></tr>`).join('');const errs=unlocked?oaValidateStage2(o):['Etap 1 niezatwierdzony.'];byId('oaStage2Blocker').className='card '+(errs.length?'oa-blocker':'oa-ok');byId('oaStage2Blocker').innerHTML=errs.length?`<b>Etap 2 wymaga kontroli:</b><br>${errs.map(esc).join('<br>')}`:'<b>Kontrola kompletna.</b> Arkusze mogą zostać zatwierdzone.';byId('oaStage2Status').className='pill '+(s.approved?'done':errs.length?'progress':'blue');byId('oaStage2Status').textContent=!unlocked?'ZABLOKOWANY':s.approved?'ZAAKCEPTOWANE':errs.length?'DO WERYFIKACJI':'GOTOWE DO ZATWIERDZENIA';byId('oaApprove2Btn').disabled=!!s.approved||!unlocked}
 function oaRenderStage3(o){const unlocked=!!o?.kmsWorkflow?.stage2?.approved;byId('oaStage3').classList.toggle('oa-stage-locked',!unlocked);const mats=o?.kmsWorkflow?.stage2?.materials||[];byId('oaCsvFiles').innerHTML=unlocked?`<div class="card oa-ok"><b>CSV gotowe do pobrania osobno dla każdego materiału.</b><br>${mats.map(m=>`<button class="oa-csv" onclick="oaDownloadCsv('${jsStr(m.material)}')">⬇️ ${esc(m.material)}.csv</button>`).join('')}</div><div class="small">Po pobraniu zaimportuj CSV do programu zewnętrznego, sprawdź wynik, a następnie przekaż zlecenie do produkcji.</div>`:'<div class="card oa-blocker">Etap 3 odblokuje się po zatwierdzeniu Etapu 2.</div>';byId('oaStage3Status').className='pill '+(o?.kmsWorkflow?.status==='PRODUCTION'?'done':unlocked?'blue':'todo');byId('oaStage3Status').textContent=o?.kmsWorkflow?.status==='PRODUCTION'?'PRZEKAZANO DO PRODUKCJI':unlocked?'CSV GOTOWE':'ZABLOKOWANY';byId('oaRouteBtn').disabled=!unlocked||o?.kmsWorkflow?.status==='PRODUCTION';byId('oaCloudBtn').disabled=o?.kmsWorkflow?.status!=='PRODUCTION'||!!o?.cloudId;byId('oaCloudBtn').textContent=o?.cloudId?'☁️ Zlecenie jest w chmurze':'☁️ Wyślij gotowe zlecenie do chmury'}
 function oaRenderFlow(o){const status=o?.kmsWorkflow?.status||'STAGE1_REVIEW';const order=['STAGE1_REVIEW','STAGE2_REVIEW','STAGE3_READY','PRODUCTION'];const cur=Math.max(0,order.indexOf(status));['oaFlow1','oaFlow2','oaFlow3','oaFlow4'].forEach((id,i)=>{const el=byId(id);el.className='oa-step '+(i<cur?'done':i===cur?'current':'locked')})}
-function oaRender(){oaRenderOrdersList();const o=oaCurrent();if(!o){byId('oaWorkspace')?.classList.add('hidden');return}byId('oaWorkspace').classList.remove('hidden');oaRenderFlow(o);oaRenderStage1(o);oaRenderStage2(o);oaRenderStage3(o)}
+function oaRender(){
+ oaRenderOrdersList();const o=oaCurrent();
+ if(!o){
+  if(oaDraftOpen){
+   byId('oaWorkspace')?.classList.remove('hidden');
+   oaRenderFlow({kmsWorkflow:{status:'STAGE1_REVIEW'}});oaRenderStage1(null);oaRenderStage2(null);oaRenderStage3(null);byId('oaApprove1Btn').disabled=true;
+   return
+  }
+  byId('oaWorkspace')?.classList.add('hidden');return
+ }
+ byId('oaWorkspace').classList.remove('hidden');oaRenderFlow(o);oaRenderStage1(o);oaRenderStage2(o);oaRenderStage3(o)
+}
 const _oaBaseRender=render;
 render=function(){_oaBaseRender();oaRender()};
 renderPendingDocs();
+oaRestoreDraft();
 void kmsStorageBootstrap();
 showLogin('Sprawdzam sesję...');
 setTimeout(initKmsAuth,100);
