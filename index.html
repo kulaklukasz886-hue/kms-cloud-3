@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>KMS CLOUD 2.5.3 TEST — TYLKO ŁUKASZ</title>
+<title>KMS CLOUD 2.5.3 PARSER + ADMIN FIX</title>
 <style>
 body{margin:0;font-family:Arial;background:#f3f4f6;color:#111827}.app{display:flex;min-height:100vh}
 aside{width:260px;background:#111827;color:white;padding:16px}main{flex:1;padding:22px;max-width:1500px}
@@ -56,8 +56,8 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <body>
 <div id="authScreen" class="auth-screen">
   <div class="auth-card">
-    <h1>🔐 KMS CLOUD — TEST</h1>
-    <p><b>Wersja testowa dostępna wyłącznie dla Łukasza / Administratora.</b></p>
+    <h1>🔐 KMS CLOUD</h1>
+    <p>Zaloguj się swoim kontem firmowym.</p>
     <label>E-mail</label><input id="loginEmail" type="email" autocomplete="username" placeholder="np. ewa@firma.pl">
     <label>Hasło</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Hasło" onkeydown="if(event.key==='Enter')loginKms()">
     <button class="primary" style="width:100%;margin-top:12px" onclick="loginKms()">Zaloguj</button>
@@ -66,7 +66,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 </div>
 <div class="app auth-locked" id="kmsApp">
 <aside>
-<h2>KMS CLOUD 2.5.3 TEST<br>TYLKO ADMIN</h2>
+<h2>KMS CLOUD 2.5.3 PARSER + ADMIN FIX</h2>
 <div class="small">bezpieczne logowanie + role + historia działań</div>
 <div class="nav">
 <button class="active" onclick="show('dash',this)">👔 Pulpit</button>
@@ -88,7 +88,6 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 </div>
 </aside>
 <main>
-<div class="card admin-danger"><b>🔒 WERSJA TESTOWA — DOSTĘP TYLKO DLA ŁUKASZA / ADMINISTRATORA</b><div class="small">FIX 2: sesja pracownika nie jest automatycznie przywracana.</div></div>
 
 <div class="auth-user" id="loggedUserPanel">
   <b id="loggedUserName">Użytkownik</b> <span id="roleStatus" class="pill blue"></span>
@@ -413,13 +412,6 @@ let authProfile=null;
 let kmsRole='PRODUKCJA';
 let kmsUserName='';
 
-// TEST ADMIN ONLY FIX 2: osobna, niepamiętana sesja i twarda kontrola dostępu.
-const KMS_TEST_ADMIN_ONLY=true;
-const KMS_TEST_AUTH_STORAGE_KEY='kms-test-admin-only-v2';
-const KMS_TEST_ALLOWED_EMAILS=['kulaklukasz886@gmail.com','lukasz@admin.local'];
-const KMS_TEST_DENIED_MESSAGE='⛔ Wersja testowa KMS jest dostępna wyłącznie dla Łukasza / administratora.';
-let authDeniedMessage='';
-
 const ROLE_LABELS={
   ADMIN:'Administrator',
   BIURO:'Biuro',
@@ -514,42 +506,12 @@ async function fetchProfile(session){
   return data.profile;
 }
 
-async function forceTestLogout(message=KMS_TEST_DENIED_MESSAGE){
-  authDeniedMessage=message;
-  try{ if(authClient) await authClient.auth.signOut({scope:'local'}); }catch(e){}
-  authSession=null;
-  authProfile=null;
-  kmsRole='PRODUKCJA';
-  kmsUserName='';
-  const passwordEl=document.getElementById('loginPassword');
-  if(passwordEl)passwordEl.value='';
-  showLogin(message,true);
-  return false;
-}
-
 async function applyAuthenticatedSession(session){
-  const email=String(session?.user?.email||'').trim().toLowerCase();
-  let profile=null;
-  try{
-    profile=await fetchProfile(session);
-  }catch(e){
-    return forceTestLogout('⛔ Nie udało się potwierdzić uprawnień administratora.');
-  }
-  const role=String(profile?.role||'PRODUKCJA').trim().toUpperCase();
-  const allowedByEmail=KMS_TEST_ALLOWED_EMAILS.includes(email);
-  const allowedByRole=role==='ADMIN';
-
-  if(KMS_TEST_ADMIN_ONLY && !(allowedByEmail||allowedByRole)){
-    return forceTestLogout(KMS_TEST_DENIED_MESSAGE);
-  }
-
   authSession=session;
-  authProfile=profile;
-  kmsRole=role;
-  kmsUserName=profile?.full_name||session.user?.email||'';
-  authDeniedMessage='';
+  authProfile=await fetchProfile(session);
+  kmsRole=String(authProfile?.role||'PRODUKCJA').toUpperCase();
+  kmsUserName=authProfile?.full_name||session.user?.email||'';
   showApp();
-  return true;
 }
 
 async function loginKms(){
@@ -571,8 +533,7 @@ async function loginKms(){
     const {data,error}=await authClient.auth.signInWithPassword({email,password});
     if(error)throw error;
     if(!data.session)throw new Error('Supabase nie zwrócił sesji.');
-    const accessGranted=await applyAuthenticatedSession(data.session);
-    if(!accessGranted)return;
+    await applyAuthenticatedSession(data.session);
   }catch(e){
     showLogin('Błąd logowania: '+(e.message||'Nieznany błąd'));
   }
@@ -597,17 +558,12 @@ async function initKmsAuth(){
     if(!window.supabase?.createClient)throw new Error('Biblioteka Supabase nie została załadowana.');
 
     authClient=window.supabase.createClient(cfg.url,cfg.anonKey,{
-      auth:{
-        persistSession:false,
-        autoRefreshToken:true,
-        detectSessionInUrl:false,
-        storageKey:KMS_TEST_AUTH_STORAGE_KEY
-      }
+      auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
     });
 
     authClient.auth.onAuthStateChange((event,session)=>{
       if(event==='SIGNED_OUT'||!session){
-        showLogin(authDeniedMessage||'Zaloguj się jako Łukasz / administrator.',true);
+        showLogin('Zaloguj się swoim kontem firmowym.',true);
         return;
       }
       if(event==='TOKEN_REFRESHED')authSession=session;
@@ -617,10 +573,9 @@ async function initKmsAuth(){
     if(error)throw error;
 
     if(data.session){
-      const accessGranted=await applyAuthenticatedSession(data.session);
-      if(!accessGranted)return;
+      await applyAuthenticatedSession(data.session);
     }else{
-      showLogin('Wersja testowa: zaloguj się jako Łukasz / administrator.');
+      showLogin('Zaloguj się swoim kontem firmowym.');
     }
   }catch(e){
     showLogin('Błąd uruchomienia logowania: '+(e.message||'Nieznany błąd'));
@@ -1814,7 +1769,7 @@ function aiInit(){aiLoadPrices();aiRenderEmpty();}
 aiInit();
 renderPendingDocs();
 void kmsStorageBootstrap();
-showLogin('Wersja testowa — wymagane logowanie administratora.');
+showLogin('Sprawdzam sesję...');
 setTimeout(initKmsAuth,100);
 
 
