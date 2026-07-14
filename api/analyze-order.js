@@ -16,6 +16,22 @@ const schema={type:'object',additionalProperties:false,properties:{
   edge1:edge,edge2:edge,edge3:edge,edge4:edge,pcvCode:{type:'string'},technology:{type:'string',enum:['STANDARD','10MM','16MM','36MM','ZBIORCZY_2','28MM','FRONTY_SLOJ','LAMELE','INNE']},info:{type:'string'},notes:{type:'string'},confidence:{type:'number'},uncertain:{type:'boolean'}
  },required:['element','material','length','width','qty','thickness','edge1','edge2','edge3','edge4','pcvCode','technology','info','notes','confidence','uncertain']}}
 },required:['orderNo','client','rawSummary','notes','confidence','items']};
+const pcvAuditSchema={type:'object',additionalProperties:false,properties:{
+ globalPcv:{type:'string',enum:['','1MM','2MM']},
+ globalPcvUncertain:{type:'boolean'},
+ notes:{type:'string'},
+ rows:{type:'array',items:{type:'object',additionalProperties:false,properties:{
+  row:{type:'number'},
+  length:{type:'number'},
+  width:{type:'number'},
+  qty:{type:'number'},
+  lengthMarks:{type:'number',enum:[0,1,2]},
+  widthMarks:{type:'number',enum:[0,1,2]},
+  uncertain:{type:'boolean'},
+  notes:{type:'string'}
+ },required:['row','length','width','qty','lengthMarks','widthMarks','uncertain','notes']}}
+},required:['globalPcv','globalPcvUncertain','notes','rows']};
+
 
 export default async function handler(req,res){
  sendCors(res,'GET,POST,OPTIONS');if(req.method==='OPTIONS')return res.status(200).json({ok:true});
@@ -74,46 +90,80 @@ Zwróć wyłącznie JSON zgodny ze schematem.`;
   const response=await client.responses.create({model,input:[{role:'user',content}],text:{format:{type:'json_schema',name:'kms_order_stage1',schema,strict:true}}});
   let parsed=JSON.parse(response.output_text);
 
-  // Drugi przebieg: kontrola cyfr 9/8/5 i wszystkich kresek oklejania.
+  // Drugi, niezależny przebieg: wyłącznie wymiary kontrolne, rodzaj PCV i liczba kresek.
+  let pcvAudit=null;
   if(!isSpreadsheet){
-   const verificationPrompt=`Jesteś kontrolerem jakości KMS ETAP 1.
-Sprawdź ponownie załączone źródło oraz wstępny JSON.
-Skup się wyłącznie na:
-- dokładnym odczycie wszystkich wymiarów, szczególnie cyfr 9, 8 i 5,
-- rozróżnieniu 90 od 80 i 50,
-- liczbie kresek przy KAŻDYM pierwszym i drugim wymiarze,
-- mapowaniu: pierwsza kreska długości=edge1, druga=edge2; pierwsza kreska szerokości=edge3, druga=edge4,
-- ilości po ostatnim znaku x,
-- stałej grubości KMS: standard 18 mm, oznaczenie 10MM = 10, oznaczenie 16MM = 16, oznaczenie 28MM = 28, oznaczenie 36MM = 36,
-- niewymyślaniu klienta ani numeru zlecenia.
-Ogólne PCV 1MM/2MM stosuj tylko do krawędzi oznaczonych kreskami.
-Popraw wstępny wynik i zwróć pełny JSON zgodny ze schematem.
-Wstępny JSON:
-${JSON.stringify(parsed)}`;
-   const verifyContent=[{type:'input_text',text:verificationPrompt},sourcePart];
-   const verified=await client.responses.create({model,input:[{role:'user',content:verifyContent}],text:{format:{type:'json_schema',name:'kms_order_stage1_verified',schema,strict:true}}});
-   parsed=JSON.parse(verified.output_text);
+   const rowsForAudit=(parsed.items||[]).map((x,i)=>({
+    row:i+1,
+    length:Number(x.length)||0,
+    width:Number(x.width)||0,
+    qty:Number(x.qty)||0
+   }));
+   const pcvPrompt=`Jesteś wyspecjalizowanym kontrolerem oznaczeń PCV w KMS.
+Nie wykonujesz ponownie pełnej analizy. Masz sprawdzić TYLKO:
+1. Czy na źródle występuje ogólna adnotacja PCV 1MM albo PCV 2MM.
+2. Ile kresek znajduje się przy PIERWSZYM wymiarze każdego wiersza: 0, 1 albo 2.
+3. Ile kresek znajduje się przy DRUGIM wymiarze każdego wiersza: 0, 1 albo 2.
+4. Kontrolnie popraw długość, szerokość i ilość, szczególnie cyfry 9/8/5.
+
+ZASADY:
+- Kreska może znajdować się NAD cyfrą, POD cyfrą albo bezpośrednio przy cyfrze.
+- Jedna linia oznacza 1 krawędź, dwie równoległe linie oznaczają 2 krawędzie.
+- Pierwszy wymiar = długość. Drugi wymiar = szerokość.
+- Końcowe x1/x2 to ilość, nigdy PCV.
+- Ogólne „PCV 1MM” lub „PCV 2MM” określa grubość obrzeża dla wszystkich zaznaczonych kresek.
+- Nie zwracaj pełnych elementów ani materiałów. Zwróć dokładnie jeden wpis dla każdego podanego wiersza.
+- Jeżeli linia jest wyraźnie widoczna, policz ją; nie kasuj wszystkich oznaczeń tylko dlatego, że pismo jest odręczne.
+- uncertain=true ustaw tylko dla konkretnego wiersza, którego naprawdę nie można rozstrzygnąć.
+
+Wiersze wstępnie odczytane przez pierwszy przebieg:
+${JSON.stringify(rowsForAudit)}`;
+   const auditContent=[{type:'input_text',text:pcvPrompt},sourcePart];
+   const audited=await client.responses.create({
+    model,
+    input:[{role:'user',content:auditContent}],
+    text:{format:{type:'json_schema',name:'kms_pcv_marks_audit',schema:pcvAuditSchema,strict:true}}
+   });
+   pcvAudit=JSON.parse(audited.output_text);
   }
 
   const suppliedOrderNo=String(first(fields.orderNo)||'').trim();
   const suppliedClient=String(first(fields.client)||'').trim();
   parsed.orderNo=suppliedOrderNo;
   parsed.client=suppliedClient;
-  parsed.items=(parsed.items||[]).map(x=>{
+  const firstPassPcv=(parsed.items||[]).flatMap(x=>[x.edge1,x.edge2,x.edge3,x.edge4]).find(v=>v==='1MM'||v==='2MM')||'';
+  const summaryText=`${parsed.rawSummary||''} ${parsed.notes||''}`.toUpperCase();
+  const summaryPcv=/PCV\s*2\s*MM/.test(summaryText)?'2MM':/PCV\s*1\s*MM/.test(summaryText)?'1MM':'';
+  const globalPcv=pcvAudit?.globalPcv||firstPassPcv||summaryPcv||'';
+  const auditRows=new Map((pcvAudit?.rows||[]).map(r=>[Number(r.row),r]));
+
+  parsed.items=(parsed.items||[]).map((x,i)=>{
    const text=`${x.element||''} ${x.material||''} ${x.info||''} ${x.notes||''}`.toUpperCase();
    const fixedThickness=(x.technology==='10MM'||/\b10\s*MM\b/.test(text))?10:(x.technology==='16MM'||/\b16\s*MM\b/.test(text))?16:(x.technology==='36MM'||/\b36\s*MM\b/.test(text))?36:(x.technology==='28MM'||/\b28\s*MM\b/.test(text))?28:18;
+   const audit=auditRows.get(i+1);
+   const lengthMarks=Math.max(0,Math.min(2,Number(audit?.lengthMarks)||0));
+   const widthMarks=Math.max(0,Math.min(2,Number(audit?.widthMarks)||0));
+   const hasMarks=lengthMarks>0||widthMarks>0;
+   const noPcvForMarks=hasMarks&&!globalPcv;
+   const auditNote=String(audit?.notes||'').trim();
+   const combinedNotes=[String(x.notes||'').trim(),auditNote,pcvAudit?.globalPcvUncertain?'Niepewny rodzaj PCV.':'',noPcvForMarks?'Widoczne kreski, ale nie odczytano 1MM/2MM.':''].filter(Boolean).join(' | ');
    return {
     ...x,
-    length:Number(x.length)||0,
-    width:Number(x.width)||0,
-    qty:Number(x.qty)||0,
+    length:Number(audit?.length)||Number(x.length)||0,
+    width:Number(audit?.width)||Number(x.width)||0,
+    qty:Number(audit?.qty)||Number(x.qty)||0,
     thickness:fixedThickness,
-    edge1:['1MM','2MM'].includes(x.edge1)?x.edge1:'',
-    edge2:['1MM','2MM'].includes(x.edge2)?x.edge2:'',
-    edge3:['1MM','2MM'].includes(x.edge3)?x.edge3:'',
-    edge4:['1MM','2MM'].includes(x.edge4)?x.edge4:''
+    edge1:lengthMarks>=1&&globalPcv?globalPcv:'',
+    edge2:lengthMarks>=2&&globalPcv?globalPcv:'',
+    edge3:widthMarks>=1&&globalPcv?globalPcv:'',
+    edge4:widthMarks>=2&&globalPcv?globalPcv:'',
+    notes:combinedNotes,
+    uncertain:!!audit?.uncertain||!!pcvAudit?.globalPcvUncertain||noPcvForMarks
    }
   });
+  if(pcvAudit){
+   parsed.notes=[String(parsed.notes||'').trim(),`Kontrola PCV: ${pcvAudit.globalPcv||'nie odczytano'}; ${pcvAudit.notes||''}`].filter(Boolean).join(' | ');
+  }
   return res.status(200).json(parsed);
  }catch(e){console.error(e);return res.status(500).json({ok:false,error:e.message||'Błąd analizy AI',details:'Sprawdź OPENAI_API_KEY, model i logi Vercel.'})}
 }
