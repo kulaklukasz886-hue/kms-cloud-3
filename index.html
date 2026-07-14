@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>KMS TESTOWY 2.6.3 — ANALIZA ZAMÓWIEŃ 1→2→3</title>
+<title>KMS TESTOWY 2.6.4 — ANALIZA ZAMÓWIEŃ 1→2→3</title>
 <style>
 body{margin:0;font-family:Arial;background:#f3f4f6;color:#111827}.app{display:flex;min-height:100vh}
 aside{width:260px;background:#111827;color:white;padding:16px}main{flex:1;padding:22px;max-width:1500px}
@@ -73,7 +73,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 </div>
 <div class="app auth-locked" id="kmsApp">
 <aside>
-<h2>KMS TESTOWY 2.6.3</h2>
+<h2>KMS TESTOWY 2.6.4</h2>
 <div class="small">Analiza zamówień → CSV → produkcja</div>
 <div class="nav">
 <button class="active" onclick="show('dash',this)">👔 Pulpit</button>
@@ -106,7 +106,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <section id="dash">
 <h1>👔 Pulpit</h1>
 <div class="card">
-<h3>☁️ KMS TESTOWY 2.6.3 — ANALIZA ZAMÓWIEŃ</h3>
+<h3>☁️ KMS TESTOWY 2.6.4 — ANALIZA ZAMÓWIEŃ</h3>
 <button class="primary" onclick="cloudLoadOrders()">Odśwież teraz</button>
 <button class="gray" onclick="cloudSyncLocalOrders()">Wyślij lokalne zlecenia do chmury</button>
 <button class="gray" onclick="runStorageRepair(true)">Napraw pamięć lokalną</button>
@@ -115,7 +115,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <div class="small">Automatyczne wczytanie po starcie, synchronizacja co 15 sekund i zapis statusów do chmury. Duże pliki są przechowywane poza localStorage, aby nie blokować KMS.</div>
 <div id="cloudLog" class="small" style="margin-top:8px">Historia synchronizacji pojawi się tutaj.</div>
 </div>
-<div class="card"><b>🧪 KMS TESTOWY 2.6.3</b><br>Wersja testowa na osobną gałąź/adres. Nie podmieniać działającej wersji STABLE bez zakończenia testów.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
+<div class="card"><b>🧪 KMS TESTOWY 2.6.4</b><br>Wersja testowa na osobną gałąź/adres. Nie podmieniać działającej wersji STABLE bez zakończenia testów.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
 <div class="grid">
 <div class="card"><h3>Zlecenia</h3><div class="value" id="dOrders">0</div></div>
 <div class="card"><h3>Pliki</h3><div class="value" id="dFiles">0</div></div>
@@ -344,7 +344,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
         <button class="gray" onclick="oaLoadTestExample()">Przykład H3730 + U788</button>
       </div>
       <div id="oaAnalyzeStatus" class="pill todo">Brak rozpoczętej analizy</div>
-      <div class="small">Do analizy AI na Vercel wymagany jest działający klucz OPENAI_API_KEY. Gdy AI nie odczyta pliku, zamówienie można wprowadzić ręcznie i nadal przejść cały proces.</div>
+      <div class="small">Do analizy AI na Vercel wymagany jest działający klucz OPENAI_API_KEY. Zdjęcia i duże PDF-y są automatycznie zmniejszane przed wysłaniem, aby nie przekroczyć limitu Vercela. Gdy AI nie odczyta pliku, zamówienie można wprowadzić ręcznie i nadal przejść cały proces.</div>
     </div>
     <div class="card"><h3>Podgląd źródła</h3><div id="oaPreview" class="oa-source-preview"><span class="small">Wybierz zdjęcie, PDF, Excel lub CSV.</span></div></div>
   </div>
@@ -521,7 +521,10 @@ async function fetchProfile(session){
     headers:{Authorization:`Bearer ${session.access_token}`}
   });
   const data=await res.json().catch(()=>({}));
-  if(!res.ok||data.ok===false)throw new Error(data.error||('HTTP '+res.status));
+  if(!res.ok||data.ok===false){
+   if(res.status===413)throw new Error('Plik nadal jest zbyt duży dla Vercela. Zrób zrzut ekranu rozpiski albo użyj zdjęcia poniżej 3 MB.');
+   throw new Error(data.error||('HTTP '+res.status));
+  }
   return data.profile;
 }
 
@@ -1688,23 +1691,63 @@ async function oaCreateOrUpdateDraft(result,fileUrl='',fileName=''){
   const draftNo=byId('oaOrderNo').value||oaDraftMeta.orderNo||'';
   const draftClient=byId('oaClient').value||oaDraftMeta.client||'';
   const draftDeadline=byId('oaDeadline').value||oaDraftMeta.deadline||'';
-  o={id:Date.now()+Math.floor(Math.random()*99999),created:new Date().toISOString().slice(0,10),client:result.client||draftClient,orderNo:result.orderNo||draftNo,amount:'',deadline:draftDeadline,materials:[],tasks:[],items:[],cutItems:[],edgeItems:[],cncItems:[],assemblyItems:[],docs:[],kmsWorkflow:{version:'2.6.3-test',status:'STAGE1_REVIEW',createdAt:oaDateNow(),stage1:{approved:false,items:[],notes:'',confidence:0},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}}};
+  o={id:Date.now()+Math.floor(Math.random()*99999),created:new Date().toISOString().slice(0,10),client:result.client||draftClient,orderNo:result.orderNo||draftNo,amount:'',deadline:draftDeadline,materials:[],tasks:[],items:[],cutItems:[],edgeItems:[],cncItems:[],assemblyItems:[],docs:[],kmsWorkflow:{version:'2.6.4-test',status:'STAGE1_REVIEW',createdAt:oaDateNow(),stage1:{approved:false,items:[],notes:'',confidence:0},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}}};
   state.orders.unshift(o);oaCurrentId=String(o.id);oaClearDraft()
  }
  o.client=result.client||byId('oaClient').value||o.client||'';o.orderNo=result.orderNo||byId('oaOrderNo').value||o.orderNo||'';o.deadline=byId('oaDeadline').value||o.deadline||'';
- o.kmsWorkflow=o.kmsWorkflow||{version:'2.6.3-test',status:'STAGE1_REVIEW',stage1:{approved:false,items:[]},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}};
+ o.kmsWorkflow=o.kmsWorkflow||{version:'2.6.4-test',status:'STAGE1_REVIEW',stage1:{approved:false,items:[]},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}};
  o.kmsWorkflow.status='STAGE1_REVIEW';o.kmsWorkflow.stage1={approved:false,items:(result.items||[oaEmptyItem()]).map(x=>({...oaEmptyItem(),...x})),notes:result.notes||result.rawSummary||'',confidence:Number(result.confidence)||0,analyzedAt:oaDateNow()};
  o.kmsWorkflow.stage2={approved:false,items:[],materials:[]};o.kmsWorkflow.stage3={approved:false};
  if(fileUrl){o.docs=o.docs||[];o.docs.unshift({name:fileName||'zamowienie',station:'Zamówienie',url:fileUrl});o.kmsWorkflow.sourceFileName=fileName||''}
  save();render();await oaSaveCurrent('Utworzenie analizy zamówienia');oaOpen(o.id)
+}
+async function oaCanvasToBlob(canvas,type='image/jpeg',quality=.78){
+ return await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Nie udało się zmniejszyć obrazu.')),type,quality));
+}
+async function oaCompressImageForAnalysis(file){
+ const img=await loadImageFromFile(file);
+ let maxSide=1800,quality=.78,blob=null;
+ for(let attempt=0;attempt<5;attempt++){
+  const ratio=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
+  const w=Math.max(1,Math.round(img.naturalWidth*ratio));
+  const h=Math.max(1,Math.round(img.naturalHeight*ratio));
+  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+  const ctx=canvas.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+  blob=await oaCanvasToBlob(canvas,'image/jpeg',quality);
+  if(blob.size<=2.8*1024*1024)break;
+  maxSide=Math.max(1000,Math.round(maxSide*.82));quality=Math.max(.56,quality-.07);
+ }
+ if(!blob||blob.size>3.2*1024*1024)throw new Error('Zdjęcie jest zbyt duże nawet po zmniejszeniu. Zrób zwykły zrzut ekranu lub zdjęcie w niższej rozdzielczości.');
+ const base=String(file.name||'zamowienie').replace(/\.[^.]+$/,'');
+ return new File([blob],base+'_kms.jpg',{type:'image/jpeg',lastModified:Date.now()});
+}
+async function oaPrepareAnalysisFile(file){
+ const type=String(file?.type||'').toLowerCase();
+ const name=String(file?.name||'zamowienie');
+ const limit=3.4*1024*1024;
+ if(type.startsWith('image/')){
+  byId('oaAnalyzeStatus').textContent='Zmniejszam zdjęcie do analizy...';
+  return await oaCompressImageForAnalysis(file);
+ }
+ if(type==='application/pdf'||/\.pdf$/i.test(name)){
+  if(file.size<=limit)return file;
+  byId('oaAnalyzeStatus').textContent='Zmniejszam PDF do analizy...';
+  const dataUrl=await compressPdfForCloud(file,1400,.66);
+  const blob=dataUrlToBlob(dataUrl);
+  if(blob.size>limit)throw new Error('PDF jest zbyt duży do wysłania. Podziel go na mniejsze pliki albo zapisz w niższej jakości.');
+  return new File([blob],name.replace(/\.pdf$/i,'')+'_kms.pdf',{type:'application/pdf',lastModified:Date.now()});
+ }
+ if(file.size>limit)throw new Error('Plik przekracza bezpieczny limit wysyłania 3,4 MB. Zmniejsz plik albo podziel go na części.');
+ return file;
 }
 async function oaAnalyzeFile(){
  if(!oaSelectedFile)return alert('Wybierz zdjęcie, PDF, Excel lub CSV.');
  byId('oaAnalyzeStatus').className='pill progress';
  byId('oaAnalyzeStatus').textContent=oaIsSpreadsheetFile(oaSelectedFile)?'Odczytuję arkusz i przygotowuję analizę...':'AI analizuje plik...';
  try{
+  const uploadFile=await oaPrepareAnalysisFile(oaSelectedFile);
   const fd=new FormData();
-  fd.append('file',oaSelectedFile);
+  fd.append('file',uploadFile,uploadFile.name);
   fd.append('orderNo',byId('oaOrderNo').value||'');
   fd.append('client',byId('oaClient').value||'');
   if(oaIsSpreadsheetFile(oaSelectedFile)){
