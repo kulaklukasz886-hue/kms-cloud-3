@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>KMS TESTOWY 2.6.0 — ANALIZA ZAMÓWIEŃ 1→2→3</title>
+<title>KMS TESTOWY 2.6.2 — ANALIZA ZAMÓWIEŃ 1→2→3</title>
 <style>
 body{margin:0;font-family:Arial;background:#f3f4f6;color:#111827}.app{display:flex;min-height:100vh}
 aside{width:260px;background:#111827;color:white;padding:16px}main{flex:1;padding:22px;max-width:1500px}
@@ -73,7 +73,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 </div>
 <div class="app auth-locked" id="kmsApp">
 <aside>
-<h2>KMS TESTOWY 2.6.0</h2>
+<h2>KMS TESTOWY 2.6.2</h2>
 <div class="small">Analiza zamówień → CSV → produkcja</div>
 <div class="nav">
 <button class="active" onclick="show('dash',this)">👔 Pulpit</button>
@@ -106,7 +106,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <section id="dash">
 <h1>👔 Pulpit</h1>
 <div class="card">
-<h3>☁️ KMS TESTOWY 2.6.0 — ANALIZA ZAMÓWIEŃ</h3>
+<h3>☁️ KMS TESTOWY 2.6.2 — ANALIZA ZAMÓWIEŃ</h3>
 <button class="primary" onclick="cloudLoadOrders()">Odśwież teraz</button>
 <button class="gray" onclick="cloudSyncLocalOrders()">Wyślij lokalne zlecenia do chmury</button>
 <button class="gray" onclick="runStorageRepair(true)">Napraw pamięć lokalną</button>
@@ -115,7 +115,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <div class="small">Automatyczne wczytanie po starcie, synchronizacja co 15 sekund i zapis statusów do chmury. Duże pliki są przechowywane poza localStorage, aby nie blokować KMS.</div>
 <div id="cloudLog" class="small" style="margin-top:8px">Historia synchronizacji pojawi się tutaj.</div>
 </div>
-<div class="card"><b>🧪 KMS TESTOWY 2.6.0</b><br>Wersja testowa na osobną gałąź/adres. Nie podmieniać działającej wersji STABLE bez zakończenia testów.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
+<div class="card"><b>🧪 KMS TESTOWY 2.6.2</b><br>Wersja testowa na osobną gałąź/adres. Nie podmieniać działającej wersji STABLE bez zakończenia testów.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
 <div class="grid">
 <div class="card"><h3>Zlecenia</h3><div class="value" id="dOrders">0</div></div>
 <div class="card"><h3>Pliki</h3><div class="value" id="dFiles">0</div></div>
@@ -336,7 +336,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
       </div>
       <div class="grid2">
         <div><label>Termin</label><input id="oaDeadline" type="date"></div>
-        <div><label>Plik zdjęcie / PDF</label><input id="oaFile" type="file" accept="image/*,.pdf" onchange="oaPreviewFile(event)"></div>
+        <div><label>Plik: zdjęcie / PDF / Excel / CSV</label><input id="oaFile" type="file" accept="image/*,.pdf,.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" onchange="oaPreviewFile(event)"></div>
       </div>
       <div class="oa-btnline">
         <button class="primary" onclick="oaAnalyzeFile()">🤖 Analizuj plik</button>
@@ -346,7 +346,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
       <div id="oaAnalyzeStatus" class="pill todo">Brak rozpoczętej analizy</div>
       <div class="small">Do analizy AI na Vercel wymagany jest działający klucz OPENAI_API_KEY. Gdy AI nie odczyta pliku, zamówienie można wprowadzić ręcznie i nadal przejść cały proces.</div>
     </div>
-    <div class="card"><h3>Podgląd źródła</h3><div id="oaPreview" class="oa-source-preview"><span class="small">Wybierz zdjęcie lub PDF.</span></div></div>
+    <div class="card"><h3>Podgląd źródła</h3><div id="oaPreview" class="oa-source-preview"><span class="small">Wybierz zdjęcie, PDF, Excel lub CSV.</span></div></div>
   </div>
 
   <div id="oaStage1" class="card">
@@ -403,6 +403,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
 
 </script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'}
 const KEY='kms_test_2_6_order_analysis';
@@ -1617,31 +1618,72 @@ function oaStatusClass(s){return s==='PRODUCTION'?'done':s==='STAGE3_READY'?'blu
 function oaEdgeOptions(v){return['','1MM','2MM'].map(x=>`<option value="${x}" ${v===x?'selected':''}>${x||'-'}</option>`).join('')}
 function oaTechOptions(v){return OA_TECH.map(x=>`<option value="${x[0]}" ${v===x[0]?'selected':''}>${x[1]}</option>`).join('')}
 function oaDateNow(){return new Date().toISOString()}
-function oaNewOrder(){oaCurrentId='';oaSelectedFile=null;byId('oaWorkspace').classList.remove('hidden');byId('oaOrderNo').value='';byId('oaClient').value='';byId('oaDeadline').value='';byId('oaFile').value='';byId('oaPreview').innerHTML='<span class="small">Wybierz zdjęcie lub PDF.</span>';byId('oaAnalyzeStatus').className='pill todo';byId('oaAnalyzeStatus').textContent='Brak rozpoczętej analizy';oaRenderOrdersList();oaRenderFlow({kmsWorkflow:{status:'STAGE1_REVIEW'}});oaRenderStage1(null);oaRenderStage2(null);oaRenderStage3(null);byId('oaApprove1Btn').disabled=true}
-function oaPreviewFile(ev){oaSelectedFile=ev.target.files?.[0]||null;const box=byId('oaPreview');if(!oaSelectedFile){box.innerHTML='<span class="small">Wybierz zdjęcie lub PDF.</span>';return}if(String(oaSelectedFile.type).startsWith('image/')){const r=new FileReader();r.onload=e=>box.innerHTML=`<img src="${e.target.result}">`;r.readAsDataURL(oaSelectedFile)}else box.innerHTML=`<span class="pill blue">PDF: ${esc(oaSelectedFile.name)}</span>`}
+function oaNewOrder(){oaCurrentId='';oaSelectedFile=null;byId('oaWorkspace').classList.remove('hidden');byId('oaOrderNo').value='';byId('oaClient').value='';byId('oaDeadline').value='';byId('oaFile').value='';byId('oaPreview').innerHTML='<span class="small">Wybierz zdjęcie, PDF, Excel lub CSV.</span>';byId('oaAnalyzeStatus').className='pill todo';byId('oaAnalyzeStatus').textContent='Brak rozpoczętej analizy';oaRenderOrdersList();oaRenderFlow({kmsWorkflow:{status:'STAGE1_REVIEW'}});oaRenderStage1(null);oaRenderStage2(null);oaRenderStage3(null);byId('oaApprove1Btn').disabled=true}
+function oaIsSpreadsheetFile(file){const n=String(file?.name||'').toLowerCase();const t=String(file?.type||'').toLowerCase();return /\.(xlsx|xls|csv)$/.test(n)||t.includes('spreadsheet')||t.includes('excel')||t==='text/csv'}
+async function oaSpreadsheetToText(file){
+ if(!window.XLSX)throw new Error('Nie załadowano biblioteki Excel. Odśwież stronę Ctrl+F5.');
+ const ext=String(file.name||'').toLowerCase();
+ if(ext.endsWith('.csv'))return (await file.text()).slice(0,120000);
+ const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:false,raw:false});
+ const parts=[];
+ for(const name of wb.SheetNames){
+  const ws=wb.Sheets[name];
+  const text=XLSX.utils.sheet_to_csv(ws,{FS:'\t',RS:'\n',blankrows:false});
+  parts.push(`ARKUSZ: ${name}\n${text}`);
+ }
+ return parts.join('\n\n').slice(0,120000);
+}
+function oaPreviewFile(ev){
+ oaSelectedFile=ev.target.files?.[0]||null;
+ const box=byId('oaPreview');
+ if(!oaSelectedFile){box.innerHTML='<span class="small">Wybierz zdjęcie, PDF, Excel lub CSV.</span>';return}
+ const name=String(oaSelectedFile.name||'');
+ const type=String(oaSelectedFile.type||'').toLowerCase();
+ if(type.startsWith('image/')){const r=new FileReader();r.onload=e=>box.innerHTML=`<img src="${e.target.result}">`;r.readAsDataURL(oaSelectedFile);return}
+ if(oaIsSpreadsheetFile(oaSelectedFile)){box.innerHTML=`<span class="pill blue">ARKUSZ: ${esc(name)}</span><br><span class="small">Plik zostanie zamieniony na czytelną tabelę i przekazany do analizy Etapu 1.</span>`;return}
+ if(type==='application/pdf'||/\.pdf$/i.test(name)){box.innerHTML=`<span class="pill blue">PDF: ${esc(name)}</span>`;return}
+ box.innerHTML=`<span class="pill bad">Nieobsługiwany typ pliku: ${esc(name)}</span>`;
+}
 async function oaCreateOrUpdateDraft(result,fileUrl='',fileName=''){
  let o=oaCurrent();
  if(!o){
-  o={id:Date.now()+Math.floor(Math.random()*99999),created:new Date().toISOString().slice(0,10),client:result.client||byId('oaClient').value||'',orderNo:result.orderNo||byId('oaOrderNo').value||'',amount:'',deadline:byId('oaDeadline').value||'',materials:[],tasks:[],items:[],cutItems:[],edgeItems:[],cncItems:[],assemblyItems:[],docs:[],kmsWorkflow:{version:'2.6.0-test',status:'STAGE1_REVIEW',createdAt:oaDateNow(),stage1:{approved:false,items:[],notes:'',confidence:0},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}}};
+  o={id:Date.now()+Math.floor(Math.random()*99999),created:new Date().toISOString().slice(0,10),client:result.client||byId('oaClient').value||'',orderNo:result.orderNo||byId('oaOrderNo').value||'',amount:'',deadline:byId('oaDeadline').value||'',materials:[],tasks:[],items:[],cutItems:[],edgeItems:[],cncItems:[],assemblyItems:[],docs:[],kmsWorkflow:{version:'2.6.2-test',status:'STAGE1_REVIEW',createdAt:oaDateNow(),stage1:{approved:false,items:[],notes:'',confidence:0},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}}};
   state.orders.unshift(o);oaCurrentId=String(o.id)
  }
  o.client=result.client||byId('oaClient').value||o.client||'';o.orderNo=result.orderNo||byId('oaOrderNo').value||o.orderNo||'';o.deadline=byId('oaDeadline').value||o.deadline||'';
- o.kmsWorkflow=o.kmsWorkflow||{version:'2.6.0-test',status:'STAGE1_REVIEW',stage1:{approved:false,items:[]},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}};
+ o.kmsWorkflow=o.kmsWorkflow||{version:'2.6.2-test',status:'STAGE1_REVIEW',stage1:{approved:false,items:[]},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}};
  o.kmsWorkflow.status='STAGE1_REVIEW';o.kmsWorkflow.stage1={approved:false,items:(result.items||[oaEmptyItem()]).map(x=>({...oaEmptyItem(),...x})),notes:result.notes||result.rawSummary||'',confidence:Number(result.confidence)||0,analyzedAt:oaDateNow()};
  o.kmsWorkflow.stage2={approved:false,items:[],materials:[]};o.kmsWorkflow.stage3={approved:false};
  if(fileUrl){o.docs=o.docs||[];o.docs.unshift({name:fileName||'zamowienie',station:'Zamówienie',url:fileUrl});o.kmsWorkflow.sourceFileName=fileName||''}
  save();render();await oaSaveCurrent('Utworzenie analizy zamówienia');oaOpen(o.id)
 }
 async function oaAnalyzeFile(){
- if(!oaSelectedFile)return alert('Wybierz zdjęcie lub PDF.');
- byId('oaAnalyzeStatus').className='pill progress';byId('oaAnalyzeStatus').textContent='AI analizuje plik...';
+ if(!oaSelectedFile)return alert('Wybierz zdjęcie, PDF, Excel lub CSV.');
+ byId('oaAnalyzeStatus').className='pill progress';
+ byId('oaAnalyzeStatus').textContent=oaIsSpreadsheetFile(oaSelectedFile)?'Odczytuję arkusz i przygotowuję analizę...':'AI analizuje plik...';
  try{
-  const fd=new FormData();fd.append('file',oaSelectedFile);fd.append('orderNo',byId('oaOrderNo').value||'');fd.append('client',byId('oaClient').value||'');
+  const fd=new FormData();
+  fd.append('file',oaSelectedFile);
+  fd.append('orderNo',byId('oaOrderNo').value||'');
+  fd.append('client',byId('oaClient').value||'');
+  if(oaIsSpreadsheetFile(oaSelectedFile)){
+   const spreadsheetText=await oaSpreadsheetToText(oaSelectedFile);
+   if(!spreadsheetText.trim())throw new Error('Arkusz jest pusty albo nie udało się odczytać komórek.');
+   fd.append('spreadsheetText',spreadsheetText);
+  }
   const headers={};if(authSession?.access_token)headers.Authorization=`Bearer ${authSession.access_token}`;
-  const res=await fetch('/api/analyze-order',{method:'POST',headers,body:fd});const data=await res.json().catch(()=>({}));if(!res.ok||data.ok===false)throw new Error(data.error||('HTTP '+res.status));
-  const fileUrl=await fileToCloudDataUrl(oaSelectedFile);await oaCreateOrUpdateDraft(data,fileUrl,oaSelectedFile.name);
-  byId('oaAnalyzeStatus').className='pill done';byId('oaAnalyzeStatus').textContent=`Analiza gotowa — pewność ${Math.round((Number(data.confidence)||0)*100)}%`;
- }catch(e){byId('oaAnalyzeStatus').className='pill bad';byId('oaAnalyzeStatus').textContent='Błąd analizy';alert('AI nie wykonało analizy: '+e.message+'\nMożesz kliknąć „Wprowadź ręcznie” i dalej testować cały proces.')}
+  const res=await fetch('/api/analyze-order',{method:'POST',headers,body:fd});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok||data.ok===false)throw new Error(data.error||('HTTP '+res.status));
+  const fileUrl=await fileToCloudDataUrl(oaSelectedFile);
+  await oaCreateOrUpdateDraft(data,fileUrl,oaSelectedFile.name);
+  byId('oaAnalyzeStatus').className='pill done';
+  byId('oaAnalyzeStatus').textContent=`Analiza gotowa — pewność ${Math.round((Number(data.confidence)||0)*100)}%`;
+ }catch(e){
+  console.error('KMS analiza pliku',e);
+  byId('oaAnalyzeStatus').className='pill bad';byId('oaAnalyzeStatus').textContent='Błąd analizy';
+  alert('AI nie wykonało analizy: '+e.message+'\nMożesz kliknąć „Wprowadź ręcznie” i dalej testować cały proces.');
+ }
 }
 async function oaStartManual(){await oaCreateOrUpdateDraft({orderNo:byId('oaOrderNo').value,client:byId('oaClient').value,items:[oaEmptyItem()],notes:'Wprowadzanie ręczne',confidence:1})}
 async function oaLoadTestExample(){
