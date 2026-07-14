@@ -13,7 +13,7 @@ const schema={type:'object',additionalProperties:false,properties:{
  orderNo:{type:'string'},client:{type:'string'},rawSummary:{type:'string'},notes:{type:'string'},confidence:{type:'number'},
  items:{type:'array',items:{type:'object',additionalProperties:false,properties:{
   element:{type:'string'},material:{type:'string'},length:{type:'number'},width:{type:'number'},qty:{type:'number'},thickness:{type:'number'},
-  edge1:edge,edge2:edge,edge3:edge,edge4:edge,pcvCode:{type:'string'},technology:{type:'string',enum:['STANDARD','36MM','ZBIORCZY_2','28MM','FRONTY_SLOJ','LAMELE','INNE']},info:{type:'string'},notes:{type:'string'},confidence:{type:'number'},uncertain:{type:'boolean'}
+  edge1:edge,edge2:edge,edge3:edge,edge4:edge,pcvCode:{type:'string'},technology:{type:'string',enum:['STANDARD','10MM','16MM','36MM','ZBIORCZY_2','28MM','FRONTY_SLOJ','LAMELE','INNE']},info:{type:'string'},notes:{type:'string'},confidence:{type:'number'},uncertain:{type:'boolean'}
  },required:['element','material','length','width','qty','thickness','edge1','edge2','edge3','edge4','pcvCode','technology','info','notes','confidence','uncertain']}}
 },required:['orderNo','client','rawSummary','notes','confidence','items']};
 
@@ -35,7 +35,7 @@ export default async function handler(req,res){
   }else if(mime==='application/pdf'||/\.pdf$/i.test(fileName)){
    sourcePart={type:'input_file',filename:fileName,file_data:dataUrl(mime,bytes.toString('base64'))};
   }else if(mime.startsWith('image/')){
-   sourcePart={type:'input_image',image_url:dataUrl(mime,bytes.toString('base64'))};
+   sourcePart={type:'input_image',image_url:dataUrl(mime,bytes.toString('base64')),detail:'original'};
   }else{
    return res.status(400).json({ok:false,error:'Obsługiwane pliki: zdjęcia, PDF, XLSX, XLS i CSV.'});
   }
@@ -59,9 +59,9 @@ NADRZĘDNE ZASADY:
 10. Brak kreski przy danym wymiarze oznacza brak oklejania na krawędziach tego wymiaru.
 11. Ostatnie „×1” lub „×2” oznacza wyłącznie ilość sztuk i nigdy nie może zmienić PCV ani liczby kresek.
 12. Szczególnie dokładnie rozróżniaj ręcznie zapisane cyfry 9, 8 i 5. Przed zwróceniem wyniku wykonaj ponowne porównanie każdej wartości zawierającej 9 ze zdjęciem. Nie zamieniaj 90 na 80 ani 50. Jeśli znak pozostaje niepewny, ustaw uncertain=true zamiast zgadywać.
-13. Grubości płyty nie zakładaj domyślnie. Jeżeli na źródle nie ma 18MM/36MM/28MM lub innej grubości, zwróć thickness=0 i zaznacz konieczność potwierdzenia.
+13. Grubość ustala KMS, nie odczyt AI: zwykła płyta = 18 mm; oznaczenie 10MM = 10 mm; oznaczenie 16MM = 16 mm; oznaczenie 28MM = 28 mm; oznaczenie 36MM = 36 mm. Nie pobieraj grubości z końcowego x1/x2 ani z opisu PCV.
 14. Nie wymyślaj kodu PCV. Przepisz go tylko, gdy występuje.
-15. technology jest jedynie sugestią do późniejszej kontroli: 36MM, 28MM, element zbiorczy, fronty ze słojem, lamele, inne; nie przeliczaj jeszcze wymiarów.
+15. technology jest jedynie sugestią do późniejszej kontroli: 10MM, 16MM, 36MM, 28MM, element zbiorczy, fronty ze słojem, lamele, inne; nie przeliczaj jeszcze wymiarów.
 16. Jeżeli cokolwiek jest nieczytelne, wpisz 0 lub pusty tekst, opisz problem w notes, ustaw uncertain=true i obniż confidence.
 17. Każdy osobny wiersz/element zamówienia zwróć jako osobną pozycję.
 
@@ -70,7 +70,7 @@ Zwróć wyłącznie JSON zgodny ze schematem.`;
   const content=[{type:'input_text',text:prompt}];
   if(isSpreadsheet)content.push({type:'input_text',text:`ŹRÓDŁO: ARKUSZ EXCEL/CSV ${fileName}\nKolumny i wiersze zostały odczytane z pliku. Zachowaj każdy wiersz 1:1.\n\n${spreadsheetText}`});
   else content.push(sourcePart);
-  const model=process.env.OPENAI_MODEL||'gpt-4o-mini';
+  const model=process.env.OPENAI_MODEL||'gpt-5.6-sol';
   const response=await client.responses.create({model,input:[{role:'user',content}],text:{format:{type:'json_schema',name:'kms_order_stage1',schema,strict:true}}});
   let parsed=JSON.parse(response.output_text);
 
@@ -84,7 +84,7 @@ Skup się wyłącznie na:
 - liczbie kresek przy KAŻDYM pierwszym i drugim wymiarze,
 - mapowaniu: pierwsza kreska długości=edge1, druga=edge2; pierwsza kreska szerokości=edge3, druga=edge4,
 - ilości po ostatnim znaku x,
-- braku domyślnej grubości,
+- stałej grubości KMS: standard 18 mm, oznaczenie 10MM = 10, oznaczenie 16MM = 16, oznaczenie 28MM = 28, oznaczenie 36MM = 36,
 - niewymyślaniu klienta ani numeru zlecenia.
 Ogólne PCV 1MM/2MM stosuj tylko do krawędzi oznaczonych kreskami.
 Popraw wstępny wynik i zwróć pełny JSON zgodny ze schematem.
@@ -99,17 +99,21 @@ ${JSON.stringify(parsed)}`;
   const suppliedClient=String(first(fields.client)||'').trim();
   parsed.orderNo=suppliedOrderNo;
   parsed.client=suppliedClient;
-  parsed.items=(parsed.items||[]).map(x=>({
-   ...x,
-   length:Number(x.length)||0,
-   width:Number(x.width)||0,
-   qty:Number(x.qty)||0,
-   thickness:Number(x.thickness)||0,
-   edge1:['1MM','2MM'].includes(x.edge1)?x.edge1:'',
-   edge2:['1MM','2MM'].includes(x.edge2)?x.edge2:'',
-   edge3:['1MM','2MM'].includes(x.edge3)?x.edge3:'',
-   edge4:['1MM','2MM'].includes(x.edge4)?x.edge4:''
-  }));
+  parsed.items=(parsed.items||[]).map(x=>{
+   const text=`${x.element||''} ${x.material||''} ${x.info||''} ${x.notes||''}`.toUpperCase();
+   const fixedThickness=(x.technology==='10MM'||/\b10\s*MM\b/.test(text))?10:(x.technology==='16MM'||/\b16\s*MM\b/.test(text))?16:(x.technology==='36MM'||/\b36\s*MM\b/.test(text))?36:(x.technology==='28MM'||/\b28\s*MM\b/.test(text))?28:18;
+   return {
+    ...x,
+    length:Number(x.length)||0,
+    width:Number(x.width)||0,
+    qty:Number(x.qty)||0,
+    thickness:fixedThickness,
+    edge1:['1MM','2MM'].includes(x.edge1)?x.edge1:'',
+    edge2:['1MM','2MM'].includes(x.edge2)?x.edge2:'',
+    edge3:['1MM','2MM'].includes(x.edge3)?x.edge3:'',
+    edge4:['1MM','2MM'].includes(x.edge4)?x.edge4:''
+   }
+  });
   return res.status(200).json(parsed);
  }catch(e){console.error(e);return res.status(500).json({ok:false,error:e.message||'Błąd analizy AI',details:'Sprawdź OPENAI_API_KEY, model i logi Vercel.'})}
 }
