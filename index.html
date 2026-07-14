@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>KMS TESTOWY 2.6.9 — ANALIZA ZAMÓWIEŃ 1→2→3</title>
+<title>KMS TESTOWY 2.7.0 — ANALIZA ZAMÓWIEŃ 1→2→3</title>
 <style>
 body{margin:0;font-family:Arial;background:#f3f4f6;color:#111827}.app{display:flex;min-height:100vh}
 aside{width:260px;background:#111827;color:white;padding:16px}main{flex:1;padding:22px;max-width:1500px}
@@ -73,7 +73,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 </div>
 <div class="app auth-locked" id="kmsApp">
 <aside>
-<h2>KMS TESTOWY 2.6.9</h2>
+<h2>KMS TESTOWY 2.7.0</h2>
 <div class="small">Analiza zamówień → CSV → produkcja</div>
 <div class="nav">
 <button class="active" onclick="show('dash',this)">👔 Pulpit</button>
@@ -106,7 +106,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <section id="dash">
 <h1>👔 Pulpit</h1>
 <div class="card">
-<h3>☁️ KMS TESTOWY 2.6.9 — ANALIZA ZAMÓWIEŃ</h3>
+<h3>☁️ KMS TESTOWY 2.7.0 — ANALIZA ZAMÓWIEŃ</h3>
 <button class="primary" onclick="cloudLoadOrders()">Odśwież teraz</button>
 <button class="gray" onclick="cloudSyncLocalOrders()">Wyślij lokalne zlecenia do chmury</button>
 <button class="gray" onclick="runStorageRepair(true)">Napraw pamięć lokalną</button>
@@ -115,7 +115,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <div class="small">Automatyczne wczytanie po starcie, synchronizacja co 15 sekund i zapis statusów do chmury. Duże pliki są przechowywane poza localStorage, aby nie blokować KMS.</div>
 <div id="cloudLog" class="small" style="margin-top:8px">Historia synchronizacji pojawi się tutaj.</div>
 </div>
-<div class="card"><b>🧪 KMS TESTOWY 2.6.9</b><br>Wersja testowa na osobną gałąź/adres. Nie podmieniać działającej wersji STABLE bez zakończenia testów.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
+<div class="card"><b>🧪 KMS TESTOWY 2.7.0</b><br>Wersja testowa na osobną gałąź/adres. Nie podmieniać działającej wersji STABLE bez zakończenia testów.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
 <div class="grid">
 <div class="card"><h3>Zlecenia</h3><div class="value" id="dOrders">0</div></div>
 <div class="card"><h3>Pliki</h3><div class="value" id="dFiles">0</div></div>
@@ -350,7 +350,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
   </div>
 
   <div id="oaStage1" class="card">
-    <div class="oa-statusbar"><div><h2>Etap 1 — Arkusz Zamówienia Klienta</h2><div class="small">Dane 1:1. Bez zmian technologicznych. <b>Grubość stała KMS:</b> standard 18 mm; oznaczenia 10MM, 16MM, 28MM i 36MM.</div></div><span id="oaStage1Status" class="pill progress">DO WERYFIKACJI</span></div>
+    <div class="oa-statusbar"><div><h2>Etap 1 — Arkusz Zamówienia Klienta</h2><div class="small">Dane 1:1. Bez zmian technologicznych. <b>PCV i kreski są kontrolowane w osobnym przebiegu.</b> <b>Grubość stała KMS:</b> standard 18 mm; oznaczenia 10MM, 16MM, 28MM i 36MM.</div></div><span id="oaStage1Status" class="pill progress">DO WERYFIKACJI</span></div>
     <div id="oaStage1Blocker" class="card oa-blocker">Najpierw wykonaj analizę pliku albo rozpocznij ręczne wprowadzanie.</div>
     <div class="oa-scroll"><table class="oa-table"><thead><tr>
       <th>Poz.</th><th>Element</th><th>Materiał</th><th>Długość</th><th>Szerokość</th><th>Ilość</th><th>Grubość</th>
@@ -1720,13 +1720,13 @@ async function oaCreateOrUpdateDraft(result,fileUrl='',fileName=''){
  });
  if(!o){
   const draftDeadline=clean(byId('oaDeadline')?.value||oaDraftMeta.deadline);
-  o={id:Date.now()+Math.floor(Math.random()*99999),created:new Date().toISOString().slice(0,10),client:inputClient,orderNo:inputOrderNo,amount:'',deadline:draftDeadline,materials:[],tasks:[],items:[],cutItems:[],edgeItems:[],cncItems:[],assemblyItems:[],docs:[],kmsWorkflow:{version:'2.6.9-test',status:'STAGE1_REVIEW',createdAt:oaDateNow(),stage1:{approved:false,items:[],notes:'',confidence:0},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}}};
+  o={id:Date.now()+Math.floor(Math.random()*99999),created:new Date().toISOString().slice(0,10),client:inputClient,orderNo:inputOrderNo,amount:'',deadline:draftDeadline,materials:[],tasks:[],items:[],cutItems:[],edgeItems:[],cncItems:[],assemblyItems:[],docs:[],kmsWorkflow:{version:'2.7.0-test',status:'STAGE1_REVIEW',createdAt:oaDateNow(),stage1:{approved:false,items:[],notes:'',confidence:0},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}}};
   state.orders.unshift(o);oaCurrentId=String(o.id);oaClearDraft()
  }
  o.client=inputClient||clean(o.client);
  o.orderNo=inputOrderNo||clean(o.orderNo);
  o.deadline=clean(byId('oaDeadline')?.value)||clean(o.deadline);
- o.kmsWorkflow=o.kmsWorkflow||{version:'2.6.9-test',status:'STAGE1_REVIEW',stage1:{approved:false,items:[]},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}};
+ o.kmsWorkflow=o.kmsWorkflow||{version:'2.7.0-test',status:'STAGE1_REVIEW',stage1:{approved:false,items:[]},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}};
  o.kmsWorkflow.status='STAGE1_REVIEW';
  o.kmsWorkflow.stage1={approved:false,items:normalizedItems,notes:clean(result?.notes)||clean(result?.rawSummary),confidence:Number(result?.confidence)||0,analyzedAt:oaDateNow()};
  o.kmsWorkflow.stage2={approved:false,items:[],materials:[]};o.kmsWorkflow.stage3={approved:false};
