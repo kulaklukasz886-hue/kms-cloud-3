@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>KMS TESTOWY 2.6.6 — ANALIZA ZAMÓWIEŃ 1→2→3</title>
+<title>KMS TESTOWY 2.6.9 — ANALIZA ZAMÓWIEŃ 1→2→3</title>
 <style>
 body{margin:0;font-family:Arial;background:#f3f4f6;color:#111827}.app{display:flex;min-height:100vh}
 aside{width:260px;background:#111827;color:white;padding:16px}main{flex:1;padding:22px;max-width:1500px}
@@ -73,7 +73,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 </div>
 <div class="app auth-locked" id="kmsApp">
 <aside>
-<h2>KMS TESTOWY 2.6.6</h2>
+<h2>KMS TESTOWY 2.6.9</h2>
 <div class="small">Analiza zamówień → CSV → produkcja</div>
 <div class="nav">
 <button class="active" onclick="show('dash',this)">👔 Pulpit</button>
@@ -106,7 +106,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <section id="dash">
 <h1>👔 Pulpit</h1>
 <div class="card">
-<h3>☁️ KMS TESTOWY 2.6.6 — ANALIZA ZAMÓWIEŃ</h3>
+<h3>☁️ KMS TESTOWY 2.6.9 — ANALIZA ZAMÓWIEŃ</h3>
 <button class="primary" onclick="cloudLoadOrders()">Odśwież teraz</button>
 <button class="gray" onclick="cloudSyncLocalOrders()">Wyślij lokalne zlecenia do chmury</button>
 <button class="gray" onclick="runStorageRepair(true)">Napraw pamięć lokalną</button>
@@ -115,7 +115,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <div class="small">Automatyczne wczytanie po starcie, synchronizacja co 15 sekund i zapis statusów do chmury. Duże pliki są przechowywane poza localStorage, aby nie blokować KMS.</div>
 <div id="cloudLog" class="small" style="margin-top:8px">Historia synchronizacji pojawi się tutaj.</div>
 </div>
-<div class="card"><b>🧪 KMS TESTOWY 2.6.6</b><br>Wersja testowa na osobną gałąź/adres. Nie podmieniać działającej wersji STABLE bez zakończenia testów.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
+<div class="card"><b>🧪 KMS TESTOWY 2.6.9</b><br>Wersja testowa na osobną gałąź/adres. Nie podmieniać działającej wersji STABLE bez zakończenia testów.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
 <div class="grid">
 <div class="card"><h3>Zlecenia</h3><div class="value" id="dOrders">0</div></div>
 <div class="card"><h3>Pliki</h3><div class="value" id="dFiles">0</div></div>
@@ -350,7 +350,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
   </div>
 
   <div id="oaStage1" class="card">
-    <div class="oa-statusbar"><div><h2>Etap 1 — Arkusz Zamówienia Klienta</h2><div class="small">Dane 1:1. Bez zmian technologicznych.</div></div><span id="oaStage1Status" class="pill progress">DO WERYFIKACJI</span></div>
+    <div class="oa-statusbar"><div><h2>Etap 1 — Arkusz Zamówienia Klienta</h2><div class="small">Dane 1:1. Bez zmian technologicznych. <b>Grubość stała KMS:</b> standard 18 mm; oznaczenia 10MM, 16MM, 28MM i 36MM.</div></div><span id="oaStage1Status" class="pill progress">DO WERYFIKACJI</span></div>
     <div id="oaStage1Blocker" class="card oa-blocker">Najpierw wykonaj analizę pliku albo rozpocznij ręczne wprowadzanie.</div>
     <div class="oa-scroll"><table class="oa-table"><thead><tr>
       <th>Poz.</th><th>Element</th><th>Materiał</th><th>Długość</th><th>Szerokość</th><th>Ilość</th><th>Grubość</th>
@@ -1636,7 +1636,9 @@ function oaRestoreDraft(){
  }catch(e){console.warn('KMS draft restore',e)}
 }
 const OA_TECH=[
-  ['STANDARD','STANDARD — bez zmiany'],
+  ['STANDARD','STANDARD — płyta 18MM'],
+  ['10MM','10MM — płyta 10 mm'],
+  ['16MM','16MM — płyta 16 mm'],
   ['36MM','36MM — klejenie 2 × 18MM'],
   ['ZBIORCZY_2','ZBIORCZY — 2 elementy + rzaz 5 mm'],
   ['28MM','28MM — wymaga ręcznej kontroli materiałów'],
@@ -1648,7 +1650,15 @@ const OA_ROTATION={'W960 SM':'1','W960 ST7':'1'};
 function oaIsProductionOrder(o){return !o?.kmsWorkflow || ['PRODUCTION','COMPLETED'].includes(o.kmsWorkflow.status)}
 function oaAnalysisOrders(){return (state.orders||[]).filter(o=>o.kmsWorkflow)}
 function oaCurrent(){return (state.orders||[]).find(o=>String(o.id)===String(oaCurrentId)||String(o.cloudId)===String(oaCurrentId))}
-function oaEmptyItem(){return{element:'',material:'',length:0,width:0,qty:1,thickness:0,edge1:'',edge2:'',edge3:'',edge4:'',pcvCode:'',technology:'STANDARD',info:'',notes:'',confidence:1,uncertain:false}}
+function oaFixedThickness(x={}){
+ const text=`${x.element||''} ${x.material||''} ${x.info||''} ${x.notes||''}`.toUpperCase();
+ if(x.technology==='10MM'||/\b10\s*MM\b/.test(text))return 10;
+ if(x.technology==='16MM'||/\b16\s*MM\b/.test(text))return 16;
+ if(x.technology==='36MM'||/\b36\s*MM\b/.test(text))return 36;
+ if(x.technology==='28MM'||/\b28\s*MM\b/.test(text))return 28;
+ return 18
+}
+function oaEmptyItem(){return{element:'',material:'',length:0,width:0,qty:1,thickness:18,edge1:'',edge2:'',edge3:'',edge4:'',pcvCode:'',technology:'STANDARD',info:'',notes:'',confidence:1,uncertain:false}}
 function oaStatusLabel(s){return({STAGE1_REVIEW:'ETAP 1 — WERYFIKACJA',STAGE2_REVIEW:'ETAP 2 — TECHNOLOGIA',STAGE3_READY:'ETAP 3 — CSV',PRODUCTION:'PRODUKCJA'}[s]||s||'NOWE')}
 function oaStatusClass(s){return s==='PRODUCTION'?'done':s==='STAGE3_READY'?'blue':s==='STAGE2_REVIEW'?'progress':'todo'}
 function oaEdgeOptions(v){return['','1MM','2MM'].map(x=>`<option value="${x}" ${v===x?'selected':''}>${x||'-'}</option>`).join('')}
@@ -1697,7 +1707,7 @@ async function oaCreateOrUpdateDraft(result,fileUrl='',fileName=''){
   item.length=Number(item.length)||0;
   item.width=Number(item.width)||0;
   item.qty=Number(item.qty)||0;
-  item.thickness=Number(item.thickness)||0;
+  item.thickness=oaFixedThickness(item);
   item.edge1=['1MM','2MM'].includes(item.edge1)?item.edge1:'';
   item.edge2=['1MM','2MM'].includes(item.edge2)?item.edge2:'';
   item.edge3=['1MM','2MM'].includes(item.edge3)?item.edge3:'';
@@ -1710,13 +1720,13 @@ async function oaCreateOrUpdateDraft(result,fileUrl='',fileName=''){
  });
  if(!o){
   const draftDeadline=clean(byId('oaDeadline')?.value||oaDraftMeta.deadline);
-  o={id:Date.now()+Math.floor(Math.random()*99999),created:new Date().toISOString().slice(0,10),client:inputClient,orderNo:inputOrderNo,amount:'',deadline:draftDeadline,materials:[],tasks:[],items:[],cutItems:[],edgeItems:[],cncItems:[],assemblyItems:[],docs:[],kmsWorkflow:{version:'2.6.6-test',status:'STAGE1_REVIEW',createdAt:oaDateNow(),stage1:{approved:false,items:[],notes:'',confidence:0},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}}};
+  o={id:Date.now()+Math.floor(Math.random()*99999),created:new Date().toISOString().slice(0,10),client:inputClient,orderNo:inputOrderNo,amount:'',deadline:draftDeadline,materials:[],tasks:[],items:[],cutItems:[],edgeItems:[],cncItems:[],assemblyItems:[],docs:[],kmsWorkflow:{version:'2.6.9-test',status:'STAGE1_REVIEW',createdAt:oaDateNow(),stage1:{approved:false,items:[],notes:'',confidence:0},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}}};
   state.orders.unshift(o);oaCurrentId=String(o.id);oaClearDraft()
  }
  o.client=inputClient||clean(o.client);
  o.orderNo=inputOrderNo||clean(o.orderNo);
  o.deadline=clean(byId('oaDeadline')?.value)||clean(o.deadline);
- o.kmsWorkflow=o.kmsWorkflow||{version:'2.6.6-test',status:'STAGE1_REVIEW',stage1:{approved:false,items:[]},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}};
+ o.kmsWorkflow=o.kmsWorkflow||{version:'2.6.9-test',status:'STAGE1_REVIEW',stage1:{approved:false,items:[]},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}};
  o.kmsWorkflow.status='STAGE1_REVIEW';
  o.kmsWorkflow.stage1={approved:false,items:normalizedItems,notes:clean(result?.notes)||clean(result?.rawSummary),confidence:Number(result?.confidence)||0,analyzedAt:oaDateNow()};
  o.kmsWorkflow.stage2={approved:false,items:[],materials:[]};o.kmsWorkflow.stage3={approved:false};
@@ -1728,16 +1738,20 @@ async function oaCanvasToBlob(canvas,type='image/jpeg',quality=.78){
 }
 async function oaCompressImageForAnalysis(file){
  const img=await loadImageFromFile(file);
- let maxSide=1800,quality=.78,blob=null;
- for(let attempt=0;attempt<5;attempt++){
+ let maxSide=2800,quality=.9,blob=null;
+ for(let attempt=0;attempt<8;attempt++){
   const ratio=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
   const w=Math.max(1,Math.round(img.naturalWidth*ratio));
   const h=Math.max(1,Math.round(img.naturalHeight*ratio));
   const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
-  const ctx=canvas.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+  const ctx=canvas.getContext('2d',{alpha:false});
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.drawImage(img,0,0,w,h);
   blob=await oaCanvasToBlob(canvas,'image/jpeg',quality);
   if(blob.size<=2.8*1024*1024)break;
-  maxSide=Math.max(1000,Math.round(maxSide*.82));quality=Math.max(.56,quality-.07);
+  if(quality>.66)quality-=.06;
+  else maxSide=Math.max(1800,Math.round(maxSide*.88));
  }
  if(!blob||blob.size>3.2*1024*1024)throw new Error('Zdjęcie jest zbyt duże nawet po zmniejszeniu. Zrób zwykły zrzut ekranu lub zdjęcie w niższej rozdzielczości.');
  const base=String(file.name||'zamowienie').replace(/\.[^.]+$/,'');
@@ -1802,7 +1816,7 @@ async function oaLoadTestExample(){
  ]};await oaCreateOrUpdateDraft(result)
 }
 function oaOpen(id){oaClearDraft();oaCurrentId=String(id);const o=oaCurrent();if(!o)return;byId('oaWorkspace').classList.remove('hidden');byId('oaOrderNo').value=o.orderNo||'';byId('oaClient').value=o.client||'';byId('oaDeadline').value=o.deadline||'';const d=(o.docs||[])[0];if(d?.url){if(String(d.url).startsWith('data:image'))byId('oaPreview').innerHTML=`<img src="${d.url}">`;else byId('oaPreview').innerHTML=`<button class="doc" onclick="openKmsDocByIndex('${jsStr(o.id)}',0)">📎 Otwórz ${esc(d.name||'plik')}</button>`}else byId('oaPreview').innerHTML='<span class="small">Brak zapisanego podglądu.</span>';oaRender()}
-function oaUpdateStage1(i,k,v){const o=oaCurrent();if(!o)return;if(o.kmsWorkflow.stage1.approved){if(!confirm('Ta zmiana cofnie zatwierdzenie Etapu 1 i usunie wynik Etapu 2/3. Kontynuować?')){oaRender();return}o.kmsWorkflow.stage1.approved=false;o.kmsWorkflow.stage2={approved:false,items:[],materials:[]};o.kmsWorkflow.stage3={approved:false};o.kmsWorkflow.status='STAGE1_REVIEW'}const it=o.kmsWorkflow.stage1.items[i];if(['length','width','qty','thickness','confidence'].includes(k))v=Number(v)||0;if(k==='uncertain')v=!!v;it[k]=v;oaLocalChanged()}
+function oaUpdateStage1(i,k,v){const o=oaCurrent();if(!o)return;if(o.kmsWorkflow.stage1.approved){if(!confirm('Ta zmiana cofnie zatwierdzenie Etapu 1 i usunie wynik Etapu 2/3. Kontynuować?')){oaRender();return}o.kmsWorkflow.stage1.approved=false;o.kmsWorkflow.stage2={approved:false,items:[],materials:[]};o.kmsWorkflow.stage3={approved:false};o.kmsWorkflow.status='STAGE1_REVIEW'}const it=o.kmsWorkflow.stage1.items[i];if(k==='thickness')return;if(['length','width','qty','confidence'].includes(k))v=Number(v)||0;if(k==='uncertain')v=!!v;it[k]=v;if(['technology','element','material','info','notes'].includes(k))it.thickness=oaFixedThickness(it);oaLocalChanged()}
 function oaUpdateStage2(i,k,v){const o=oaCurrent();if(!o)return;if(o.kmsWorkflow.stage2.approved){if(!confirm('Ta zmiana cofnie zatwierdzenie Etapu 2 i zablokuje dotychczasowy CSV. Kontynuować?')){oaRender();return}o.kmsWorkflow.stage2.approved=false;o.kmsWorkflow.stage3={approved:false};o.kmsWorkflow.status='STAGE2_REVIEW'}const it=o.kmsWorkflow.stage2.items[i];if(['length','width','qty','thickness'].includes(k))v=Number(v)||0;if(['requiresConfirmation','confirmed'].includes(k))v=!!v;it[k]=v;oaRecalcStage2Summaries(o);oaLocalChanged();oaRenderStage2(o)}
 function oaLocalChanged(){save();clearTimeout(oaSaveTimer);oaSaveTimer=setTimeout(()=>{},500)}
 function oaAddStage1Row(){const o=oaCurrent();if(!o)return oaStartManual();o.kmsWorkflow.stage1.approved=false;o.kmsWorkflow.stage2={approved:false,items:[],materials:[]};o.kmsWorkflow.stage3={approved:false};o.kmsWorkflow.status='STAGE1_REVIEW';o.kmsWorkflow.stage1.items.push(oaEmptyItem());o.kmsWorkflow.stage1.approved=false;o.kmsWorkflow.status='STAGE1_REVIEW';save();oaRender()}
@@ -1829,7 +1843,6 @@ function oaValidateStage1(o){
   if(!String(x.material||'').trim())errs.push(`Poz. ${p}: brak materiału.`);
   if(!(Number(x.length)>0&&Number(x.width)>0))errs.push(`Poz. ${p}: brak prawidłowych wymiarów.`);
   if(!(Number(x.qty)>0))errs.push(`Poz. ${p}: brak ilości.`);
-  if(!(Number(x.thickness)>0))errs.push(`Poz. ${p}: grubość nie została podana w źródle — potwierdź ręcznie.`);
   if(x.uncertain)errs.push(`Poz. ${p}: pozycja oznaczona jako niepewna.`);
   if(x.technology==='FRONTY_SLOJ'&&!String(x.pcvCode||'').trim())errs.push(`Poz. ${p}: fronty ze słojem wymagają kodu PCV.`);
  });
@@ -1861,7 +1874,7 @@ function oaSafeName(v){return String(v||'MATERIAL').normalize('NFD').replace(/[\
 function oaDownloadCsv(material){const o=oaCurrent();if(!o?.kmsWorkflow?.stage2?.approved)return alert('Najpierw zatwierdź Etap 2.');const blob=new Blob([oaCsvText(material)],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${oaSafeName(o.orderNo)}_${oaSafeName(material)}.csv`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
 async function oaRouteToProduction(){const o=oaCurrent();if(!o?.kmsWorkflow?.stage2?.approved)return alert('Najpierw zatwierdź Etap 2.');if(!confirm('Potwierdź: pliki CSV zostały sprawdzone i zlecenie ma zostać przekazane do produkcji KMS.'))return;const rows=o.kmsWorkflow.stage2.items||[];o.items=rows.map(x=>({raw:`${x.material} ${x.length}x${x.width} x${x.qty}`,category:'Płyta'}));o.cutItems=rows.map((x,i)=>({label:`${x.material} — ${x.length} × ${x.width} mm`,pcv:x.info||x.rule||'',qty:Number(x.qty)||1,unit:'szt.',done:false,sourceIndex:i}));o.edgeItems=rows.filter(x=>oaPcvMb(x)>0).map((x,i)=>({label:`${x.material} — ${x.length} × ${x.width} mm`,pcv:x.pcvCode||[x.edge1,x.edge2,x.edge3,x.edge4].filter(Boolean).join('/'),qty:Number(oaPcvMb(x).toFixed(3)),unit:'mb',done:false,sourceIndex:i}));o.cncItems=rows.filter(x=>/CNC|FREZ|OTWOR/i.test(String(x.info||'')+' '+String(x.notes||''))).map((x,i)=>({label:`${x.material} — ${x.info||'Operacja CNC'}`,pcv:'',qty:Number(x.qty)||1,unit:'szt.',done:false,sourceIndex:i}));o.assemblyItems=[];o.materials=(o.kmsWorkflow.stage2.materials||[]).map(m=>({type:'Płyta',material:m.material,qty:0,unit:'do ustalenia po optymalizacji',status:'Do zamówienia'}));o.tasks=[{name:'Cięcie',station:'Cięcie',status:'Do wykonania',source:'Etap 3 CSV',qty:o.cutItems.length,unit:'pozycji'}];if(o.edgeItems.length)o.tasks.push({name:'Oklejanie',station:'Oklejanie',status:'Do wykonania',source:'Etap 2',qty:Number(o.edgeItems.reduce((s,x)=>s+(Number(x.qty)||0),0).toFixed(3)),unit:'mb'});if(o.cncItems.length)o.tasks.push({name:'CNC',station:'CNC',status:'Do wykonania',source:'Etap 2',qty:o.cncItems.length,unit:'pozycji'});o.kmsWorkflow.stage3={approved:true,approvedAt:oaDateNow(),approvedBy:kmsUserName||'',csvMaterials:[...new Set(rows.map(x=>x.material))]};o.kmsWorkflow.status='PRODUCTION';o.status='PRODUKCJA';o.note=(o.note?o.note+'\n':'')+'Zlecenie przekazane z Analizy Zamówień 1→2→3.';save();await oaSaveCurrent('Etap 3 — przekazano do produkcji');oaRender();alert('Zlecenie zostało przekazane do modułu Produkcja TEST i zapisane lokalnie. Po sprawdzeniu możesz osobno wysłać je do chmury.')}
 function oaRenderOrdersList(){const el=byId('oaOrdersList');if(!el)return;const rows=oaAnalysisOrders();el.innerHTML=rows.length?rows.map(o=>`<div class="oa-order-row"><div><b>${esc(o.orderNo||'BEZ NUMERU')}</b><br><span class="small">${esc(o.client||'Brak klienta')}</span></div><div><span class="pill ${oaStatusClass(o.kmsWorkflow.status)}">${esc(oaStatusLabel(o.kmsWorkflow.status))}</span></div><div>${esc(o.created||'')}</div><div><button class="primary" onclick="oaOpen('${jsStr(o.id)}')">Otwórz</button>${kmsRole==='ADMIN'?`<button class="red" onclick="deleteCloudOrder('${jsStr(o.id)}')">Usuń</button>`:''}</div></div>`).join(''):'<div class="small" style="padding:12px">Brak zleceń w analizie. Kliknij „Nowe zamówienie”.</div>'}
-function oaRenderStage1(o){const rows=o?.kmsWorkflow?.stage1?.items||[];byId('oaStage1Rows').innerHTML=rows.map((x,i)=>`<tr class="${x.uncertain?'oa-low':''}"><td>${i+1}</td><td><input class="wide" value="${esc(x.element||'')}" onchange="oaUpdateStage1(${i},'element',this.value)"></td><td><input class="wide" value="${esc(x.material||'')}" onchange="oaUpdateStage1(${i},'material',this.value)"></td><td><input type="number" value="${Number(x.length)||''}" onchange="oaUpdateStage1(${i},'length',this.value)"></td><td><input type="number" value="${Number(x.width)||''}" onchange="oaUpdateStage1(${i},'width',this.value)"></td><td><input type="number" step="1" value="${Number(x.qty)||''}" onchange="oaUpdateStage1(${i},'qty',this.value)"></td><td><input type="number" value="${Number(x.thickness)>0?Number(x.thickness):''}" placeholder="potwierdź" onchange="oaUpdateStage1(${i},'thickness',this.value)"></td><td><select onchange="oaUpdateStage1(${i},'edge1',this.value)">${oaEdgeOptions(x.edge1)}</select></td><td><select onchange="oaUpdateStage1(${i},'edge2',this.value)">${oaEdgeOptions(x.edge2)}</select></td><td><select onchange="oaUpdateStage1(${i},'edge3',this.value)">${oaEdgeOptions(x.edge3)}</select></td><td><select onchange="oaUpdateStage1(${i},'edge4',this.value)">${oaEdgeOptions(x.edge4)}</select></td><td><input class="wide" value="${esc(x.pcvCode||'')}" onchange="oaUpdateStage1(${i},'pcvCode',this.value)"></td><td><select class="wide" onchange="oaUpdateStage1(${i},'technology',this.value)">${oaTechOptions(x.technology||'STANDARD')}</select></td><td><input class="notes" value="${esc(x.info||x.notes||'')}" onchange="oaUpdateStage1(${i},'info',this.value)"></td><td style="text-align:center"><input type="checkbox" ${x.uncertain?'checked':''} onchange="oaUpdateStage1(${i},'uncertain',this.checked)"></td><td><button class="red" onclick="oaDeleteStage1Row(${i})">×</button></td></tr>`).join('');const errs=o?oaValidateStage1(o):['Brak zlecenia.'];byId('oaStage1Blocker').className='card '+(errs.length?'oa-blocker':'oa-ok');byId('oaStage1Blocker').innerHTML=errs.length?`<b>Etap 1 wymaga kontroli:</b><br>${errs.map(esc).join('<br>')}`:'<b>Kontrola kompletna.</b> Arkusz może zostać zatwierdzony.';byId('oaStage1Status').className='pill '+(o?.kmsWorkflow?.stage1?.approved?'done':errs.length?'progress':'blue');byId('oaStage1Status').textContent=o?.kmsWorkflow?.stage1?.approved?'ZAAKCEPTOWANE':errs.length?'DO WERYFIKACJI':'GOTOWE DO ZATWIERDZENIA';byId('oaApprove1Btn').disabled=!!o?.kmsWorkflow?.stage1?.approved}
+function oaRenderStage1(o){const rows=o?.kmsWorkflow?.stage1?.items||[];byId('oaStage1Rows').innerHTML=rows.map((x,i)=>`<tr class="${x.uncertain?'oa-low':''}"><td>${i+1}</td><td><input class="wide" value="${esc(x.element||'')}" onchange="oaUpdateStage1(${i},'element',this.value)"></td><td><input class="wide" value="${esc(x.material||'')}" onchange="oaUpdateStage1(${i},'material',this.value)"></td><td><input type="number" value="${Number(x.length)||''}" onchange="oaUpdateStage1(${i},'length',this.value)"></td><td><input type="number" value="${Number(x.width)||''}" onchange="oaUpdateStage1(${i},'width',this.value)"></td><td><input type="number" step="1" value="${Number(x.qty)||''}" onchange="oaUpdateStage1(${i},'qty',this.value)"></td><td><input type="number" value="${oaFixedThickness(x)}" readonly title="Stała KMS: standard 18 mm; oznaczenia 10MM, 16MM, 28MM i 36MM ustalają grubość."></td><td><select onchange="oaUpdateStage1(${i},'edge1',this.value)">${oaEdgeOptions(x.edge1)}</select></td><td><select onchange="oaUpdateStage1(${i},'edge2',this.value)">${oaEdgeOptions(x.edge2)}</select></td><td><select onchange="oaUpdateStage1(${i},'edge3',this.value)">${oaEdgeOptions(x.edge3)}</select></td><td><select onchange="oaUpdateStage1(${i},'edge4',this.value)">${oaEdgeOptions(x.edge4)}</select></td><td><input class="wide" value="${esc(x.pcvCode||'')}" onchange="oaUpdateStage1(${i},'pcvCode',this.value)"></td><td><select class="wide" onchange="oaUpdateStage1(${i},'technology',this.value)">${oaTechOptions(x.technology||'STANDARD')}</select></td><td><input class="notes" value="${esc(x.info||x.notes||'')}" onchange="oaUpdateStage1(${i},'info',this.value)"></td><td style="text-align:center"><input type="checkbox" ${x.uncertain?'checked':''} onchange="oaUpdateStage1(${i},'uncertain',this.checked)"></td><td><button class="red" onclick="oaDeleteStage1Row(${i})">×</button></td></tr>`).join('');const errs=o?oaValidateStage1(o):['Brak zlecenia.'];byId('oaStage1Blocker').className='card '+(errs.length?'oa-blocker':'oa-ok');byId('oaStage1Blocker').innerHTML=errs.length?`<b>Etap 1 wymaga kontroli:</b><br>${errs.map(esc).join('<br>')}`:'<b>Kontrola kompletna.</b> Arkusz może zostać zatwierdzony.';byId('oaStage1Status').className='pill '+(o?.kmsWorkflow?.stage1?.approved?'done':errs.length?'progress':'blue');byId('oaStage1Status').textContent=o?.kmsWorkflow?.stage1?.approved?'ZAAKCEPTOWANE':errs.length?'DO WERYFIKACJI':'GOTOWE DO ZATWIERDZENIA';byId('oaApprove1Btn').disabled=!!o?.kmsWorkflow?.stage1?.approved}
 function oaRenderStage2(o){const unlocked=!!o?.kmsWorkflow?.stage1?.approved;byId('oaStage2').classList.toggle('oa-stage-locked',!unlocked);const s=o?.kmsWorkflow?.stage2||{items:[],materials:[]};byId('oaMaterialsRows').innerHTML=(s.materials||[]).map(m=>`<tr><td><b>${esc(m.material)}</b></td><td>${m.positions}</td><td>${Number(m.area).toFixed(3)}</td><td>${Number(m.pcv).toFixed(3)}</td><td>${Number(m.pcvOrder).toFixed(3)}</td><td><select onchange="oaSetRotation('${jsStr(m.material)}',this.value)"><option value="" ${m.rotation===''?'selected':''}>DO POTWIERDZENIA</option><option value="0" ${String(m.rotation)==='0'?'selected':''}>0 — NIEOBROTOWO</option><option value="1" ${String(m.rotation)==='1'?'selected':''}>1 — OBROTOWO</option></select></td><td><span class="pill ${['0','1'].includes(String(m.rotation))?'done':'progress'}">${['0','1'].includes(String(m.rotation))?'OK':'BRAK OBROTOWO'}</span></td></tr>`).join('')||'<tr><td colspan="7">Brak danych.</td></tr>';byId('oaStage2Rows').innerHTML=(s.items||[]).map((x,i)=>`<tr class="${x.requiresConfirmation&&!x.confirmed?'oa-review':''}"><td>${i+1}</td><td><input class="notes" value="${esc(x.info||'')}" onchange="oaUpdateStage2(${i},'info',this.value)"></td><td><input class="wide" value="${esc(x.element||'')}" onchange="oaUpdateStage2(${i},'element',this.value)"></td><td><input class="wide" value="${esc(x.material||'')}" onchange="oaUpdateStage2(${i},'material',this.value)"></td><td><input type="number" value="${Number(x.length)||''}" onchange="oaUpdateStage2(${i},'length',this.value)"></td><td><input type="number" value="${Number(x.width)||''}" onchange="oaUpdateStage2(${i},'width',this.value)"></td><td><input type="number" value="${Number(x.qty)||''}" onchange="oaUpdateStage2(${i},'qty',this.value)"></td><td><input type="number" value="${Number(x.thickness)||''}" onchange="oaUpdateStage2(${i},'thickness',this.value)"></td><td>${esc(x.rotation??'')}</td><td><select onchange="oaUpdateStage2(${i},'edge1',this.value)">${oaEdgeOptions(x.edge1)}</select></td><td><select onchange="oaUpdateStage2(${i},'edge2',this.value)">${oaEdgeOptions(x.edge2)}</select></td><td><select onchange="oaUpdateStage2(${i},'edge3',this.value)">${oaEdgeOptions(x.edge3)}</select></td><td><select onchange="oaUpdateStage2(${i},'edge4',this.value)">${oaEdgeOptions(x.edge4)}</select></td><td>${esc(x.rule||'STANDARD')}<br><span class="small">${esc(x.notes||'')}</span></td><td style="text-align:center">${x.requiresConfirmation?`<input type="checkbox" ${x.confirmed?'checked':''} onchange="oaUpdateStage2(${i},'confirmed',this.checked)">`:'✓'}</td><td><button class="red" onclick="oaDeleteStage2Row(${i})">×</button></td></tr>`).join('');const errs=unlocked?oaValidateStage2(o):['Etap 1 niezatwierdzony.'];byId('oaStage2Blocker').className='card '+(errs.length?'oa-blocker':'oa-ok');byId('oaStage2Blocker').innerHTML=errs.length?`<b>Etap 2 wymaga kontroli:</b><br>${errs.map(esc).join('<br>')}`:'<b>Kontrola kompletna.</b> Arkusze mogą zostać zatwierdzone.';byId('oaStage2Status').className='pill '+(s.approved?'done':errs.length?'progress':'blue');byId('oaStage2Status').textContent=!unlocked?'ZABLOKOWANY':s.approved?'ZAAKCEPTOWANE':errs.length?'DO WERYFIKACJI':'GOTOWE DO ZATWIERDZENIA';byId('oaApprove2Btn').disabled=!!s.approved||!unlocked}
 function oaRenderStage3(o){const unlocked=!!o?.kmsWorkflow?.stage2?.approved;byId('oaStage3').classList.toggle('oa-stage-locked',!unlocked);const mats=o?.kmsWorkflow?.stage2?.materials||[];byId('oaCsvFiles').innerHTML=unlocked?`<div class="card oa-ok"><b>CSV gotowe do pobrania osobno dla każdego materiału.</b><br>${mats.map(m=>`<button class="oa-csv" onclick="oaDownloadCsv('${jsStr(m.material)}')">⬇️ ${esc(m.material)}.csv</button>`).join('')}</div><div class="small">Po pobraniu zaimportuj CSV do programu zewnętrznego, sprawdź wynik, a następnie przekaż zlecenie do produkcji.</div>`:'<div class="card oa-blocker">Etap 3 odblokuje się po zatwierdzeniu Etapu 2.</div>';byId('oaStage3Status').className='pill '+(o?.kmsWorkflow?.status==='PRODUCTION'?'done':unlocked?'blue':'todo');byId('oaStage3Status').textContent=o?.kmsWorkflow?.status==='PRODUCTION'?'PRZEKAZANO DO PRODUKCJI':unlocked?'CSV GOTOWE':'ZABLOKOWANY';byId('oaRouteBtn').disabled=!unlocked||o?.kmsWorkflow?.status==='PRODUCTION';byId('oaCloudBtn').disabled=o?.kmsWorkflow?.status!=='PRODUCTION'||!!o?.cloudId;byId('oaCloudBtn').textContent=o?.cloudId?'☁️ Zlecenie jest w chmurze':'☁️ Wyślij gotowe zlecenie do chmury'}
 function oaRenderFlow(o){const status=o?.kmsWorkflow?.status||'STAGE1_REVIEW';const order=['STAGE1_REVIEW','STAGE2_REVIEW','STAGE3_READY','PRODUCTION'];const cur=Math.max(0,order.indexOf(status));['oaFlow1','oaFlow2','oaFlow3','oaFlow4'].forEach((id,i)=>{const el=byId(id);el.className='oa-step '+(i<cur?'done':i===cur?'current':'locked')})}
