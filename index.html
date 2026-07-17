@@ -1,24 +1,2140 @@
-# KMS CLOUD V2
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>KMS TESTOWY 2.8.0 — INTELIGENTNA SZAFKA + ROZKRÓJ</title>
+<style>
+body{margin:0;font-family:Arial;background:#f3f4f6;color:#111827}.app{display:flex;min-height:100vh}
+aside{width:260px;background:#111827;color:white;padding:16px}main{flex:1;padding:22px;max-width:1500px}
+button{border:0;border-radius:9px;padding:9px 12px;margin:4px;cursor:pointer;font-weight:700}
+.nav button{display:block;width:100%;background:transparent;color:white;text-align:left}.nav button.active,.nav button:hover{background:#374151}
+.card{background:white;border:1px solid #e5e7eb;border-radius:14px;padding:15px;margin:12px 0}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:900px){.app{display:block}aside{width:auto}.grid,.grid2,.grid3{grid-template-columns:1fr}}
+input,select,textarea{width:100%;box-sizing:border-box;border:1px solid #e5e7eb;border-radius:9px;padding:10px;margin:4px 0}textarea{min-height:90px}
+table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #e5e7eb;padding:8px;font-size:13px;text-align:left;vertical-align:top}th{background:#f9fafb;color:#6b7280}
+.hidden{display:none}.primary{background:#2563eb;color:white}.green{background:#16a34a;color:white}.red{background:#dc2626;color:white}.gray{background:#e5e7eb}
+.pill,.stage{display:inline-block;border-radius:999px;padding:4px 8px;margin:2px;font-size:12px;font-weight:800;background:#f3f4f6}.done{background:#dcfce7;color:#166534}.progress{background:#fef3c7;color:#92400e}.bad{background:#fee2e2;color:#991b1b}.todo{background:#e5e7eb;color:#374151}.blue{background:#dbeafe;color:#1e40af}
+.doc{display:inline-block;background:#eef2ff;color:#3730a3;text-decoration:none;border-radius:999px;padding:5px 9px;margin:3px;font-size:12px;font-weight:700}.small{font-size:12px;color:#6b7280}.value{font-size:28px;font-weight:800}
+@media print{body *{visibility:hidden!important}#supplierPrintView,#supplierPrintView *{visibility:visible!important}#supplierPrintView{position:absolute;left:0;top:0;width:100%;background:white}.card{border:0!important}}
 
-Czysta wersja KMS do nowego repozytorium GitHub i Vercel.
+/* KMS status colors */
+select.status-do{background:#e5e7eb!important;color:#374151!important;font-weight:800}
+select.status-order{background:#fef3c7!important;color:#92400e!important;font-weight:800}
+select.status-wait{background:#fee2e2!important;color:#991b1b!important;font-weight:800}
+select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-weight:800}
+.status-card-hall{background:#eff6ff!important;border-color:#bfdbfe!important}
+.status-card-wait{background:#fff7ed!important;border-color:#fed7aa!important}
 
-## Pliki
 
-- `index.html` — aplikacja KMS
-- `api/analyze-drawing.js` — backend AI Analiza Rysunku
-- `api/analyze.js` — alias backendu
-- `package.json` — brak Next.js, brak `next build`
-- `vercel.json` — routing statycznej aplikacji i API
+.ai-preview{min-height:260px;background:#f8fafc;border:2px dashed #cbd5e1;border-radius:14px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ai-preview img{max-width:100%;max-height:420px}
+.ai-ok{background:#f0fdf4!important;border-left:6px solid #16a34a!important}
+.ai-warn{background:#fff7ed!important;border-left:6px solid #f97316!important}
 
-## Wdrożenie
+.role-hidden{display:none!important}.admin-danger{border:2px solid #fecaca;background:#fff1f2}
 
-1. Wgraj zawartość tego folderu do pustego repozytorium GitHub.
-2. Podłącz repozytorium do Vercel.
-3. W Vercel dodaj zmienną środowiskową:
-   `OPENAI_API_KEY`
-4. Po deployu test backendu:
-   `/api/analyze-drawing`
+.note-badge{display:inline-block;background:#f97316;color:white;font-weight:800;border-radius:999px;padding:4px 9px;font-size:12px}
+.note-box{background:#fff7ed;border:2px solid #fdba74;border-radius:12px;padding:12px;margin-top:8px;white-space:pre-wrap}
+.note-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9999}
+.note-modal.hidden{display:none}
+.note-modal-card{background:white;width:min(620px,92vw);border-radius:16px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.note-modal textarea{min-height:180px}
 
-## Ważne
+.order-summary{display:grid;grid-template-columns:120px 1.2fr 1.5fr 120px 120px 130px;gap:10px;align-items:center}
+.order-details{margin-top:10px}
+.completed-card{background:#f0fdf4;border-color:#86efac}
+@media(max-width:1000px){.order-summary{grid-template-columns:1fr 1fr}}
 
-Nie wgrywaj ZIP-a do GitHub. Wgraj zawartość folderu.
+.auth-screen{position:fixed;inset:0;background:linear-gradient(135deg,#0f172a,#1e293b);display:flex;align-items:center;justify-content:center;z-index:20000;padding:18px}
+.auth-screen.hidden{display:none}.auth-card{width:min(440px,94vw);background:white;border-radius:20px;padding:24px;box-shadow:0 25px 80px rgba(0,0,0,.4)}
+.auth-card h1{margin-top:0}.auth-error{background:#fee2e2;color:#991b1b;border-radius:10px;padding:10px;margin-top:10px}.auth-user{background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:10px;margin-bottom:12px}.app.auth-locked{display:none}
+
+
+/* KMS TESTOWY 2.6 — analiza zamówień */
+.oa-test-banner{background:#fff7ed;border:2px solid #fb923c;color:#9a3412}
+.oa-flow{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.oa-step{padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;background:#e5e7eb;color:#374151}.oa-step.done{background:#dcfce7;color:#166534}.oa-step.current{background:#dbeafe;color:#1e40af}.oa-step.locked{background:#f3f4f6;color:#9ca3af}.oa-arrow{color:#9ca3af;font-weight:900}.oa-scroll{overflow:auto}.oa-table{min-width:1250px}.oa-table input,.oa-table select{min-width:75px;padding:7px;margin:0}.oa-table .wide{min-width:160px}.oa-table .notes{min-width:220px}.oa-stage-locked{opacity:.58;pointer-events:none}.oa-statusbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.oa-source-preview{min-height:170px;background:#f8fafc;border:2px dashed #cbd5e1;border-radius:14px;display:flex;align-items:center;justify-content:center;overflow:hidden}.oa-source-preview img{max-width:100%;max-height:360px}.oa-order-row{display:grid;grid-template-columns:1fr 1.2fr 160px 190px;gap:10px;align-items:center;padding:10px;border-bottom:1px solid #e5e7eb}.oa-order-row:last-child{border-bottom:0}.oa-metric{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:12px}.oa-metric b{font-size:22px}.oa-blocker{background:#fff1f2;border:2px solid #fda4af}.oa-ok{background:#f0fdf4;border:2px solid #86efac}.oa-review{background:#fffbeb!important}.oa-low{background:#fff1f2!important}.oa-btnline{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.oa-csv{background:#0f766e;color:#fff}.oa-hidden{display:none!important}
+@media(max-width:900px){.oa-order-row{grid-template-columns:1fr}.oa-flow{align-items:flex-start}.oa-arrow{display:none}}
+
+
+.module-frame{width:100%;min-height:78vh;border:1px solid #b8c7d5;border-radius:12px;background:#fff}
+.integration-box{border:2px solid #2f6fa5;background:#eef6fc;border-radius:12px;padding:12px;margin:10px 0}
+.integration-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.catalog-lock{background:#fff9df;border-left:5px solid #e0b100;padding:10px;border-radius:8px;margin-top:8px}
+.catalog-lock.ok{background:#ecf8ef;border-left-color:#4b9b62}
+.catalog-lock.bad{background:#fff0f0;border-left-color:#c94b4b}
+.oa-cutting-card{border:2px solid #2f6fa5}
+@media(max-width:760px){.module-frame{min-height:70vh}}
+</style>
+
+
+</head>
+<body>
+<div id="authScreen" class="auth-screen">
+  <div class="auth-card">
+    <h1>🔐 KMS CLOUD</h1>
+    <p>Zaloguj się swoim kontem firmowym.</p>
+    <label>E-mail</label><input id="loginEmail" type="email" autocomplete="username" placeholder="np. ewa@firma.pl">
+    <label>Hasło</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Hasło" onkeydown="if(event.key==='Enter')loginKms()">
+    <button class="primary" style="width:100%;margin-top:12px" onclick="loginKms()">Zaloguj</button>
+    <div id="authMessage" class="small" style="margin-top:10px">Sprawdzam sesję...</div>
+  </div>
+</div>
+<div class="app auth-locked" id="kmsApp">
+<aside>
+<h2>KMS TESTOWY 2.8.0</h2>
+<div class="small">Analiza zamówień → CSV → produkcja</div>
+<div class="nav">
+<button class="active" onclick="show('dash',this)">👔 Pulpit</button>
+<button onclick="show('import',this)">📄 Proforma / zlecenie</button>
+<button onclick="show('prod',this)">📋 Produkcja</button>
+<button onclick="show('completed',this)">✅ Zrealizowane</button>
+<button onclick="show('planning',this)">📅 Terminy i przerób</button>
+<button onclick="show('alerts',this)">🚨 Alerty</button>
+<button onclick="show('sup',this)">📦 Dostawcy</button>
+<button onclick="show('aiDrawing',this)">🧾 Analiza zamówień 1→2→3</button>
+<button onclick="show('meble',this)">🧠 Inteligentna Szafka</button>
+<button onclick="show('cutting',this)">🪚 Kreator Rozkroju</button>
+<button onclick="show('files',this)">📎 Pliki zleceń</button>
+<button onclick="show('comm',this)">💬 Komunikacja hala-biuro</button>
+<button onclick="show('waste',this)">♻️ Odpady</button>
+<button onclick="show('settlements',this)">💰 Rozliczenia</button>
+<button onclick="show('emails',this)">✉️ Powiadomienia</button>
+<button onclick="show('customers',this)">👤 Klienci</button>
+<button onclick="show('users',this)">👥 Użytkownicy</button>
+<button onclick="show('backup',this)">💾 Dane testowe</button>
+</div>
+</aside>
+<main>
+
+<div class="auth-user" id="loggedUserPanel">
+  <b id="loggedUserName">Użytkownik</b> <span id="roleStatus" class="pill blue"></span>
+  <span id="loggedUserEmail" class="small"></span>
+  <button class="gray" style="float:right" onclick="logoutKms()">Wyloguj</button>
+  <div style="clear:both"></div>
+</div>
+
+<section id="dash">
+<h1>👔 Pulpit</h1>
+<div class="card">
+<h3>☁️ KMS TESTOWY 2.8.0 — ANALIZA ZAMÓWIEŃ</h3>
+<button class="primary" onclick="cloudLoadOrders()">Odśwież teraz</button>
+<button class="gray" onclick="cloudSyncLocalOrders()">Wyślij lokalne zlecenia do chmury</button>
+<button class="gray" onclick="runStorageRepair(true)">Napraw pamięć lokalną</button>
+<span id="cloudStatus" class="pill todo">Cloud uruchamia się...</span>
+<span id="localStorageStatus" class="pill todo">Pamięć lokalna: sprawdzam...</span>
+<div class="small">Automatyczne wczytanie po starcie, synchronizacja co 15 sekund i zapis statusów do chmury. Duże pliki są przechowywane poza localStorage, aby nie blokować KMS.</div>
+<div id="cloudLog" class="small" style="margin-top:8px">Historia synchronizacji pojawi się tutaj.</div>
+</div>
+<div class="card"><b>🧪 KMS TESTOWY 2.8.0</b><br>Wersja testowa na osobną gałąź/adres. Nie podmieniać działającej wersji STABLE bez zakończenia testów.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
+<div class="grid">
+<div class="card"><h3>Zlecenia</h3><div class="value" id="dOrders">0</div></div>
+<div class="card"><h3>Pliki</h3><div class="value" id="dFiles">0</div></div>
+<div class="card"><h3>Materiały</h3><div class="value" id="dMaterials">0</div></div>
+<div class="card"><h3>Etapy</h3><div class="value" id="dTasks">0</div></div>
+</div>
+<div class="card"><h3>Ostatnie zlecenia</h3><div id="dashOrders"></div></div>
+</section>
+
+<section id="import" class="hidden">
+<h1>📄 Proforma / karta zlecenia</h1><div class="card"><b>Test luster:</b> LUSTRO BEZ SZLIFU → MADOR, LUSTRO ZE SZLIFEM → SZKLARZ. Testowo dodane też opcjonalne stanowisko MONTAŻ HALA.</div>
+<div class="card">
+<h3>1. Wczytaj proformę PDF</h3>
+<input id="pdfFile" type="file" accept="application/pdf,image/jpeg,image/png,image/webp">
+<button class="primary" onclick="analyzePdf()">Analizuj PDF</button>
+<div class="small">W wersji cloud plik byłby zapisany na serwerze i dostępny dla wszystkich stanowisk.</div>
+<div id="status" class="pill todo">Brak analizy</div>
+</div>
+<div class="grid3">
+<div class="card"><h3>Klient</h3><input id="client"></div>
+<div class="card"><h3>Nr zlecenia</h3><input id="orderNo"></div>
+<div class="card"><h3>Kwota</h3><input id="amount"></div>
+</div><div class="card"><h3>📅 Termin realizacji</h3><input id="deadline" type="date"><div class="small">Na tym terminie KMS będzie opierał alerty.</div></div>
+<div class="card"><h3>2. Dodaj pliki do zlecenia</h3>
+<div class="grid3">
+<div><label>Plik</label><input id="extraDocs" type="file" multiple></div>
+<div><label>Stanowisko</label><select id="docStation"><option>Zamówienie</option><option>Cięcie</option><option>Oklejanie</option><option>CNC</option><option>Składanie szafek</option><option>Składanie drzwi</option></select></div>
+<div style="align-self:end"><button class="primary" onclick="addSelectedDocs()">Dodaj pliki</button></div>
+</div>
+<div id="pendingDocs"></div>
+</div>
+<div class="grid2">
+<div class="card"><h3>Materiały</h3><table><thead><tr><th>Typ</th><th>Materiał</th><th>Ilość</th><th>Jm</th><th>Dostawca</th></tr></thead><tbody id="materialsTable"></tbody></table></div>
+<div class="card"><h3>Plan</h3><table><thead><tr><th>Etap</th><th>Ilość</th><th>Źródło</th></tr></thead><tbody id="tasksTable"></tbody></table></div>
+</div>
+<div class="card"><button class="green" onclick="createFromCurrent()">Utwórz kartę zlecenia</button></div>
+<div class="card"><h3>Surowy tekst</h3><textarea id="rawText"></textarea></div>
+</section>
+
+
+
+<section id="completed" class="hidden">
+<h1>✅ Zrealizowane</h1>
+<div class="card">
+  <b>Historia zakończonych zleceń.</b>
+  <div class="small">Zlecenie trafia tutaj po zakończeniu wszystkich wymaganych etapów produkcji.</div>
+  <input id="completedSearch" placeholder="Szukaj po numerze zlecenia lub kliencie" oninput="renderCompletedOrders()">
+</div>
+<div id="completedList"></div>
+</section>
+
+<section id="planning" class="hidden">
+<h1>📅 Terminy i przerób – TEST</h1>
+<div class="card"><b>Fundament terminów:</b> standard realizacji = <b>7 dni roboczych</b>. Etap 1: 5 dni roboczych (cięcie, oklejanie, frezy/CNC, blaty), Etap 2: +1 dzień na wiercenie szafek i składanie drzwi, Etap 3: +1 dzień na składanie szafek. Przerób liczony dla 1 zmiany = 8 godzin.</div>
+<div class="grid">
+<div class="card"><h3>🪚 Cięcie</h3><div class="value">30</div><div class="small">szt./dzień</div></div>
+<div class="card"><h3>🟢 Oklejanie</h3><div class="value">600</div><div class="small">mb/dzień</div></div>
+<div class="card"><h3>⚙️ CNC</h3><div class="value">32</div><div class="small">wiercenie szafek/dzień + dodatkowe operacje</div></div>
+<div class="card"><h3>🔨 Montaż HALA</h3><div class="value">20</div><div class="small">szafek/dzień + drzwi i inne montaże</div></div>
+</div>
+<div class="card"><h3>Terminy zleceń</h3><table><thead><tr><th>Zlecenie</th><th>Klient</th><th>Termin</th><th>Start KMS</th><th>Etap 1 do</th><th>Wiercenie do</th><th>Montaż do</th><th>Cięcie</th><th>Oklejanie</th><th>CNC</th><th>Montaż</th><th>Ocena</th></tr></thead><tbody id="planningTable"></tbody></table></div>
+<div class="card"><h3>Obciążenie stanowisk</h3><table><thead><tr><th>Stanowisko</th><th>Obciążenie</th><th>Norma dzienna</th><th>Dni pracy</th><th>Status</th></tr></thead><tbody id="capacityTable"></tbody></table></div>
+</section>
+<section id="alerts" class="hidden">
+<h1>🚨 Alerty produkcyjne – TEST</h1>
+<div class="card"><b>Zasada:</b> przy 100 zleceniach KMS pokazuje tylko to, co wymaga reakcji.</div>
+<div id="alertsList"></div>
+</section>
+<section id="prod" class="hidden"><h1>📋 Produkcja</h1><div id="productionList"></div></section>
+
+<section id="sup" class="hidden">
+<h1>📦 Dostawcy</h1>
+<div class="card"><button class="green" onclick="generateSupplierOrderView()">Generuj PDF dla dostawców</button><button class="primary" onclick="markAllMaterials('Na hali')">Oznacz wszystko jako Na hali</button><div class="small">PDF: końcowe ilości, PCV +20% w tle, uwagi = nr zlecenia + klient.</div></div>
+<div id="supplierPrintView"></div>
+<div class="card"><h3>Zamówienie zbiorcze</h3><table><thead><tr><th>Dostawca</th><th>Typ</th><th>Materiał</th><th>Razem</th><th>Jm</th><th>Uwagi</th><th>Status</th></tr></thead><tbody id="supplierGrouped"></tbody></table></div>
+<div class="card"><h3>Statusy materiałów</h3><table><thead><tr><th>Dostawca</th><th>Zlecenie</th><th>Klient</th><th>Materiał</th><th>Ilość</th><th>Jm</th><th>Status</th></tr></thead><tbody id="supplierDetails"></tbody></table></div>
+</section>
+
+<section id="files" class="hidden"><h1>📎 Pliki zleceń</h1><div id="filesList"></div></section>
+
+
+
+<section id="comm" class="hidden">
+<h1>💬 Komunikacja hala-biuro</h1><div class="card"><button class="primary" onclick="cloudLoadComm(false)">Odśwież komunikaty z chmury</button><span class="pill done">Komunikacja Cloud 2.3</span></div>
+<div class="card"><b>Cel:</b> nietypowy problem wpisujemy w KMS zamiast biegać do biura. Biuro widzi zgłoszenie i może odpowiedzieć.</div>
+<div class="card">
+<h3>Dodaj zgłoszenie z hali</h3>
+<div class="grid3">
+<div><label>Zlecenie</label><select id="commOrder"></select></div>
+<div><label>Stanowisko</label><select id="commStation"><option>Cięcie</option><option>Oklejanie</option><option>CNC</option><option>Montaż HALA</option><option>Dostawcy</option><option>Inne</option></select></div>
+<div><label>Priorytet</label><select id="commPriority"><option>Normalne</option><option>Pilne</option><option>Blokuje pracę</option></select></div>
+</div>
+<label>Problem / pytanie</label>
+<textarea id="commText" placeholder="np. Brakuje opisu, niejasny wymiar, uszkodzony element, potrzebna decyzja biura"></textarea>
+<button class="primary" onclick="addComm()">Dodaj zgłoszenie</button>
+</div>
+<div class="card">
+<h3>Otwarte zgłoszenia</h3>
+<div id="commList"></div>
+</div>
+<div class="card">
+<h3>Historia zamkniętych zgłoszeń</h3>
+<div id="commClosed"></div>
+</div>
+</section>
+
+<section id="waste" class="hidden">
+<h1>♻️ Moduł odpadów – wersja testowa</h1>
+<div class="card"><b>Cel:</b> szybkie zapisywanie sensownych odpadów płyt i PCV oraz podpowiadanie ich przy nowych zleceniach.</div>
+<div class="card">
+<h3>Dodaj odpad</h3>
+<div class="grid3">
+<div><label>Typ</label><select id="wasteType"><option>Płyta</option><option>PCV</option></select></div>
+<div><label>Dekor / kolor</label><input id="wasteDecor" placeholder="np. W960 ST7"></div>
+<div><label>Regał / miejsce</label><input id="wasteRack" placeholder="np. A, B, C"></div>
+</div>
+<div class="grid3">
+<div><label>Długość / ilość</label><input id="wasteLength" placeholder="np. 2800 lub 30"></div>
+<div><label>Szerokość / jm</label><input id="wasteWidth" placeholder="np. 800 lub mb"></div>
+<div style="align-self:end"><button class="green" onclick="addWaste()">Dodaj odpad</button></div>
+</div>
+</div>
+<div class="card"><h3>Magazyn odpadów</h3><table><thead><tr><th>Typ</th><th>Dekor</th><th>Wymiar / ilość</th><th>Regał</th><th>Status</th><th>Akcja</th></tr></thead><tbody id="wasteTable"></tbody></table></div>
+<div class="card"><h3>Podpowiedzi dla zleceń</h3><div id="wasteHints"></div></div>
+</section>
+
+<section id="settlements" class="hidden">
+<h1>💰 Moduł rozliczeń – wersja testowa</h1>
+<div class="card"><b>Cel:</b> po zleceniu widzieć sprzedaż, koszty, płatność i status rozliczenia. Na razie bez analizy finansowej właściciela.</div>
+<div class="card">
+<h3>Rozliczenia zleceń</h3>
+<table><thead><tr><th>Zlecenie</th><th>Klient</th><th>Sprzedaż</th><th>Koszt materiałów</th><th>Usługi</th><th>Zapłacone</th><th>Status</th></tr></thead><tbody id="settlementsTable"></tbody></table>
+</div>
+</section>
+
+<section id="emails" class="hidden">
+<h1>✉️ Powiadomienia e-mail – wersja testowa</h1>
+<div class="card"><b>Cel:</b> po zakończeniu zlecenia KMS przygotuje wiadomość dla klienta. W wersji testowej tworzymy treść maila, bez automatycznego wysyłania.</div>
+<div class="card">
+<h3>Generator wiadomości</h3>
+<div class="grid3">
+<div><label>Zlecenie</label><select id="emailOrder"></select></div>
+<div><label>Typ</label><select id="emailType"><option>Zlecenie gotowe</option><option>Materiał oczekuje na dostawę</option><option>Prośba o kontakt</option></select></div>
+<div style="align-self:end"><button class="primary" onclick="generateEmailDraft()">Przygotuj maila</button></div>
+</div>
+<div class="grid2"><div><label>Adres e-mail klienta</label><input id="emailRecipient" type="email"></div><div style="align-self:end"><button class="gray" onclick="copyEmailDraft()">Kopiuj wiadomość</button></div></div><textarea id="emailDraft" placeholder="Tu pojawi się treść maila"></textarea>
+</div>
+</section>
+
+
+<section id="customers" class="hidden">
+<h1>👤 Baza klientów</h1>
+<div class="card">
+  <h3>Dodaj / edytuj klienta</h3>
+  <input id="customerEditId" type="hidden">
+  <div class="grid3">
+    <div><label>Nazwa firmy / klienta</label><input id="customerName"></div>
+    <div><label>E-mail</label><input id="customerEmail" type="email"></div>
+    <div><label>Telefon</label><input id="customerPhone"></div>
+  </div>
+  <div class="grid3">
+    <div><label>Osoba kontaktowa</label><input id="customerContact"></div>
+    <div><label>NIP</label><input id="customerNip"></div>
+    <div><label>Uwagi</label><input id="customerNotes"></div>
+  </div>
+  <button class="green" onclick="saveCustomer()">Zapisz klienta</button>
+  <button class="gray" onclick="clearCustomerForm()">Wyczyść</button>
+</div>
+<div class="card">
+  <h3>Klienci</h3>
+  <table>
+    <thead><tr><th>Klient</th><th>E-mail</th><th>Telefon</th><th>Kontakt</th><th>Zlecenia</th><th>Akcja</th></tr></thead>
+    <tbody id="customersTable"></tbody>
+  </table>
+</div>
+</section>
+
+<section id="users" class="hidden">
+<h1>👥 Użytkownicy i dostęp</h1><div class="card"><b>Wersja 2.4:</b> profil stanowiska jest zapisywany osobno na każdym komputerze. To podział operacyjny; pełne logowanie kontami dodamy jako osobny etap bezpieczeństwa.</div>
+<div class="card"><table><thead><tr><th>Użytkownik</th><th>Rola</th><th>Dostęp</th></tr></thead><tbody>
+<tr><td>Łukasz</td><td>Właściciel</td><td>Pełny dostęp</td></tr>
+<tr><td>Ewa</td><td>Biuro</td><td>Proformy, dostawcy, statusy, pliki</td></tr>
+<tr><td>Dominik</td><td>Cięcie</td><td>Plan cięcia + pliki cięcia</td></tr>
+<tr><td>Oklejanie</td><td>Produkcja</td><td>Oklejanie + pliki</td></tr>
+<tr><td>CNC</td><td>Produkcja</td><td>CNC + rysunki</td></tr>
+</tbody></table></div>
+</section>
+
+
+<section id="aiDrawing" class="hidden">
+<h1>🧾 KMS TESTOWY — Analiza zamówień 1 → 2 → 3</h1>
+<div class="card oa-test-banner"><b>WERSJA TESTOWA.</b> Pracujemy na kopii KMS STABLE. AI tylko proponuje odczyt. Każdy etap zatwierdza człowiek. Niepewne dane i wyjątki blokują przejście dalej.</div>
+
+<div class="card">
+  <div class="oa-statusbar">
+    <div><h3 style="margin:0">Zlecenia w analizie</h3><span class="small">Możesz prowadzić równolegle wiele prawdziwych zamówień testowych.</span></div>
+    <button class="primary" onclick="oaNewOrder()">+ Nowe zamówienie</button>
+  </div>
+  <div id="oaOrdersList"></div>
+</div>
+
+<div id="oaWorkspace" class="hidden">
+  <div class="card">
+    <div class="oa-flow">
+      <span id="oaFlow1" class="oa-step current">1. Mapowanie</span><span class="oa-arrow">→</span>
+      <span id="oaFlow2" class="oa-step locked">2. Technologia</span><span class="oa-arrow">→</span>
+      <span id="oaFlowCut" class="oa-step locked">Rozkrój</span><span class="oa-arrow">→</span>
+      <span id="oaFlow3" class="oa-step locked">3. CSV</span><span class="oa-arrow">→</span>
+      <span id="oaFlow4" class="oa-step locked">Produkcja</span>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Źródło zamówienia</h3>
+      <div class="grid2">
+        <div><label>Nr zlecenia</label><input id="oaOrderNo" placeholder="np. 154/07/2026" oninput="oaCaptureDraftMeta()"></div>
+        <div><label>Klient</label><input id="oaClient" placeholder="Nazwa klienta" oninput="oaCaptureDraftMeta()"></div>
+      </div>
+      <div class="grid2">
+        <div><label>Termin</label><input id="oaDeadline" type="date" onchange="oaCaptureDraftMeta()"></div>
+        <div><label>Plik: zdjęcie / PDF / Excel / CSV</label><input id="oaFile" type="file" accept="image/*,.pdf,.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" onchange="oaPreviewFile(event)"></div>
+      </div>
+      <div class="grid2">
+        <div><label>Producent płyty 1 — wymagany</label><select id="oaManufacturer1" onchange="oaManufacturerChanged()"><option value="">— WYBIERZ PRODUCENTA —</option></select></div>
+        <div><label>Producent płyty 2 — opcjonalny</label><select id="oaManufacturer2" onchange="oaManufacturerChanged()"><option value="">— BRAK DRUGIEGO —</option></select></div>
+      </div>
+      <div id="oaManufacturerStatus" class="catalog-lock bad"><b>Analiza zablokowana:</b> wybierz producenta. AI otrzyma wyłącznie katalog jednego lub dwóch wskazanych producentów.</div>
+      <datalist id="oaMaterialCatalogList"></datalist>
+      <div class="oa-btnline">
+        <button id="oaAnalyzeBtn" class="primary" onclick="oaAnalyzeFile()">🤖 Analizuj plik</button>
+        <button class="gray" onclick="oaStartManual()">Wprowadź ręcznie</button>
+        <button class="gray" onclick="oaLoadTestExample()">Przykład H3730 + U788</button>
+      </div>
+      <div id="oaAnalyzeStatus" class="pill todo">Brak rozpoczętej analizy</div>
+      <div class="small">Do analizy AI na Vercel wymagany jest działający klucz OPENAI_API_KEY. Zdjęcia i duże PDF-y są automatycznie zmniejszane przed wysłaniem, aby nie przekroczyć limitu Vercela. Gdy AI nie odczyta pliku, zamówienie można wprowadzić ręcznie i nadal przejść cały proces.</div>
+    </div>
+    <div class="card"><h3>Podgląd źródła</h3><div id="oaPreview" class="oa-source-preview"><span class="small">Wybierz zdjęcie, PDF, Excel lub CSV.</span></div></div>
+  </div>
+
+  <div id="oaStage1" class="card">
+    <div class="oa-statusbar"><div><h2>Etap 1 — Arkusz Zamówienia Klienta</h2><div class="small">Dane 1:1. Bez zmian technologicznych. <b>PCV i kreski są kontrolowane w osobnym przebiegu.</b> <b>Grubość stała KMS:</b> standard 18 mm; oznaczenia 10MM, 16MM, 28MM i 36MM.</div></div><span id="oaStage1Status" class="pill progress">DO WERYFIKACJI</span></div>
+    <div id="oaStage1Blocker" class="card oa-blocker">Najpierw wykonaj analizę pliku albo rozpocznij ręczne wprowadzanie.</div>
+    <div class="oa-scroll"><table class="oa-table"><thead><tr>
+      <th>Poz.</th><th>Element</th><th>Materiał</th><th>Długość</th><th>Szerokość</th><th>Ilość</th><th>Grubość</th>
+      <th>Okl. dł. 1</th><th>Okl. dł. 2</th><th>Okl. szer. 1</th><th>Okl. szer. 2</th><th>Kod PCV</th><th>Sugestia technologii</th><th>INFO / uwagi</th><th>Niepewne</th><th></th>
+    </tr></thead><tbody id="oaStage1Rows"></tbody></table></div>
+    <div class="oa-btnline">
+      <button class="gray" onclick="oaAddStage1Row()">+ Dodaj pozycję</button>
+      <button class="gray" onclick="oaSaveCurrent('Zapis Etapu 1')">Zapisz zmiany</button>
+      <button id="oaApprove1Btn" class="green" onclick="oaApproveStage1()">✓ Zatwierdź Etap 1</button>
+    </div>
+  </div>
+
+  <div id="oaStage2" class="card oa-stage-locked">
+    <div class="oa-statusbar"><div><h2>Etap 2 — Arkusze Produkcyjne</h2><div class="small">Rozdzielenie materiałów, zatwierdzone reguły technologiczne, PCV i OBROTOWO.</div></div><span id="oaStage2Status" class="pill todo">ZABLOKOWANY</span></div>
+    <div id="oaStage2Blocker" class="card oa-blocker">Etap 2 odblokuje się po zatwierdzeniu Etapu 1.</div>
+    <h3>Kontrola materiałów</h3>
+    <div class="oa-scroll"><table><thead><tr><th>Materiał</th><th>Pozycje</th><th>Pow. prod. [m²]</th><th>PCV [mb]</th><th>PCV +20% [mb]</th><th>OBROTOWO</th><th>Status</th></tr></thead><tbody id="oaMaterialsRows"></tbody></table></div>
+    <h3>Elementy produkcyjne</h3>
+    <div class="oa-scroll"><table class="oa-table"><thead><tr>
+      <th>Poz.</th><th>INFO</th><th>Element</th><th>Materiał</th><th>Długość</th><th>Szerokość</th><th>Ilość</th><th>Grubość</th><th>OBROTOWO</th><th>OKL1</th><th>OKL2</th><th>OKL3</th><th>OKL4</th><th>Reguła</th><th>Potwierdzenie wyjątku</th><th></th>
+    </tr></thead><tbody id="oaStage2Rows"></tbody></table></div>
+    <div class="oa-btnline">
+      <button class="gray" onclick="oaRebuildStage2()">↻ Przelicz ponownie z Etapu 1</button>
+      <button class="gray" onclick="oaAddStage2Row()">+ Dodaj element produkcyjny</button>
+      <button class="gray" onclick="oaSaveCurrent('Zapis Etapu 2')">Zapisz zmiany</button>
+      <button id="oaApprove2Btn" class="green" onclick="oaApproveStage2()">✓ Zatwierdź Etap 2</button>
+      <button id="oaOpenCuttingBtn" class="primary" onclick="kmsOpenCuttingForCurrent()">🪚 Przekaż do Kreatora Rozkroju</button>
+    </div>
+  </div>
+
+  <div id="oaCuttingStage" class="card oa-stage-locked oa-cutting-card">
+    <div class="oa-statusbar"><div><h2>Wynik Etapu 2 — Kreator Rozkroju</h2><div class="small">Wszystkie elementy tego samego materiału są optymalizowane razem. Silnik wylicza liczbę płyt, układ pasów i planowane odpady.</div></div><span id="oaCuttingStatus" class="pill todo">ZABLOKOWANY</span></div>
+    <div id="oaCuttingSummary" class="card oa-blocker">Najpierw zatwierdź Etap 2 i przekaż dane do Kreatora Rozkroju.</div>
+    <div class="oa-btnline">
+      <button id="oaApproveCuttingBtn" class="green" onclick="oaApproveCuttingResult()">✓ Zatwierdź wynik rozkroju</button>
+      <button id="oaConfirmWasteBtn" class="gray" onclick="kmsConfirmCuttingAndTransferWaste()">♻️ Potwierdź fizyczne cięcie i przekaż odpady</button>
+    </div>
+  </div>
+
+  <div id="oaStage3" class="card oa-stage-locked">
+    <div class="oa-statusbar"><div><h2>Etap 3 — CSV do programu zewnętrznego</h2><div class="small">CSV techniczny 1:1 dla konwertera: 17 pól, bez nagłówka, bez BOM, CRLF, obrzeża 1mm/2mm.</div></div><span id="oaStage3Status" class="pill todo">ZABLOKOWANY</span></div>
+    <div id="oaCsvFiles"></div>
+    <div class="oa-btnline">
+      <button id="oaRouteBtn" class="green" onclick="oaRouteToProduction()">✓ Zatwierdź Etap 3 i przekaż do produkcji TEST</button>
+      <button id="oaCloudBtn" class="primary" onclick="oaSendCurrentToCloud()">☁️ Wyślij gotowe zlecenie do chmury</button>
+    </div>
+  </div>
+</div>
+</section>
+
+<section id="meble" class="hidden">
+<h1>🧠 Meble KMS — Inteligentna Szafka</h1>
+<div class="integration-box"><b>Wspólny przepływ:</b> zbuduj szafkę → rozbij na elementy → przekaż do Etapu 1. Materiały nie są zgadywane; w Etapie 1 trzeba wybrać je z Katalogu KMS.</div>
+<iframe id="mebleFrame" class="module-frame" src="modules/inteligentna-szafka/index.html?embedded=1" title="Inteligentna Szafka KMS"></iframe>
+</section>
+
+<section id="cutting" class="hidden">
+<h1>🪚 KMS — Kreator Rozkroju</h1>
+<div class="integration-box">
+ <div><b id="cuttingIntegrationTitle">Oczekiwanie na dane z Etapu 2.</b></div>
+ <div id="cuttingIntegrationStatus" class="small">Otwórz zlecenie, zatwierdź Etap 2 i kliknij „Przekaż do Kreatora Rozkroju”.</div>
+ <div class="integration-actions" style="margin-top:8px"><button class="gray" onclick="kmsResendCuttingPayload()">Wyślij dane ponownie</button><button class="green" onclick="oaApproveCuttingResult()">Zatwierdź wynik do Etapu 3</button></div>
+</div>
+<iframe id="cuttingFrame" class="module-frame" src="modules/kreator-rozkroju/index.html?embedded=1" title="Kreator Rozkroju KMS"></iframe>
+</section>
+
+<section id="backup" class="hidden"><h1>💾 Dane testowe</h1><div class="card"><button class="green" onclick="exportData()">Pobierz backup</button><input id="backupFile" type="file" accept=".json"><button class="primary" onclick="importData()">Wczytaj backup</button><button class="red" onclick="clearTestData()">Wyczyść dane</button></div></section>
+
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'}
+const KEY='kms_test_2_6_order_analysis';
+const KMS_FILE_DB='kms_test_2_6_large_files_v1';
+const KMS_FILE_STORE='files';
+function kmsDefaultState(){return{orders:[],completedOrders:[],waste:[],comm:[],customers:[]}}
+function kmsReadInitialState(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(!raw)return kmsDefaultState();
+    const parsed=JSON.parse(raw);
+    return parsed&&typeof parsed==='object'?parsed:kmsDefaultState();
+  }catch(e){
+    console.error('KMS local state read error',e);
+    return kmsDefaultState();
+  }
+}
+let state=kmsReadInitialState(),lastAnalysis=null,pendingDocs=[]; if(!state.orders)state.orders=[]; if(!state.waste)state.waste=[]; if(!state.comm)state.comm=[]; if(!state.customers)state.customers=[]; if(!state.completedOrders)state.completedOrders=[];
+let KMS_MATERIAL_CATALOG=[],KMS_CATALOG_READY=false,KMS_CATALOG_ERROR='';
+let kmsCuttingReady=false,kmsPendingCuttingPayload=null,kmsCuttingOrderId='';
+
+
+// ===== KMS CLOUD 2.5.3 PARSER + ADMIN FIX - FRONTEND AUTH =====
+let authClient=null;
+let authSession=null;
+let authProfile=null;
+let kmsRole='PRODUKCJA';
+let kmsUserName='';
+
+const ROLE_LABELS={
+  ADMIN:'Administrator',
+  BIURO:'Biuro',
+  KOORDYNACJA:'Koordynacja',
+  PILA:'Piła',
+  OKLEINIARKA:'Okleiniarka',
+  CNC:'CNC',
+  MONTAZ:'Montaż',
+  PRODUKCJA:'Produkcja'
+};
+
+const ROLE_SECTIONS={
+  ADMIN:['dash','import','prod','completed','planning','alerts','sup','aiDrawing','meble','cutting','files','comm','waste','settlements','emails','customers','users','backup'],
+  BIURO:['dash','import','aiDrawing','meble','cutting','prod','completed','planning','alerts','sup','files','comm','waste','settlements','emails','customers'],
+  KOORDYNACJA:['dash','prod','completed','planning','alerts','sup','files','comm','waste'],
+  PILA:['dash','prod','cutting','files','comm','waste'],
+  OKLEINIARKA:['dash','prod','files','comm','waste'],
+  CNC:['dash','prod','files','comm','waste'],
+  MONTAZ:['dash','prod','files','comm','waste'],
+  PRODUKCJA:['dash','prod','files','comm','waste']
+};
+
+function canAccessSection(id){
+  return (ROLE_SECTIONS[kmsRole]||ROLE_SECTIONS.PRODUKCJA).includes(id);
+}
+
+function roleAllowsGroup(group){
+  if(['ADMIN','BIURO','KOORDYNACJA'].includes(kmsRole))return true;
+  if(kmsRole==='PILA')return group==='cut';
+  if(kmsRole==='OKLEINIARKA')return group==='edge';
+  if(kmsRole==='CNC')return group==='cnc';
+  if(kmsRole==='MONTAZ')return group==='assembly';
+  if(kmsRole==='PRODUKCJA')return ['cut','edge','cnc','assembly'].includes(group);
+  return false;
+}
+
+function adminOnly(){
+  if(kmsRole!=='ADMIN'){
+    alert('Ta funkcja jest dostępna tylko dla administratora.');
+    return false;
+  }
+  return true;
+}
+
+function applyRoleAccess(){
+  const allowed=ROLE_SECTIONS[kmsRole]||ROLE_SECTIONS.PRODUKCJA;
+  document.querySelectorAll('.nav button').forEach(btn=>{
+    const match=(btn.getAttribute('onclick')||'').match(/show\('([^']+)'/);
+    if(match)btn.classList.toggle('role-hidden',!allowed.includes(match[1]));
+  });
+
+  const nameEl=document.getElementById('loggedUserName');
+  const emailEl=document.getElementById('loggedUserEmail');
+  const roleEl=document.getElementById('roleStatus');
+
+  if(nameEl)nameEl.textContent=kmsUserName||authProfile?.full_name||authSession?.user?.email||'Użytkownik';
+  if(emailEl)emailEl.textContent=authSession?.user?.email||'';
+  if(roleEl)roleEl.textContent=ROLE_LABELS[kmsRole]||kmsRole;
+}
+
+function showLogin(message='Zaloguj się swoim kontem firmowym.', clearSession=false){
+  if(clearSession){
+    authSession=null;
+    authProfile=null;
+  }
+  const screen=document.getElementById('authScreen');
+  const app=document.getElementById('kmsApp');
+  const msg=document.getElementById('authMessage');
+  if(screen)screen.classList.remove('hidden');
+  if(app)app.classList.add('auth-locked');
+  if(msg)msg.textContent=message;
+}
+
+function showApp(){
+  const screen=document.getElementById('authScreen');
+  const app=document.getElementById('kmsApp');
+  if(screen)screen.classList.add('hidden');
+  if(app)app.classList.remove('auth-locked');
+  applyRoleAccess();
+  render();
+  cloudStartAutoSync();
+  cloudStartCommSync();
+  cloudLoadCustomers(true);
+}
+
+async function fetchProfile(session){
+  const res=await fetch('/api/me',{
+    headers:{Authorization:`Bearer ${session.access_token}`}
+  });
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok||data.ok===false){
+   if(res.status===413)throw new Error('Plik nadal jest zbyt duży dla Vercela. Zrób zrzut ekranu rozpiski albo użyj zdjęcia poniżej 3 MB.');
+   throw new Error(data.error||('HTTP '+res.status));
+  }
+  return data.profile;
+}
+
+async function applyAuthenticatedSession(session){
+  authSession=session;
+  authProfile=await fetchProfile(session);
+  kmsRole=String(authProfile?.role||'PRODUKCJA').toUpperCase();
+  kmsUserName=authProfile?.full_name||session.user?.email||'';
+  showApp();
+}
+
+async function loginKms(){
+  const email=String(document.getElementById('loginEmail')?.value||'').trim();
+  const password=String(document.getElementById('loginPassword')?.value||'');
+  const msg=document.getElementById('authMessage');
+
+  if(!email||!password){
+    if(msg)msg.textContent='Wpisz e-mail i hasło.';
+    return;
+  }
+  if(!authClient){
+    if(msg)msg.textContent='Połączenie z Supabase nie zostało jeszcze uruchomione.';
+    return;
+  }
+
+  try{
+    if(msg)msg.textContent='Logowanie...';
+    const {data,error}=await authClient.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    if(!data.session)throw new Error('Supabase nie zwrócił sesji.');
+    await applyAuthenticatedSession(data.session);
+  }catch(e){
+    showLogin('Błąd logowania: '+(e.message||'Nieznany błąd'));
+  }
+}
+
+async function logoutKms(){
+  try{
+    if(authClient)await authClient.auth.signOut();
+  }catch(e){}
+  authSession=null;
+  authProfile=null;
+  kmsRole='PRODUKCJA';
+  kmsUserName='';
+  showLogin('Wylogowano.');
+}
+
+async function initKmsAuth(){
+  try{
+    const cfgRes=await fetch('/api/auth-config');
+    const cfg=await cfgRes.json().catch(()=>({}));
+    if(!cfgRes.ok||cfg.ok===false)throw new Error(cfg.error||('HTTP '+cfgRes.status));
+    if(!window.supabase?.createClient)throw new Error('Biblioteka Supabase nie została załadowana.');
+
+    authClient=window.supabase.createClient(cfg.url,cfg.anonKey,{
+      auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+    });
+
+    authClient.auth.onAuthStateChange((event,session)=>{
+      if(event==='SIGNED_OUT'||!session){
+        showLogin('Zaloguj się swoim kontem firmowym.',true);
+        return;
+      }
+      if(event==='TOKEN_REFRESHED')authSession=session;
+    });
+
+    const {data,error}=await authClient.auth.getSession();
+    if(error)throw error;
+
+    if(data.session){
+      await applyAuthenticatedSession(data.session);
+    }else{
+      showLogin('Zaloguj się swoim kontem firmowym.');
+    }
+  }catch(e){
+    showLogin('Błąd uruchomienia logowania: '+(e.message||'Nieznany błąd'));
+  }
+}
+// ===== END KMS CLOUD 2.5.3 PARSER + ADMIN FIX =====
+
+
+// ===== KMS CLOUD 2.5.3 PARSER + ADMIN FIX - API -> SUPABASE =====
+let cloudAutoStarted=false;
+let cloudSyncTimer=null;
+let cloudSaving=false;
+
+function cloudStatus(text, cls='todo'){
+  const el=byId('cloudStatus');
+  if(el){ el.className='pill '+cls; el.textContent=text; }
+}
+function cloudLog(text){
+  const el=byId('cloudLog');
+  if(!el)return;
+  const now=new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const old=(el.innerHTML||'').split('<br>').filter(Boolean).slice(0,5);
+  el.innerHTML=[esc(`${now}  ${text}`),...old].join('<br>');
+}
+async function kmsApi(path,options={}){
+  const token=authSession?.access_token||'';
+  const headers={'Content-Type':'application/json',...(options.headers||{})};
+  if(token)headers.Authorization=`Bearer ${token}`;
+  const res=await fetch(path,{...options,headers});
+  const data=await res.json().catch(()=>({}));
+  if(res.status===401){showLogin('Sesja wygasła. Zaloguj się ponownie.',true)}
+  if(!res.ok||data.ok===false)throw new Error(data.error||('HTTP '+res.status));
+  return data;
+}
+function normalizeCloudOrder(row){
+  const data=row.data || {};
+  const order={
+    id: row.id,
+    cloudId: row.id,
+    created: (row.created_at||new Date().toISOString()).slice(0,10),
+    client: row.customer || data.client || '',
+    orderNo: row.order_number || data.orderNo || '',
+    amount: row.amount || data.amount || '',
+    deadline: row.deadline || data.deadline || '',
+    customerId: data.customerId || '',
+    customerEmail: data.customerEmail || '',
+    customerPhone: data.customerPhone || '',
+    note: data.note || '',
+    noteUpdatedAt: data.noteUpdatedAt || '',
+    noteUpdatedBy: data.noteUpdatedBy || '',
+    completed: !!data.completed,
+    completedAt: data.completedAt || '',
+    materials: data.materials || [],
+    tasks: data.tasks || [],
+    items: data.items || [],
+    cutItems: data.cutItems || [],
+    edgeItems: data.edgeItems || [],
+    cncItems: data.cncItems || [],
+    assemblyItems: data.assemblyItems || [],
+    note: data.note || '',
+    noteUpdatedAt: data.noteUpdatedAt || '',
+    noteUpdatedBy: data.noteUpdatedBy || '',
+    docs: data.docs || [],
+    kmsWorkflow: data.kmsWorkflow || null
+  };
+  if((row.materials||[]).length && !order.materials.length){
+    order.materials=row.materials.map(m=>({type:m.type||'',material:m.material||'',qty:m.quantity||0,unit:m.unit||'',producer:m.supplier||'',status:m.status||'Do zamówienia',relatedType:m.related_type||''}));
+  }
+  if((row.tasks||[]).length && !order.tasks.length){
+    order.tasks=row.tasks.map(t=>({name:t.task_name||t.station||'Zadanie',status:t.status||'Do wykonania',source:t.source||'Supabase',qty:t.qty||0,unit:t.unit||''}));
+  }
+  if((row.files||[]).length && !order.docs.length){
+    order.docs=row.files.map(f=>({name:f.file_name,station:f.station||'Zamówienie',url:f.file_url||''}));
+  }
+  return order;
+}
+function mergeCloudOrders(cloudOrders){
+  const localUnsaved=state.orders.filter(o=>!o.cloudId && !String(o.id||'').includes('-'));
+  const localCompleted=(state.completedOrders||[]).filter(o=>!o.cloudId && !String(o.id||'').includes('-'));
+  state.orders=[...cloudOrders.filter(o=>!o.completed),...localUnsaved];
+  state.completedOrders=[...cloudOrders.filter(o=>o.completed),...localCompleted];
+}
+async function cloudLoadOrders(silent=false){
+  if(cloudSaving)return;
+  try{
+    if(!silent)cloudStatus('Wczytuję z chmury...','progress');
+    const data=await kmsApi('/api/orders');
+    mergeCloudOrders((data.orders||[]).map(normalizeCloudOrder));
+    save(); render();
+    cloudStatus('🟢 Połączono z chmurą','done');
+    if(!silent)cloudLog('Wczytano zlecenia: '+state.orders.length);
+  }catch(e){
+    cloudStatus('🔴 Brak połączenia: '+e.message,'bad');
+    if(!silent)alert('Błąd odczytu z chmury: '+e.message);
+  }
+}
+async function cloudSaveOrder(order){
+  try{
+    cloudSaving=true;
+    cloudStatus('Zapisuję pełne zlecenie w chmurze...','progress');
+    const fullOrder={...order,
+      materials:Array.isArray(order.materials)?order.materials:[],
+      tasks:Array.isArray(order.tasks)?order.tasks:[],
+      docs:Array.isArray(order.docs)?order.docs:[],
+      items:Array.isArray(order.items)?order.items:[],
+      cutItems:Array.isArray(order.cutItems)?order.cutItems:[],
+      edgeItems:Array.isArray(order.edgeItems)?order.edgeItems:[],
+      cncItems:Array.isArray(order.cncItems)?order.cncItems:[],
+      assemblyItems:Array.isArray(order.assemblyItems)?order.assemblyItems:[]
+    };
+    const data=await kmsApi('/api/orders',{method:'POST',body:JSON.stringify({order:fullOrder})});
+    order.cloudId=data.order?.id || order.cloudId;
+    order.id=order.cloudId || order.id;
+    const c=data.counts||{};
+    cloudStatus('🟢 Połączono z chmurą','done');
+    cloudLog(`Zapisano ${order.orderNo||''}: materiały ${c.materials||0}, zadania ${c.tasks||0}, pliki ${c.files||0}`);
+    save();
+    return data;
+  }catch(e){
+    cloudStatus('🔴 Błąd zapisu: '+e.message,'bad');
+    alert('Błąd zapisu do chmury: '+e.message);
+  }finally{
+    cloudSaving=false;
+  }
+}
+async function cloudUpdateOrder(order, reason='Aktualizacja statusu'){
+  if(!order)return;
+  if(!order.cloudId && order.id)order.cloudId=order.id;
+  if(!order.cloudId)return;
+  try{
+    cloudSaving=true;
+    cloudStatus('Zapisuję status w chmurze...','progress');
+    const data=await kmsApi('/api/orders',{method:'PUT',body:JSON.stringify({order:{...order,id:order.cloudId,cloudId:order.cloudId},reason})});
+    const c=data.counts||{};
+    cloudStatus('🟢 Połączono z chmurą','done');
+    if(typeof cloudLog==='function')cloudLog(`${reason}: ${order.orderNo||''} / zad ${c.tasks||0}`);
+    save();
+    return data;
+  }catch(e){
+    cloudStatus('🔴 Błąd statusu: '+e.message,'bad');
+    alert('Nie udało się zapisać statusu do chmury: '+e.message);
+  }finally{
+    cloudSaving=false;
+  }
+}
+
+async function deleteCloudOrder(orderId){
+  if(!adminOnly())return;
+  const all=[...(state.orders||[]),...(state.completedOrders||[])];
+  const o=all.find(x=>String(x.id)===String(orderId)||String(x.cloudId)===String(orderId));
+  if(!o)return alert('Nie znaleziono zlecenia.');
+  const label=`${o.orderNo||'BEZ NUMERU'} — ${o.client||''}`;
+  if(!confirm(`Usunąć zlecenie ${label}?`))return;
+  if(!confirm('Potwierdź ponownie. Zlecenie zostanie usunięte z chmury i z KMS.'))return;
+  const remoteId=o.cloudId||(/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(String(o.id||''))?o.id:'');
+  try{
+    if(remoteId){
+      cloudStatus('Usuwam zlecenie z chmury...','progress');
+      await kmsApi('/api/orders',{method:'DELETE',body:JSON.stringify({id:remoteId})});
+    }
+    state.orders=(state.orders||[]).filter(x=>x!==o);
+    state.completedOrders=(state.completedOrders||[]).filter(x=>x!==o);
+    if(typeof expandedOrders!=='undefined')expandedOrders.delete(String(o.id));
+    if(typeof saveExpandedOrders==='function')saveExpandedOrders();
+    save();render();
+    cloudStatus('🟢 Zlecenie usunięte','done');
+    if(typeof cloudLog==='function')cloudLog(`Administrator usunął zlecenie: ${label}`);
+  }catch(e){
+    cloudStatus('🔴 Błąd usuwania: '+e.message,'bad');
+    alert('Nie udało się usunąć zlecenia: '+e.message);
+  }
+}
+
+async function cloudSyncLocalOrders(){
+  const all=[...(state.orders||[]).filter(oaIsProductionOrder),...(state.completedOrders||[])];
+  if(!all.length){alert('Brak lokalnych zleceń do wysłania.');return;}
+  for(const o of all){if(!o.cloudId)await cloudSaveOrder(o);}
+  alert('Synchronizacja zakończona.');
+}
+function cloudStartAutoSync(){
+  if(!authSession)return;
+  if(cloudAutoStarted)return;
+  cloudAutoStarted=true;
+  setTimeout(()=>cloudLoadOrders(true),800);
+  if(cloudSyncTimer)clearInterval(cloudSyncTimer);
+  cloudSyncTimer=setInterval(()=>cloudLoadOrders(true),15000);
+  cloudLog('Auto synchronizacja uruchomiona.');
+}
+
+// ===== END KMS CLOUD 2.5.3 PARSER + ADMIN FIX =====
+
+// ===== KMS CLOUD 2.3.1 - COMMUNICATION Hala-Biuro FIX =====
+async function cloudLoadComm(silent=true){
+  try{
+    const data=await kmsApi('/api/messages');
+    state.comm=(data.messages||[]).map(m=>({
+      id:m.id,
+      cloudId:m.id,
+      orderId:m.order_id||'',
+      orderNo:m.order_number||'',
+      client:m.customer||'',
+      station:m.station||'Inne',
+      priority:m.priority||'Normalne',
+      text:m.message||'',
+      answer:m.answer||'',
+      status:m.status||'Otwarte',
+      created:m.created_at?new Date(m.created_at).toLocaleString('pl-PL'):'',
+      closed:m.closed_at?new Date(m.closed_at).toLocaleString('pl-PL'):''
+    }));
+    save();
+    renderComm();
+    if(!silent)cloudLog('Wczytano komunikaty: '+state.comm.length);
+  }catch(e){
+    if(!silent)alert('Błąd komunikatora: '+e.message);
+    console.error('cloudLoadComm',e);
+  }
+}
+async function cloudSaveComm(c){
+  try{
+    const data=await kmsApi('/api/messages',{method:'POST',body:JSON.stringify({message:c})});
+    c.cloudId=data.message?.id||c.cloudId;
+    c.id=c.cloudId||c.id;
+    cloudLog('Dodano komunikat: '+(c.orderNo||c.station||''));
+    save();
+    renderComm();
+  }catch(e){
+    alert('Nie udało się zapisać komunikatu do chmury: '+e.message);
+    console.error('cloudSaveComm',e);
+  }
+}
+async function cloudUpdateComm(c){
+  if(!c||!c.cloudId)return;
+  try{
+    await kmsApi('/api/messages',{method:'PUT',body:JSON.stringify({message:c})});
+    cloudLog('Zaktualizowano komunikat');
+    save();
+  }catch(e){
+    alert('Nie udało się zaktualizować komunikatu: '+e.message);
+    console.error('cloudUpdateComm',e);
+  }
+}
+function cloudStartCommSync(){
+  setTimeout(()=>cloudLoadComm(true),1800);
+  setInterval(()=>cloudLoadComm(true),15000);
+}
+// ===== END KMS CLOUD 2.5.3 PARSER + ADMIN FIX =====
+
+
+async function cloudLoadCustomers(silent=true){
+  try{
+    const data=await kmsApi('/api/customers');
+    state.customers=data.customers||[];
+    save();renderCustomers();
+    if(!silent&&typeof cloudLog==='function')cloudLog('Wczytano klientów: '+state.customers.length);
+  }catch(e){if(!silent)alert('Błąd bazy klientów: '+e.message)}
+}
+function clearCustomerForm(){
+  ['customerEditId','customerName','customerEmail','customerPhone','customerContact','customerNip','customerNotes'].forEach(id=>{if(byId(id))byId(id).value=''})
+}
+function editCustomer(id){
+  const c=state.customers.find(x=>String(x.id)===String(id));if(!c)return;
+  byId('customerEditId').value=c.id||'';byId('customerName').value=c.name||'';byId('customerEmail').value=c.email||'';
+  byId('customerPhone').value=c.phone||'';byId('customerContact').value=c.contact_person||'';byId('customerNip').value=c.nip||'';byId('customerNotes').value=c.notes||'';
+}
+async function saveCustomer(){
+  const customer={id:byId('customerEditId').value||null,name:norm(byId('customerName').value),email:norm(byId('customerEmail').value),phone:norm(byId('customerPhone').value),contact_person:norm(byId('customerContact').value),nip:norm(byId('customerNip').value),notes:norm(byId('customerNotes').value)};
+  if(!customer.name)return alert('Wpisz nazwę klienta.');
+  try{
+    await kmsApi('/api/customers',{method:customer.id?'PUT':'POST',body:JSON.stringify({customer})});
+    clearCustomerForm();await cloudLoadCustomers(false);
+  }catch(e){alert('Nie udało się zapisać klienta: '+e.message)}
+}
+function findCustomerByOrder(o){
+  if(!o)return null;
+  if(o.customerId)return state.customers.find(c=>String(c.id)===String(o.customerId))||null;
+  const n=String(o.client||'').trim().toUpperCase();
+  return state.customers.find(c=>String(c.name||'').trim().toUpperCase()===n)||null;
+}
+function renderCustomers(){
+  const el=byId('customersTable');if(!el)return;
+  el.innerHTML=(state.customers||[]).map(c=>{
+    const count=state.orders.filter(o=>String(o.customerId||'')===String(c.id)||String(o.client||'').trim().toUpperCase()===String(c.name||'').trim().toUpperCase()).length;
+    return `<tr><td><b>${esc(c.name)}</b></td><td>${esc(c.email||'')}</td><td>${esc(c.phone||'')}</td><td>${esc(c.contact_person||'')}</td><td>${count}</td><td><button class="primary" onclick="editCustomer('${jsStr(c.id)}')">Edytuj</button></td></tr>`;
+  }).join('')||'<tr><td colspan="6">Brak klientów.</td></tr>';
+}
+function copyEmailDraft(){
+  const txt=byId('emailDraft')?.value||'';if(!txt)return alert('Brak wiadomości do skopiowania.');
+  navigator.clipboard?.writeText(txt).then(()=>alert('Wiadomość skopiowana.')).catch(()=>alert('Nie udało się skopiować.'));
+}
+
+
+
+function openOrderNote(orderId){
+  const o=[...(state.orders||[]),...(state.completedOrders||[])].find(x=>String(x.id)===String(orderId)||String(x.cloudId)===String(orderId));
+  if(!o)return alert('Nie znaleziono zlecenia.');
+  byId('orderNoteOrderId').value=o.cloudId||o.id;
+  byId('orderNoteText').value=o.note||'';
+  byId('orderNoteTitle').textContent=`Zlecenie ${o.orderNo||''} — ${o.client||''}`;
+  const deleteBtn=byId('deleteOrderNoteBtn');
+  if(deleteBtn)deleteBtn.style.display=kmsRole==='ADMIN'?'inline-block':'none';
+  byId('orderNoteModal').classList.remove('hidden');
+}
+function closeOrderNote(){
+  byId('orderNoteModal').classList.add('hidden');
+}
+async function saveOrderNote(){
+  const id=byId('orderNoteOrderId').value;
+  const o=[...(state.orders||[]),...(state.completedOrders||[])].find(x=>String(x.id)===String(id)||String(x.cloudId)===String(id));
+  if(!o)return alert('Nie znaleziono zlecenia.');
+  const previous=norm(o.note||'');
+  const next=norm(byId('orderNoteText').value);
+  if(kmsRole!=='ADMIN'&&previous&&!next){
+    byId('orderNoteText').value=o.note||'';
+    return alert('Tylko administrator może usunąć notatkę ze zlecenia.');
+  }
+  o.note=next;
+  o.noteUpdatedAt=new Date().toISOString();
+  o.noteUpdatedBy=kmsUserName||ROLE_LABELS[kmsRole]||'KMS';
+  save();render();closeOrderNote();
+  await cloudUpdateOrder(o,'Notatka produkcyjna');
+}
+async function clearOrderNote(){
+  if(!adminOnly())return;
+  const id=byId('orderNoteOrderId').value;
+  const o=[...(state.orders||[]),...(state.completedOrders||[])].find(x=>String(x.id)===String(id)||String(x.cloudId)===String(id));
+  if(!o)return;
+  if(!confirm('Usunąć notatkę z tego zlecenia?'))return;
+  if(!confirm('Potwierdź ponownie: notatka zostanie usunięta przez administratora.'))return;
+  o.note='';
+  o.noteUpdatedAt=new Date().toISOString();
+  o.noteUpdatedBy=kmsUserName||ROLE_LABELS[kmsRole]||'KMS';
+  byId('orderNoteText').value='';
+  save();render();closeOrderNote();
+  await cloudUpdateOrder(o,'Usunięto notatkę');
+}
+function orderNoteHtml(o){
+  const has=String(o.note||'').trim().length>0;
+  const badge=has?`<span class="note-badge">NOTATKA</span>`:'';
+  const btnText=has?'Edytuj notatkę':'Dodaj notatkę';
+  const preview=has?`<div class="note-box">${esc(o.note)}</div>`:'';
+  return `<div style="margin-top:8px">${badge} <button class="${has?'green':'gray'}" onclick="openOrderNote('${jsStr(o.id)}')">${btnText}</button>${preview}</div>`;
+}
+
+function byId(id){return document.getElementById(id)}
+function jsStr(v){return String(v||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+function norm(v){return(v||'').replace(/\s+/g,' ').trim()}function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function kmsStorageStatus(text,cls='todo'){
+  const el=byId('localStorageStatus');
+  if(el){el.className='pill '+cls;el.textContent=text}
+}
+function kmsIsQuotaError(e){
+  return !!e&&(e.name==='QuotaExceededError'||e.name==='NS_ERROR_DOM_QUOTA_REACHED'||/quota|storage/i.test(String(e.message||e)));
+}
+function kmsOpenFileDb(){
+  return new Promise((resolve,reject)=>{
+    if(!window.indexedDB)return reject(new Error('IndexedDB niedostępne'));
+    const req=indexedDB.open(KMS_FILE_DB,1);
+    req.onupgradeneeded=()=>{
+      const db=req.result;
+      if(!db.objectStoreNames.contains(KMS_FILE_STORE))db.createObjectStore(KMS_FILE_STORE);
+    };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error||new Error('Błąd IndexedDB'));
+  });
+}
+async function kmsIdbPut(key,value){
+  const db=await kmsOpenFileDb();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(KMS_FILE_STORE,'readwrite');
+    tx.objectStore(KMS_FILE_STORE).put(value,key);
+    tx.oncomplete=()=>{db.close();resolve(true)};
+    tx.onerror=()=>{const e=tx.error;db.close();reject(e)};
+  });
+}
+async function kmsIdbGet(key){
+  const db=await kmsOpenFileDb();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(KMS_FILE_STORE,'readonly');
+    const req=tx.objectStore(KMS_FILE_STORE).get(key);
+    req.onsuccess=()=>{const v=req.result;db.close();resolve(v)};
+    req.onerror=()=>{const e=req.error;db.close();reject(e)};
+  });
+}
+function kmsSafeKeyPart(v){return String(v||'').replace(/[^0-9A-Za-z_.-]+/g,'_').slice(0,80)}
+function kmsDocStorageKey(order,doc,index){
+  return doc.localBlobKey||`order_${kmsSafeKeyPart(order.cloudId||order.id||'local')}_${index}_${kmsSafeKeyPart(doc.name||doc.file_name||'file')}`;
+}
+async function kmsArchiveLargeDocs(){
+  let archived=0;
+  for(const orders of [state.orders||[],state.completedOrders||[]]){
+    for(const order of orders){
+      const docs=Array.isArray(order.docs)?order.docs:[];
+      for(let i=0;i<docs.length;i++){
+        const d=docs[i];
+        const url=String(d.url||d.file_url||'');
+        if(!url.startsWith('data:')||d.localBlobKey)continue;
+        const key=kmsDocStorageKey(order,d,i);
+        await kmsIdbPut(key,{url,name:d.name||d.file_name||'',station:d.station||'Zamówienie'});
+        d.localBlobKey=key;
+        archived++;
+      }
+    }
+  }
+  return{archived};
+}
+function kmsCompactState(mode='normal'){
+  const snapshot=JSON.parse(JSON.stringify(state));
+  for(const orders of [snapshot.orders||[],snapshot.completedOrders||[]]){
+    for(const order of orders){
+      for(const d of (order.docs||[])){
+        if(d.localBlobKey&&String(d.url||d.file_url||'').startsWith('data:')){
+          d.url='';
+          if('file_url'in d)d.file_url='';
+        }
+      }
+    }
+  }
+  if(mode==='cloud-cache-minimal'){
+    snapshot.orders=(snapshot.orders||[]).filter(o=>!o.cloudId&&!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(String(o.id||'')));
+    snapshot.completedOrders=(snapshot.completedOrders||[]).filter(o=>!o.cloudId&&!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(String(o.id||'')));
+    snapshot.comm=[];
+    snapshot.customers=[];
+  }
+  return snapshot;
+}
+function kmsWriteSnapshot(snapshot){localStorage.setItem(KEY,JSON.stringify(snapshot))}
+let kmsStorageSaveRunning=false;
+let kmsStorageSaveAgain=false;
+let kmsLastStorageMode='normal';
+async function kmsSaveStateSafe(showResult=false){
+  if(kmsStorageSaveRunning){kmsStorageSaveAgain=true;return}
+  kmsStorageSaveRunning=true;
+  kmsStorageSaveAgain=false;
+  try{
+    kmsStorageStatus('Pamięć lokalna: porządkuję...','progress');
+    const archive=await kmsArchiveLargeDocs();
+    try{
+      kmsWriteSnapshot(kmsCompactState('normal'));
+      kmsLastStorageMode='normal';
+      kmsStorageStatus('Pamięć lokalna: OK','done');
+      if(showResult)alert(`Pamięć lokalna naprawiona. Pliki zabezpieczone poza localStorage: ${archive.archived}.`);
+    }catch(e){
+      if(!kmsIsQuotaError(e))throw e;
+      kmsWriteSnapshot(kmsCompactState('cloud-cache-minimal'));
+      kmsLastStorageMode='cloud-cache-minimal';
+      kmsStorageStatus('Pamięć lokalna: tryb odchudzony','progress');
+      if(showResult)alert('Pamięć lokalna została odchudzona. Zlecenia zapisane w chmurze nie są dublowane w localStorage.');
+    }
+  }catch(e){
+    console.error('KMS safe storage error',e);
+    kmsStorageStatus('Pamięć lokalna: błąd','bad');
+    if(showResult)alert('Nie udało się naprawić pamięci lokalnej: '+(e.message||e));
+  }finally{
+    kmsStorageSaveRunning=false;
+    if(kmsStorageSaveAgain)setTimeout(()=>kmsSaveStateSafe(false),0);
+  }
+}
+function save(){void kmsSaveStateSafe(false);return true}
+async function runStorageRepair(showResult=false){await kmsSaveStateSafe(showResult)}
+async function kmsHydrateLocalDocs(){
+  let restored=0;
+  for(const orders of [state.orders||[],state.completedOrders||[]]){
+    for(const order of orders){
+      for(const d of (order.docs||[])){
+        if((d.url||d.file_url)||!d.localBlobKey)continue;
+        try{
+          const stored=await kmsIdbGet(d.localBlobKey);
+          if(stored?.url){d.url=stored.url;restored++}
+        }catch(e){console.error('KMS hydrate file error',e)}
+      }
+    }
+  }
+  return restored;
+}
+async function kmsStorageBootstrap(){
+  try{
+    kmsStorageStatus('Pamięć lokalna: migracja...','progress');
+    await kmsHydrateLocalDocs();
+    await kmsSaveStateSafe(false);
+  }catch(e){
+    console.error('KMS storage bootstrap',e);
+    kmsStorageStatus('Pamięć lokalna: tryb awaryjny','bad');
+  }
+}
+window.addEventListener('beforeunload',()=>{
+  try{kmsWriteSnapshot(kmsCompactState(kmsLastStorageMode))}catch(e){}
+});
+function show(id,btn){if(!canAccessSection(id)){alert('Brak dostępu do tego modułu na tym stanowisku.');id='dash'}document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));byId(id).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render();applyRoleAccess()}
+function parseNum(v){return Number(String(v||'').replace(/o/ig,'0').replace(',','.').replace(/[^\d.]/g,''))||0}function money(v){return String(v||'').replace(/\s/g,'').replace(',','.')}
+
+function fileToDataUrl(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+    r.readAsDataURL(file);
+  });
+}
+function dataUrlToBlob(dataUrl){
+  const parts=String(dataUrl).split(',');
+  const mime=(parts[0].match(/data:([^;]+)/)||[])[1]||'application/octet-stream';
+  const binary=atob(parts.slice(1).join(','));
+  const bytes=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+  return new Blob([bytes],{type:mime});
+}
+function loadImageFromFile(file){
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{URL.revokeObjectURL(url);resolve(img)};
+    img.onerror=e=>{URL.revokeObjectURL(url);reject(e)};
+    img.src=url;
+  });
+}
+async function compressImageFile(file,maxSide=2000,quality=.82){
+  const img=await loadImageFromFile(file);
+  const ratio=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
+  const w=Math.max(1,Math.round(img.naturalWidth*ratio));
+  const h=Math.max(1,Math.round(img.naturalHeight*ratio));
+  const canvas=document.createElement('canvas');
+  canvas.width=w;canvas.height=h;
+  const ctx=canvas.getContext('2d',{alpha:false});
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
+  ctx.drawImage(img,0,0,w,h);
+  return canvas.toDataURL('image/jpeg',quality);
+}
+async function compressPdfForCloud(file,maxPageSide=1600,quality=.72){
+  const buffer=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buffer}).promise;
+  const {jsPDF}=window.jspdf;
+  const out=new jsPDF({unit:'pt',format:'a4',compress:true});
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const base=page.getViewport({scale:1});
+    const scale=Math.min(2,maxPageSide/Math.max(base.width,base.height));
+    const vp=page.getViewport({scale});
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.round(vp.width);canvas.height=Math.round(vp.height);
+    const ctx=canvas.getContext('2d',{alpha:false});
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+    await page.render({canvasContext:ctx,viewport:vp}).promise;
+    const img=canvas.toDataURL('image/jpeg',quality);
+    if(i>1)out.addPage('a4','portrait');
+    const pw=out.internal.pageSize.getWidth(),ph=out.internal.pageSize.getHeight();
+    const r=Math.min(pw/canvas.width,ph/canvas.height);
+    const iw=canvas.width*r,ih=canvas.height*r;
+    out.addImage(img,'JPEG',(pw-iw)/2,(ph-ih)/2,iw,ih,undefined,'FAST');
+  }
+  const blob=out.output('blob');
+  return await fileToDataUrl(new File([blob],file.name.replace(/\.pdf$/i,'')+'_opt.pdf',{type:'application/pdf'}));
+}
+async function fileToCloudDataUrl(file){
+  const type=String(file.type||'').toLowerCase();
+  const sizeMb=file.size/1024/1024;
+  if(type.startsWith('image/')){
+    if(sizeMb<=2.5)return await fileToDataUrl(file);
+    return await compressImageFile(file,2000,.82);
+  }
+  if(type==='application/pdf'||/\.pdf$/i.test(file.name)){
+    if(sizeMb<=4)return await fileToDataUrl(file);
+    return await compressPdfForCloud(file,1600,.72);
+  }
+  return await fileToDataUrl(file);
+}
+async function pdfText(file){
+  const type=String(file.type||'').toLowerCase();
+  if(type.startsWith('image/'))return '';
+  const b=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:b}).promise;
+  let text='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const p=await pdf.getPage(i),c=await p.getTextContent();
+    text+=c.items.map(x=>x.str).join(' ')+'\n';
+  }
+  return text;
+}
+async function analyzePdf(){
+  const f=byId('pdfFile').files[0];
+  if(!f)return alert('Wybierz PDF lub zdjęcie');
+  byId('status').textContent='Analizuję i optymalizuję plik...';
+  try{
+    const text=await pdfText(f);
+    byId('rawText').value=text.trim();
+    lastAnalysis=parseProforma(text,f.name);
+    lastAnalysis.fileUrl=await fileToCloudDataUrl(f);
+    lastAnalysis.filename=f.name;
+    renderAnalysis(lastAnalysis);
+    const original=(f.size/1024/1024).toFixed(1);
+    const optimizedBlob=dataUrlToBlob(lastAnalysis.fileUrl);
+    const optimized=(optimizedBlob.size/1024/1024).toFixed(1);
+    byId('status').textContent=`Analiza gotowa. Plik: ${original} MB → ${optimized} MB do chmury`;
+  }catch(e){
+    byId('status').textContent='Błąd analizy: '+e.message;
+    alert('Nie udało się przygotować pliku: '+e.message);
+  }
+}
+async function addSelectedDocs(){
+  const fs=byId('extraDocs').files,st=byId('docStation').value;
+  if(!fs.length)return alert('Wybierz plik');
+  byId('status').textContent='Optymalizuję dodatkowe pliki...';
+  try{
+    for(let i=0;i<fs.length;i++){
+      pendingDocs.push({name:fs[i].name,station:st,url:await fileToCloudDataUrl(fs[i])});
+    }
+    byId('extraDocs').value='';
+    renderPendingDocs();
+    byId('status').textContent='Dodatkowe pliki gotowe';
+  }catch(e){
+    alert('Nie udało się dodać pliku: '+e.message);
+  }
+}
+function renderPendingDocs(){byId('pendingDocs').innerHTML=pendingDocs.length?pendingDocs.map((d,i)=>`<span class=doc>📎 ${esc(d.name)} → ${esc(d.station)} <button class=gray onclick="pendingDocs.splice(${i},1);renderPendingDocs()">x</button></span>`).join(''):'<span class=small>Brak dodatkowych plików.</span>'}
+
+// parser KMS
+function cleanBuyer(v){let b=norm(v).replace(/\s+(NIP|REGON|PESEL)\b.*$/i,'').replace(/\s+\d{2}-\d{3}\b.*$/i,'').replace(/\s+(ul\.?|al\.?|os\.?)\s+.*$/i,'');if(/Kułak|Kulak|Usługi Stolarskie|Kruszcowa|BREXPLPWMBK|M bank|kulak-meble|955193/i.test(b))return'';return b}
+function findBuyer(clean){let m=clean.match(/BREXPLPWMBK\s*\|\s*PLN\s+(.+?)\s+LP\s+Nazwa/i);if(m){let c=cleanBuyer(m[1]);if(c)return c}m=clean.match(/Nabywca\s+(.+?)\s+LP\s+Nazwa/i);return m?(cleanBuyer(m[1])||'Nie wykryto klienta'):'Nie wykryto klienta'}
+function findOrderNo(clean,filename){const m=clean.match(/DOTYCZY\s+ZLECENIA\s+NR\s+([0-9A-Za-z\/.\-]+)/i)||clean.match(/DOTYCZY\s+ZLECENIA\s+([0-9A-Za-z\/.\-]+)/i)||clean.match(/ZLECENIA\s+([0-9A-Za-z\/.\-]+)/i);if(m)return m[1];const f=filename.match(/(\d{1,6})/);return f?f[1]:''}
+function findAmount(clean){const m=clean.match(/Do zapłaty\s+(\d[\d\s]*(?:[,.]\d{2})?)\s*PLN/i)||clean.match(/Kwota opłacona\s+(\d[\d\s]*(?:[,.]\d{2})?)\s*PLN/i)||clean.match(/Wartość brutto\s+(\d[\d\s]*(?:[,.]\d{2})?)\s*PLN/i);return m?money(m[1]):''}
+function parseParenParams(raw){const m=String(raw||'').match(/\(([^)]*)\)/);return m?m[1].split('/').map(x=>norm(x)).filter(Boolean):[]}
+function paramQtySzt(params,raw){for(const p of params){const m=p.match(/([0-9oO]+(?:[,.][0-9]+)?)\s*S?\s*Z?\s*T/i);if(m)return parseNum(m[1])}const m=String(raw||'').match(/([0-9oO]+(?:[,.][0-9]+)?)\s*S?\s*Z?\s*T/i);return m?parseNum(m[1]):0}
+function paramMb(params,raw){for(const p of params){const m=p.match(/([0-9oO]+(?:[,.][0-9]+)?)\s*M\s*B/i);if(m)return parseNum(m[1])}const m=String(raw||'').match(/([0-9oO]+(?:[,.][0-9]+)?)\s*M\s*B/i);return m?parseNum(m[1]):0}
+function paramProducer(params,raw){const all=(params||[]).join(' ')+' '+String(raw||'');for(const p of ['EGGER','KRONOSPAN','WOODECO','WOODSTOCK','REHAU','NIEMANN']){if(new RegExp('\\b'+p+'\\b','i').test(all))return p}return''}
+function category(t){const u=String(t||'').toUpperCase();if(/LUSTRO|LUSTRA|LACOBEL|SZKŁO|SZKLO/.test(u))return'Szkło/Lustro';if(/FRONTY?\s+AKRYLOWE|AKRYL/.test(u))return'Akryl';if(/PCV|OKLEJANIE|OBRZEŻE|OBRZEZE/.test(u))return'PCV';if(/CIĘCIE\s+BLATU|CIECIE\s+BLATU/.test(u))return'Cięcie blatu';if(/CIĘCIE\s+PŁYTY|CIECIE\s+PLYTY/.test(u))return'Cięcie płyty';if(/FREZ|WIERCEN|CNC|OTWORY|ZLEW|GRZEWCZ|ZŁĄCZE|ZLACZE/.test(u))return'CNC';if(/\bHDF\b/.test(u)&&!/FREZ\s+POD\s+HDF/.test(u))return'HDF';if(/BLAT/.test(u))return'Blat';if(/PŁYTA|PLYTA/.test(u))return'Płyta';if(/MONTAŻ\s+HALA|MONTAZ\s+HALA/.test(u))return'Montaż HALA';if(/DRZWI\s+PRZESUW/.test(u))return'Drzwi przesuwne';if(/SKŁADAN|SKLADAN|MONTAŻ SZAFEK|MONTAZ SZAFEK/.test(u))return'Montaż HALA';if(/CIĘCIE|CIECIE/.test(u))return'Cięcie';return'Inne'}
+function itemName(t){return norm(t).replace(/^\d{1,3}\s+/,'').replace(/\s+\d+[,.]?\d*\s*\((szt|m2|mb|Mb|MB)\).*$/i,'').replace(/\s+\d+[,.]?\d*\s*(szt|m2|mb|Mb|MB)\b.*$/i,'')}
+function qtyFor(cat,raw,params){if(['Płyta','HDF','Akryl','Blat'].includes(cat))return{qty:paramQtySzt(params,raw),unit:'szt'};let mb=paramMb(params,raw);if(mb)return{qty:mb,unit:'mb'};let m=raw.match(/([0-9oO]+(?:[,.][0-9]+)?)\s*\((szt|m2|mb|Mb|MB)\)/i)||raw.match(/([0-9oO]+(?:[,.][0-9]+)?)\s*(szt|m2|mb|Mb|MB)\b/i);return m?{qty:parseNum(m[1]),unit:m[2].toLowerCase()}:{qty:0,unit:''}}
+function extractItems(clean){const starters='Płyta|Plyta|PŁYTA|HDF|Oklejanie|OKLEJANIE|Obrzeże|Obrzeze|PCV|Cięcie|Ciecie|Frez|Front|FRONTY|AKRYL|Blat|BLAT|Drzwi|Wiercenie|Składanie|Skladanie|Montaż|Montaz|CNC|Złącze|Zlacze|Montaż|Montaz|MONTAŻ|MONTAZ|Lustro|LUSTRO|Lustra|LUSTRA|Lacobel|LACOBEL|Szkło|Szklo|SZKŁO|SZKLO';const re=new RegExp('\\b(\\d{1,3})\\s+(('+starters+')\\s+.*?)(?=\\s+\\d{1,3}\\s+(?:'+starters+')\\b|\\s+W tym|\\s+Razem|\\s+Uwagi|\\s+Do zapłaty|\\s+Kwota opłacona|$)','gi');let arr=[],m;while((m=re.exec(clean))){const raw=norm(m[2]),cat=category(raw),params=parseParenParams(raw),q=qtyFor(cat,raw,params);arr.push({lp:m[1],category:cat,name:itemName(raw),qty:q.qty,unit:q.unit,raw,params,producer:paramProducer(params,raw),pcvMb:paramMb(params,raw)})}return arr}
+function matName(n){return norm(n).toUpperCase().replace(/^PŁYTA\s+/,'').replace(/^PLYTA\s+/,'').replace(/^FRONTY\s+AKRYLOWE\s+/,'AKRYL ').replace(/\s+\+\s+CIĘCIE.*$/i,'').replace(/\s+\+\s+CIECIE.*$/i,'').replace(/\s*\([^)]*\)\s*/g,'').trim()}
+function pcvType(raw){let special=String(raw).match(/PCV\s*([0-9]+\/[0-9]+\s*MM)/i);if(special)return'PCV '+special[1].replace(/\s+/g,'').toUpperCase();const mm=String(raw).match(/([12])\s*mm/i);return mm?'PCV '+mm[1]+' MM':'PCV 1 MM'}
+function buildMaterials(items){let list=[],cur='',prod='',curType='';items.forEach(it=>{if(['Płyta','HDF','Blat'].includes(it.category)){cur=matName(it.name);prod=it.producer;curType=it.category;list.push({type:it.category,material:cur,qty:it.qty,unit:'szt',producer:prod,status:'Do zamówienia'})}else if(it.category==='Akryl'){cur=matName(it.name);prod=it.producer;curType='Akryl';list.push({type:'Akryl',material:cur,qty:it.qty,unit:'szt',producer:prod,status:'Do zamówienia'});if(it.pcvMb)list.push({type:'PCV 1 MM',material:cur,qty:Math.ceil(it.pcvMb*1.2*10)/10,unit:'mb',producer:prod,relatedType:'Akryl',status:'Do zamówienia'})}else if(it.category==='Szkło/Lustro'){let raw=String(it.raw||'').toUpperCase();let type=/LACOBEL/.test(raw)?'Lacobel':(/SZKŁO|SZKLO/.test(raw)?'Szkło':'Lustro');let supplier=/SZLIF/.test(raw)?'SZKLARZ':'MADOR';let unit=it.unit||(/M2/i.test(it.raw)?'m2':'szt');list.push({type:type,material:matName(it.name),qty:it.qty||1,unit:unit,producer:supplier,status:'Do zamówienia',glassSupplier:supplier})}else if(it.category==='PCV'){let base=Number(it.qty)||0;list.push({type:pcvType(it.raw),material:cur||'DEKOR DO SPRAWDZENIA',qty:Math.ceil(base*1.2*10)/10,unit:it.unit||'mb',producer:it.producer||prod,relatedType:curType,status:'Do zamówienia'})}});return list}
+function buildTasks(items,materials){let t=[];function add(n,s,q,u){if(q>0)t.push({name:n,status:'Do wykonania',source:s,qty:q,unit:u})}let cut=0,cnc=0,cab=0,doors=0;items.forEach(i=>{if(['Płyta','Blat','HDF','Akryl'].includes(i.category)&&/\+\s*CIĘCIE|\+\s*CIECIE/i.test(i.raw))cut+=Number(i.qty)||0;if(['Cięcie płyty','Cięcie blatu','Cięcie'].includes(i.category))cut+=Number(i.qty)||0;if(i.category==='CNC')cnc+=Number(i.qty)||1;if(i.category==='Montaż HALA')cab+=Number(i.qty)||1;if(i.category==='Drzwi przesuwne')doors+=Number(i.qty)||1});let pcv=materials.filter(m=>String(m.type).startsWith('PCV')).reduce((s,m)=>s+(Number(m.qty)||0),0);if(!cut)cut=materials.filter(m=>['Płyta','HDF','Akryl','Blat'].includes(m.type)).reduce((s,m)=>s+(Number(m.qty)||0),0);add('1. Cięcie','Standard KMS',cut,'szt');add('2. Oklejanie','PCV',pcv,'mb');add('3. CNC','CNC',cnc,'operacji');add('4. Montaż HALA','Montaż HALA',cab,'operacji');add('5. Składanie drzwi','drzwi przesuwne',doors,'szt');return t}
+function supplierForMaterial(m){const type=String(m.type||'').toUpperCase(),mat=String(m.material||'').toUpperCase(),prod=String(m.producer||m.glassSupplier||'').toUpperCase(),rel=String(m.relatedType||'').toUpperCase(),j=type+' '+mat+' '+prod+' '+rel;if(/SZKLARZ|MARCIN|ANIŚKO|ANISKO/.test(j))return'SZKLARZ';if(/MADOR/.test(j))return'MADOR';if(/LUSTRO|LUSTRA|LACOBEL|SZKŁO|SZKLO/.test(j)){if(/SZLIF/.test(j))return'SZKLARZ';return'MADOR'}if(/NIEMANN/.test(j))return'NIEMANN';if(/REHAU/.test(j))return'SAS';if(/WOODECO|WOODSTOCK/.test(j))return'SAS';if(type.startsWith('PCV')){if(/AKRYL/.test(rel)||/AKRYL/.test(mat))return /REHAU/.test(prod)?'SAS':'NIEMANN';if(/BLAT/.test(rel)||/BLAT/.test(mat))return'SAS';return'JUAN'}if(/BLAT/.test(type)||/^BLAT/.test(mat))return /KRONOSPAN/.test(j)?'VSH':'SAS';if(/AKRYL/.test(type)||/AKRYL/.test(mat))return /REHAU/.test(j)?'SAS':'NIEMANN';if(/PŁYTA|PLYTA|HDF/.test(type))return'JUAN';return'JUAN'}
+function parseProforma(text,filename){const clean=norm(text),items=extractItems(clean),materials=buildMaterials(items),tasks=buildTasks(items,materials);return{client:findBuyer(clean),orderNo:findOrderNo(clean,filename),amount:findAmount(clean),items,materials,tasks,filename}}
+
+// orders/stations
+function createStationItems(materials,items){return{cutItems:(materials||[]).filter(m=>['Płyta','HDF','Akryl','Blat'].includes(m.type)).map(m=>({label:m.material,qty:m.qty,unit:m.unit,done:false})),edgeItems:(materials||[]).filter(m=>String(m.type).startsWith('PCV')).map(m=>({label:m.material,pcv:m.type,qty:m.qty,unit:m.unit,done:false})),cncItems:(items||[]).filter(i=>i.category==='CNC').map(i=>({label:i.name,qty:i.qty||1,unit:i.unit||'szt',done:false})),assemblyItems:(items||[]).filter(i=>i.category==='Montaż HALA'||i.category==='Drzwi przesuwne').map(i=>({label:i.name,qty:i.qty||1,unit:i.unit||'szt',done:false}))}}
+function createOrder(a,docsExtra){const si=createStationItems(a.materials,a.items);const createdDate=new Date();createdDate.setHours(0,0,0,0);const defaultDeadline=fmtDate(addWorkdays(createdDate,6));const newOrder={id:Date.now()+Math.floor(Math.random()*99999),created:new Date().toISOString().slice(0,10),client:a.client,orderNo:a.orderNo,amount:a.amount,deadline:a.deadline||defaultDeadline,materials:a.materials,tasks:a.tasks,items:a.items,cutItems:si.cutItems,edgeItems:si.edgeItems,cncItems:si.cncItems,assemblyItems:si.assemblyItems||[],docs:[{name:a.filename,station:'Zamówienie',url:a.fileUrl||''}].concat(docsExtra||[])};state.orders.push(newOrder);cloudSaveOrder(newOrder)}
+function createFromCurrent(){if(!lastAnalysis)return alert('Najpierw analizuj PDF');lastAnalysis.client=byId('client').value;lastAnalysis.orderNo=byId('orderNo').value;lastAnalysis.amount=byId('amount').value;lastAnalysis.deadline=byId('deadline')?byId('deadline').value:'';const c=(state.customers||[]).find(x=>String(x.name||'').trim().toUpperCase()===String(lastAnalysis.client||'').trim().toUpperCase());if(c){lastAnalysis.customerId=c.id;lastAnalysis.customerEmail=c.email||'';lastAnalysis.customerPhone=c.phone||''}createOrder(lastAnalysis,pendingDocs);pendingDocs=[];renderPendingDocs();save();render();alert('Utworzono kartę zlecenia. KMS zapisuje ją w chmurze automatycznie.')}
+function docsForStation(o,st){return(o.docs||[]).filter(d=>(d.station||'Zamówienie')==='Zamówienie'||(d.station||'')===st)}function docName(d){return d.name||d}
+function docsForStationIndexed(o,st){return(o.docs||[]).map((d,i)=>({d,i})).filter(x=>(x.d.station||'Zamówienie')==='Zamówienie'||(x.d.station||'')===st)}
+function openKmsDocByIndex(orderId,docIndex){
+ const o=state.orders.find(x=>String(x.id)===String(orderId)||String(x.cloudId)===String(orderId));
+ if(!o||!o.docs||!o.docs[docIndex]){alert('Nie znaleziono pliku PDF przy tym zleceniu.');return;}
+ const d=o.docs[docIndex];
+ const url=d.url||d.file_url||'';
+ if(!url){alert('Plik jest przypisany, ale nie ma zapisanego adresu / danych PDF.');return;}
+ try{
+   if(url.startsWith('data:')){
+     const parts=url.split(',');
+     const header=parts[0]||'';
+     const data=parts.slice(1).join(',');
+     const mime=(header.match(/data:([^;]+)/)||[])[1]||'application/pdf';
+     const binary=atob(data);
+     const bytes=new Uint8Array(binary.length);
+     for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+     const blob=new Blob([bytes],{type:mime});
+     const blobUrl=URL.createObjectURL(blob);
+     const win=window.open(blobUrl,'_blank');
+     if(!win){
+       const a=document.createElement('a');
+       a.href=blobUrl;
+       a.download=d.name||d.file_name||'plik.pdf';
+       document.body.appendChild(a);a.click();a.remove();
+     }
+     setTimeout(()=>URL.revokeObjectURL(blobUrl),120000);
+   }else{
+     const win=window.open(url,'_blank');
+     if(!win){
+       const a=document.createElement('a');
+       a.href=url;
+       a.target='_blank';
+       a.download=d.name||d.file_name||'plik.pdf';
+       document.body.appendChild(a);a.click();a.remove();
+     }
+   }
+ }catch(e){
+   alert('Nie udało się otworzyć PDF: '+e.message);
+ }
+}
+function progressText(a){a=a||[];return a.filter(x=>x.done).length+'/'+a.length}function progressClass(a){a=a||[];let d=a.filter(x=>x.done).length,t=a.length;if(t&&d===t)return'done';if(d)return'progress';return'todo'}
+function matStatus(m){return m.status||'Do zamówienia'}function statusClass(s){return s==='Na hali'?'done':s==='Zamówione'?'progress':s==='Oczekiwanie na dostawę'?'bad':'todo'}
+function materialStatusFor(o,label,pcv){const wanted=String(label||'').toUpperCase();let found=(o.materials||[]).find(x=>String(x.type||'').toUpperCase().startsWith('PCV')===!!pcv&&String(x.material||'').toUpperCase()===wanted);if(!found)found=(o.materials||[]).find(x=>String(x.type||'').toUpperCase().startsWith('PCV')===!!pcv&&(String(x.material||'').toUpperCase().includes(wanted)||wanted.includes(String(x.material||'').toUpperCase())));return found?matStatus(found):'Do zamówienia'}
+function setMaterialStatusByLabel(orderId,label,pcv,status){const o=state.orders.find(x=>String(x.id)===String(orderId)||String(x.cloudId)===String(orderId));if(!o)return;const wanted=String(label).toUpperCase();let idx=(o.materials||[]).findIndex(x=>String(x.type||'').toUpperCase().startsWith('PCV')===!!pcv&&String(x.material||'').toUpperCase()===wanted);if(idx<0)idx=(o.materials||[]).findIndex(x=>String(x.type||'').toUpperCase().startsWith('PCV')===!!pcv&&String(x.material||'').toUpperCase().includes(wanted));if(idx>=0){o.materials[idx].status=status;save();render();cloudUpdateOrder(o,'Status materiału')}}
+
+function selectStatusClass(v){
+ if(v==='Na hali')return'status-hall';
+ if(v==='Oczekiwanie na dostawę')return'status-wait';
+ if(v==='Zamówione')return'status-order';
+ return'status-do';
+}
+function updateStatusColor(sel){
+ sel.classList.remove('status-do','status-order','status-wait','status-hall');
+ sel.classList.add(selectStatusClass(sel.value));
+}
+
+function statusSelectHtml(current,orderId,label,pcv){const opts=['Do zamówienia','Zamówione','Oczekiwanie na dostawę','Na hali'];return`<select class="${selectStatusClass(current)}" onchange="setMaterialStatusByLabel(${orderId},'${String(label).replace(/'/g,"\\'")}',${pcv?'true':'false'},this.value);updateStatusColor(this)">${opts.map(o=>`<option ${current===o?'selected':''}>${o}</option>`).join('')}</select>`}
+function toggleItem(oid,g,i){
+ const o=state.orders.find(x=>String(x.id)===String(oid)||String(x.cloudId)===String(oid));
+ if(!o){alert('Nie znaleziono zlecenia. Odśwież KMS.');return;}
+ const arr=g==='cut'?o.cutItems:(g==='edge'?o.edgeItems:(g==='cnc'?o.cncItems:(o.assemblyItems||[])));
+ if(!arr||!arr[i]){alert('Nie znaleziono pozycji produkcji.');return;}
+
+ arr[i].done=!arr[i].done;
+
+ const stageName=g==='cut'?'Cięcie':g==='edge'?'Oklejanie':g==='cnc'?'CNC':'Montaż';
+ const t=(o.tasks||[]).find(x=>String(x.name||x.task_name||'').includes(stageName)||String(x.station||'').includes(stageName));
+ if(t&&arr.length){
+   t.status=arr.every(x=>x.done)?'Zakończone':'Do wykonania';
+ }
+
+ save();
+ render();
+
+ cloudUpdateOrder(o,'Status produkcji');
+}
+
+const KMS_EXPANDED_KEY='kms_expanded_orders_v1';
+let expandedOrders=new Set(JSON.parse(localStorage.getItem(KMS_EXPANDED_KEY)||'[]').map(String));
+function saveExpandedOrders(){localStorage.setItem(KMS_EXPANDED_KEY,JSON.stringify([...expandedOrders]))}
+function toggleOrderExpanded(id){
+  const k=String(id);
+  if(expandedOrders.has(k))expandedOrders.delete(k);else expandedOrders.add(k);
+  saveExpandedOrders();render();
+}
+function orderStageArrays(o){
+  return [o.cutItems||[],o.edgeItems||[],o.cncItems||[],o.assemblyItems||[]].filter(a=>a.length);
+}
+function isOrderProductionComplete(o){
+  const arrays=orderStageArrays(o);
+  return arrays.length>0 && arrays.every(a=>a.every(x=>x.done));
+}
+async function completeOrder(orderId){
+  const o=state.orders.find(x=>String(x.id)===String(orderId)||String(x.cloudId)===String(orderId));
+  if(!o)return alert('Nie znaleziono zlecenia.');
+  if(!isOrderProductionComplete(o)){
+    return alert('Nie wszystkie wymagane etapy produkcji są zakończone.');
+  }
+  if(!confirm(`Przenieść zlecenie ${o.orderNo} do modułu Zrealizowane?`))return;
+  o.completed=true;
+  o.completedAt=new Date().toISOString();
+  state.orders=state.orders.filter(x=>x!==o);
+  state.completedOrders=state.completedOrders||[];
+  state.completedOrders.unshift(o);
+  expandedOrders.delete(String(o.id));
+  saveExpandedOrders();save();render();
+  await cloudUpdateOrder(o,'Zlecenie zrealizowane');
+}
+async function restoreCompletedOrder(orderId){
+  const o=(state.completedOrders||[]).find(x=>String(x.id)===String(orderId)||String(x.cloudId)===String(orderId));
+  if(!o)return;
+  if(!confirm(`Przywrócić zlecenie ${o.orderNo} do aktywnej produkcji?`))return;
+  o.completed=false;o.completedAt='';
+  state.completedOrders=state.completedOrders.filter(x=>x!==o);
+  state.orders.unshift(o);
+  save();render();
+  await cloudUpdateOrder(o,'Przywrócono do produkcji');
+}
+function renderCompletedOrders(){
+  const el=byId('completedList');if(!el)return;
+  const q=String(byId('completedSearch')?.value||'').trim().toUpperCase();
+  const rows=(state.completedOrders||[]).filter(o=>!q||String(o.orderNo||'').toUpperCase().includes(q)||String(o.client||'').toUpperCase().includes(q));
+  el.innerHTML=rows.map(o=>`<div class="card completed-card">
+    <div class="order-summary">
+      <div><b>${esc(o.orderNo)}</b></div>
+      <div>${esc(o.client)}</div>
+      <div>${o.note?'<span class="note-badge">NOTATKA</span> ':''}${esc(o.note||'')}</div>
+      <div><span class="pill done">ZREALIZOWANE</span></div>
+      <div>${o.completedAt?new Date(o.completedAt).toLocaleDateString('pl-PL'):'-'}</div>
+      <div><button class="gray" onclick="restoreCompletedOrder('${jsStr(o.id)}')">Przywróć</button>${kmsRole==='ADMIN'?`<button class="red" onclick="deleteCloudOrder('${jsStr(o.id)}')">Usuń</button>`:''}</div>
+    </div>
+  </div>`).join('')||'<div class="card">Brak zrealizowanych zleceń.</div>';
+}
+function productionOrderCard(o){
+  const id=String(o.id);
+  const expanded=expandedOrders.has(id);
+  const complete=isOrderProductionComplete(o);
+  return `<div class="card">
+    <div class="order-summary">
+      <div><b>${esc(o.orderNo)}</b></div>
+      <div><b>${esc(o.client)}</b></div>
+      <div>${o.note?'<span class="note-badge">NOTATKA</span> ':''}${esc(o.note||'')}</div>
+      <div><span class="stage ${progressClass(o.cutItems)}">Cięcie ${progressText(o.cutItems)}</span></div>
+      <div><span class="stage ${progressClass(o.edgeItems)}">Oklejanie ${progressText(o.edgeItems)}</span></div>
+      <div>
+        <button class="primary" onclick="toggleOrderExpanded('${jsStr(o.id)}')">${expanded?'Zwiń':'Rozwiń'}</button>
+        ${complete?`<button class="green" onclick="completeOrder('${jsStr(o.id)}')">Zrealizuj</button>`:''}
+        ${kmsRole==='ADMIN'?`<button class="red" onclick="deleteCloudOrder('${jsStr(o.id)}')">Usuń</button>`:''}
+      </div>
+    </div>
+    ${expanded?`<div class="order-details">${orderNoteHtml(o)}${stationBlock(o,'cut','🪚 Cięcie')}${stationBlock(o,'edge','🟢 Oklejanie')}${stationBlock(o,'cnc','⚙️ CNC')}${stationBlock(o,'assembly','🔨 Montaż HALA')}</div>`:''}
+  </div>`;
+}
+
+function stationBlock(o,g,title){if(!roleAllowsGroup(g))return'';let arr=g==='cut'?o.cutItems:(g==='edge'?o.edgeItems:(g==='cnc'?o.cncItems:(o.assemblyItems||[])));if(!arr||!arr.length)return'';let st=g==='cut'?'Cięcie':(g==='edge'?'Oklejanie':(g==='cnc'?'CNC':'Montaż HALA')),done=arr.filter(x=>x.done).length,total=arr.length,all=total&&done===total,label=g==='cut'?'Wycięte':(g==='edge'?'Oklejone':(g==='cnc'?'CNC zrealizowane':'Montaż zakończony')),docs=docsForStationIndexed(o,st).map(x=>x.d.url?`<button class=doc onclick="openKmsDocByIndex('${jsStr(o.id)}',${x.i})">📎 Otwórz PDF: ${esc(docName(x.d))}</button>`:`<span class=doc>📎 ${esc(docName(x.d))}</span>`).join('');const rows=arr.map((it,i)=>`<tr><td><input type=checkbox ${it.done?'checked':''} onchange="toggleItem('${jsStr(o.id)}','${g}',${i})"></td><td>${esc(it.label)}</td><td>${esc(it.pcv||'')}</td><td>${esc(it.qty)} ${esc(it.unit)}</td><td>${g==='assembly'?'<span class="stage todo">nie dotyczy</span>':statusSelectHtml(materialStatusFor(o,it.label,g==='edge'),o.id,it.label,g==='edge')}</td><td><span class="stage ${it.done?'done':'todo'}">${it.done?'Wykonane':'Do wykonania'}</span></td></tr>`).join('');return`<div class=card style="box-shadow:none"><h4>${title} <span class="stage ${all?'done':progressClass(arr)}">${all?label+' ✓ ':''}${progressText(arr)}</span></h4>${docs}<table><thead><tr><th></th><th>Pozycja</th><th>Opis</th><th>Ilość</th><th>Materiał</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`}
+function markAllMaterials(status){state.orders.forEach(o=>{(o.materials||[]).forEach(m=>m.status=status);cloudUpdateOrder(o,'Status wszystkich materiałów')});save();render();alert('Status wszystkich materiałów: '+status)}
+function materialDisplayName(m){return String(m.type||'').startsWith('PCV')?String(m.type)+' '+String(m.material):String(m.material)}
+function grouped(){let map={};state.orders.filter(oaIsProductionOrder).forEach(o=>(o.materials||[]).filter(m=>Number(m.qty)>0).forEach(m=>{let s=supplierForMaterial(m),k=s+'|'+m.type+'|'+m.material+'|'+m.unit+'|'+matStatus(m);if(!map[k])map[k]={supplier:s,type:m.type,material:materialDisplayName(m),qty:0,unit:m.unit,status:matStatus(m),orders:[]};map[k].qty+=Number(m.qty)||0;map[k].orders.push((o.orderNo||'')+' '+(o.client||''))}));return Object.values(map)}
+function generateSupplierOrderView(){const groups=grouped();if(!groups.length)return alert('Brak pozycji');let suppliers=[...new Set(groups.map(g=>g.supplier))],htmlOut='<div class=card><h3>📄 Gotowe zamówienia</h3><button class=green onclick="window.print()">Drukuj / zapisz jako PDF</button></div>';suppliers.forEach(s=>{htmlOut+=`<div class=card><h2>Zamówienie do hurtowni: ${esc(s)}</h2><table><thead><tr><th>Materiał</th><th>Ilość</th><th>Jm</th><th>Uwagi</th></tr></thead><tbody>`;groups.filter(g=>g.supplier===s).forEach(r=>htmlOut+=`<tr><td>${esc(r.material)}</td><td>${esc(Math.round(r.qty*100)/100)}</td><td>${esc(r.unit)}</td><td>${esc([...new Set(r.orders)].join(', '))}</td></tr>`);htmlOut+='</tbody></table></div>'});byId('supplierPrintView').innerHTML=htmlOut;state.orders.forEach(o=>(o.materials||[]).forEach(m=>{if(matStatus(m)==='Do zamówienia')m.status='Zamówione'}));save();render();byId('supplierPrintView').innerHTML=htmlOut}
+
+// render
+function renderAnalysis(r){byId('client').value=r.client;byId('orderNo').value=r.orderNo;byId('amount').value=r.amount;if(!r.orderNo)alert('Nie znaleziono numeru zlecenia w sekcji Uwagi. Wpisz numer ręcznie.');if(byId('deadline'))byId('deadline').value=r.deadline||'';byId('materialsTable').innerHTML=r.materials.map(m=>`<tr><td>${esc(m.type)}</td><td>${esc(m.material)}</td><td>${esc(m.qty)}</td><td>${esc(m.unit)}</td><td>${esc(supplierForMaterial(m))}</td></tr>`).join('')||'<tr><td colspan=5>Brak</td></tr>';byId('tasksTable').innerHTML=r.tasks.map(t=>`<tr><td>${esc(t.name)}</td><td>${esc(t.qty)} ${esc(t.unit)}</td><td>${esc(t.source)}</td></tr>`).join('')||'<tr><td colspan=3>Brak</td></tr>'}
+function render(){byId('dOrders').textContent=state.orders.length;byId('dFiles').textContent=state.orders.reduce((s,o)=>s+(o.docs||[]).length,0);byId('dMaterials').textContent=state.orders.reduce((s,o)=>s+(o.materials||[]).length,0);byId('dTasks').textContent=state.orders.reduce((s,o)=>s+(o.tasks||[]).length,0);byId('dashOrders').innerHTML=state.orders.map(o=>`<div class=card><b>${esc(o.orderNo)} — ${esc(o.client)}</b>${kmsRole==='ADMIN'?` <button class="red" onclick="deleteCloudOrder('${jsStr(o.id)}')">🗑️ Usuń</button>`:''}${orderNoteHtml(o)} ${o.deadline?'<span class="pill blue">📅 '+esc(o.deadline)+'</span>':''}<br>${o.kmsWorkflow&&!oaIsProductionOrder(o)?`<span class="pill ${oaStatusClass(o.kmsWorkflow.status)}">${esc(oaStatusLabel(o.kmsWorkflow.status))}</span>`:`<span class="stage ${progressClass(o.cutItems)}">Cięcie ${progressText(o.cutItems)}</span><span class="stage ${progressClass(o.edgeItems)}">Oklejanie ${progressText(o.edgeItems)}</span><span class="stage ${progressClass(o.cncItems)}">CNC ${progressText(o.cncItems)}</span><span class="stage ${progressClass(o.assemblyItems||[])}">Montaż ${progressText(o.assemblyItems||[])}</span>`}</div>`).join('')||'<span class=small>Brak</span>';byId('productionList').innerHTML=state.orders.filter(oaIsProductionOrder).map(productionOrderCard).join('')||'<div class=card>Brak aktywnych zleceń</div>';byId('supplierGrouped').innerHTML=grouped().map(g=>`<tr><td><b>${esc(g.supplier)}</b></td><td>${esc(g.type)}</td><td>${esc(g.material)}</td><td><b>${esc(Math.round(g.qty*100)/100)}</b></td><td>${esc(g.unit)}</td><td>${esc([...new Set(g.orders)].join(', '))}</td><td><span class="pill ${statusClass(g.status)}">${esc(g.status)}</span></td></tr>`).join('')||'<tr><td colspan=7>Brak</td></tr>';byId('supplierDetails').innerHTML=state.orders.flatMap((o,oi)=>(o.materials||[]).map((m,mi)=>`<tr><td>${esc(supplierForMaterial(m))}</td><td>${esc(o.orderNo)}</td><td>${esc(o.client)}</td><td>${esc(materialDisplayName(m))}</td><td>${esc(m.qty)}</td><td>${esc(m.unit)}</td><td><select class="${selectStatusClass(matStatus(m))}" onchange="state.orders[${oi}].materials[${mi}].status=this.value;updateStatusColor(this);save();cloudUpdateOrder(state.orders[${oi}],'Status materiału');render()"><option ${matStatus(m)==='Do zamówienia'?'selected':''}>Do zamówienia</option><option ${matStatus(m)==='Zamówione'?'selected':''}>Zamówione</option><option ${matStatus(m)==='Oczekiwanie na dostawę'?'selected':''}>Oczekiwanie na dostawę</option><option ${matStatus(m)==='Na hali'?'selected':''}>Na hali</option></select></td></tr>`)).join('')||'<tr><td colspan=7>Brak</td></tr>';byId('filesList').innerHTML=state.orders.map(o=>`<div class=card><h3>${esc(o.orderNo)} — ${esc(o.client)}</h3>${orderNoteHtml(o)}${(o.docs||[]).map((d,di)=>d.url?`<button class=doc onclick="openKmsDocByIndex('${jsStr(o.id)}',${di})">📎 Otwórz: ${esc(docName(d))} → ${esc(d.station)}</button>`:`<span class=doc>📎 ${esc(docName(d))}</span>`).join('')}</div>`).join('')||'<div class=card>Brak plików</div>';renderCustomers();renderCompletedOrders();applyRoleAccess()}
+
+function addWaste(){
+ const type=byId('wasteType').value,decor=norm(byId('wasteDecor').value).toUpperCase(),rack=norm(byId('wasteRack').value).toUpperCase();
+ const len=norm(byId('wasteLength').value),wid=norm(byId('wasteWidth').value);
+ if(!decor)return alert('Wpisz dekor / kolor odpadu.');
+ state.waste.push({id:Date.now(),type,decor,rack,length:len,width:wid,status:'Dostępny',created:new Date().toISOString().slice(0,10)});
+ ['wasteDecor','wasteRack','wasteLength','wasteWidth'].forEach(id=>byId(id).value='');
+ save();render();
+}
+function useWaste(id){
+ const w=state.waste.find(x=>x.id===id);
+ if(w)w.status=w.status==='Dostępny'?'Zarezerwowany':'Dostępny';
+ save();render();
+}
+function renderWaste(){
+ const el=byId('wasteTable');if(!el)return;
+ el.innerHTML=(state.waste||[]).map(w=>`<tr><td>${esc(w.type)}</td><td><b>${esc(w.decor)}</b></td><td>${esc(w.length)} ${esc(w.width)}</td><td>${esc(w.rack)}</td><td><span class="pill ${w.status==='Dostępny'?'done':'progress'}">${esc(w.status)}</span></td><td><button class="primary" onclick="useWaste(${w.id})">${w.status==='Dostępny'?'Rezerwuj':'Zwolnij'}</button></td></tr>`).join('')||'<tr><td colspan=6>Brak odpadów.</td></tr>';
+ const needed=[...new Set(state.orders.filter(oaIsProductionOrder).flatMap(o=>(o.materials||[]).map(m=>String(m.material||'').toUpperCase())))];
+ const hints=(state.waste||[]).filter(w=>w.status==='Dostępny'&&needed.some(n=>n&&n.includes(w.decor)));
+ byId('wasteHints').innerHTML=hints.length?hints.map(w=>`<div class="pill done">Dostępny odpad: ${esc(w.decor)} — ${esc(w.length)} ${esc(w.width)} — regał ${esc(w.rack)}</div>`).join(''):'<span class="small">Brak dopasowanych odpadów do aktualnych zleceń.</span>';
+}
+function renderSettlements(){
+ const el=byId('settlementsTable');if(!el)return;
+ el.innerHTML=[...(state.orders||[]).filter(oaIsProductionOrder),...(state.completedOrders||[])].map(o=>`<tr><td>${esc(o.orderNo)}</td><td>${esc(o.client)}</td><td>${esc(o.amount||'')}</td><td><input placeholder="koszt" value="${esc(o.materialCost||'')}" onchange="o.materialCost=this.value;save()"></td><td><input placeholder="usługi" value="${esc(o.serviceCost||'')}" onchange="o.serviceCost=this.value;save()"></td><td><select onchange="o.paid=this.value;save();render()"><option ${o.paid==='Nie'?'selected':''}>Nie</option><option ${o.paid==='Częściowo'?'selected':''}>Częściowo</option><option ${o.paid==='Tak'?'selected':''}>Tak</option></select></td><td><span class="pill ${o.paid==='Tak'?'done':'progress'}">${esc(o.paid||'Nie')}</span></td></tr>`).join('')||'<tr><td colspan=7>Brak zleceń.</td></tr>';
+}
+function renderEmailOrders(){
+ const el=byId('emailOrder');if(!el)return;
+ el.innerHTML=state.orders.filter(oaIsProductionOrder).map(o=>`<option value="${o.id}">${esc(o.orderNo)} — ${esc(o.client)}</option>`).join('');
+}
+function generateEmailDraft(){
+ const id=String(byId('emailOrder').value||''),o=state.orders.find(x=>String(x.id)===id||String(x.cloudId)===id);
+ if(!o)return alert('Wybierz zlecenie.');
+ const type=byId('emailType').value,c=findCustomerByOrder(o),email=o.customerEmail||(c&&c.email)||'';
+ byId('emailRecipient').value=email;
+ let txt='';
+ if(type==='Zlecenie gotowe')txt=`Dzień dobry,\n\ninformujemy, że zlecenie nr ${o.orderNo} jest gotowe do odbioru.\n\nPozdrawiamy,\nKułak Meble`;
+ if(type==='Materiał oczekuje na dostawę')txt=`Dzień dobry,\n\ninformujemy, że realizacja zlecenia nr ${o.orderNo} oczekuje na dostawę materiału. Będziemy informować o dalszym statusie.\n\nPozdrawiamy,\nKułak Meble`;
+ if(type==='Prośba o kontakt')txt=`Dzień dobry,\n\nprosimy o kontakt w sprawie zlecenia nr ${o.orderNo}.\n\nPozdrawiamy,\nKułak Meble`;
+ byId('emailDraft').value=txt;
+ if(!email)alert('Klient nie ma jeszcze zapisanego adresu e-mail w Bazie klientów.');
+}
+
+
+
+function addComm(){
+ const oid=String(byId('commOrder').value||'');
+ const o=state.orders.find(x=>String(x.id)===oid||String(x.cloudId)===oid);
+ const text=norm(byId('commText').value);
+ if(!text)return alert('Wpisz problem lub pytanie.');
+ const c={
+   id:Date.now(),
+   orderId:o?(o.cloudId||o.id):'',
+   orderNo:o?o.orderNo:'',
+   client:o?o.client:'',
+   station:byId('commStation').value,
+   priority:byId('commPriority').value,
+   text,
+   answer:'',
+   status:'Otwarte',
+   created:new Date().toLocaleString()
+ };
+ state.comm.push(c);
+ byId('commText').value='';
+ save();render();
+ cloudSaveComm(c);
+}
+function closeComm(id){
+ const c=state.comm.find(x=>String(x.id)===String(id)||String(x.cloudId)===String(id));
+ if(c){c.status='Zamknięte';c.closed=new Date().toLocaleString();save();render();cloudUpdateComm(c);}
+}
+function reopenComm(id){
+ const c=state.comm.find(x=>String(x.id)===String(id)||String(x.cloudId)===String(id));
+ if(c){c.status='Otwarte';save();render();cloudUpdateComm(c);}
+}
+function setCommAnswer(id,val){
+ const c=state.comm.find(x=>String(x.id)===String(id)||String(x.cloudId)===String(id));
+ if(c){c.answer=val;save();cloudUpdateComm(c);}
+}
+function renderComm(){
+ const sel=byId('commOrder'); if(!sel)return;
+ sel.innerHTML=state.orders.filter(oaIsProductionOrder).map(o=>`<option value="${o.id}">${esc(o.orderNo)} — ${esc(o.client)}</option>`).join('')||'<option value="">Brak zleceń</option>';
+ const open=(state.comm||[]).filter(c=>c.status!=='Zamknięte');
+ const closed=(state.comm||[]).filter(c=>c.status==='Zamknięte');
+ byId('commList').innerHTML=open.length?open.map(c=>`<div class="card ${c.priority==='Blokuje pracę'?'status-card-wait':''}"><b>${esc(c.orderNo)} — ${esc(c.client)}</b> <span class="pill ${c.priority==='Blokuje pracę'?'bad':c.priority==='Pilne'?'progress':'todo'}">${esc(c.priority)}</span><br><span class="small">${esc(c.station)} • ${esc(c.created)}</span><p>${esc(c.text)}</p><label>Odpowiedź biura</label><textarea onchange="setCommAnswer('${jsStr(c.id)}',this.value)" placeholder="Tu biuro wpisuje odpowiedź">${esc(c.answer||'')}</textarea><button class="green" onclick="closeComm('${jsStr(c.id)}')">Zamknij zgłoszenie ✓</button></div>`).join(''):'<span class="small">Brak otwartych zgłoszeń.</span>';
+ byId('commClosed').innerHTML=closed.length?closed.map(c=>`<div class="card"><b>${esc(c.orderNo)} — ${esc(c.client)}</b><br><span class="small">${esc(c.station)} • zamknięte: ${esc(c.closed||'')}</span><p>${esc(c.text)}</p>${c.answer?`<p><b>Odpowiedź:</b> ${esc(c.answer)}</p>`:''}<button class="gray" onclick="reopenComm('${jsStr(c.id)}')">Przywróć</button></div>`).join(''):'<span class="small">Brak historii.</span>';
+}
+const _kmsBaseRender=render;
+render=function(){
+ _kmsBaseRender();
+ renderWaste();
+ renderSettlements();
+ renderEmailOrders();
+ renderPlanning();
+ renderAlerts();
+ renderComm();
+};
+
+
+
+const CAPACITY={cut:30,edge:600,cnc:32,assembly:20};
+const STANDARD_LEAD_WORKDAYS=7;
+const STANDARD_LEAD_GAP=6;
+function isWorkday(d){const day=d.getDay();return day!==0&&day!==6}
+function addWorkdays(date,days){
+ const d=new Date(date); d.setHours(0,0,0,0);
+ let n=0;
+ while(n<days){d.setDate(d.getDate()+1);if(isWorkday(d))n++}
+ return d;
+}
+function subWorkdays(date,days){
+ const d=new Date(date); d.setHours(0,0,0,0);
+ let n=0;
+ while(n<days){d.setDate(d.getDate()-1);if(isWorkday(d))n++}
+ return d;
+}
+function fmtDate(d){return d?d.toISOString().slice(0,10):''}
+function orderSchedule(o){
+ if(!o.deadline)return null;
+ const due=new Date(o.deadline); due.setHours(0,0,0,0);
+ const start=subWorkdays(due,STANDARD_LEAD_GAP);
+ return {
+  start:fmtDate(start),
+  stage1:fmtDate(addWorkdays(start,4)),
+  drilling:fmtDate(addWorkdays(start,5)),
+  assembly:fmtDate(addWorkdays(start,6))
+ };
+}
+function orderLoads(o){
+ const cut=(o.cutItems||[]).reduce((s,x)=>s+(Number(x.qty)||0),0);
+ const edge=(o.edgeItems||[]).reduce((s,x)=>s+(Number(x.qty)||0),0);
+ const cnc=(o.cncItems||[]).reduce((s,x)=>s+(Number(x.qty)||1),0);
+ const assembly=(o.assemblyItems||[]).reduce((s,x)=>s+(Number(x.qty)||1),0);
+ return {cut,edge,cnc,assembly};
+}
+function daysNeeded(load,cap){return cap?Math.ceil((Number(load)||0)/cap):0}
+function workdaysToDeadline(o){
+ if(!o.deadline)return null;
+ const today=new Date();today.setHours(0,0,0,0);
+ const due=new Date(o.deadline);due.setHours(0,0,0,0);
+ let d=new Date(today),count=0;
+ if(d>due)return -1;
+ while(d<due){d.setDate(d.getDate()+1);if(isWorkday(d))count++}
+ return count;
+}
+function orderRisk(o){
+ const l=orderLoads(o);
+ const maxDays=Math.max(daysNeeded(l.cut,CAPACITY.cut),daysNeeded(l.edge,CAPACITY.edge),daysNeeded(l.cnc,CAPACITY.cnc),daysNeeded(l.assembly,CAPACITY.assembly));
+ const left=workdaysToDeadline(o);
+ if(left===null)return {level:'todo',text:'Brak terminu'};
+ if(left<0)return {level:'bad',text:'Termin przekroczony'};
+ if(left<STANDARD_LEAD_GAP)return {level:'bad',text:'Mniej niż pełny cykl 5+1+1'};
+ if(maxDays>left)return {level:'bad',text:'Termin zagrożony'};
+ if(maxDays>=Math.max(1,left-1))return {level:'progress',text:'Mały zapas'};
+ return {level:'done',text:'Bezpiecznie'};
+}
+function stationTotals(){
+ const t={cut:0,edge:0,cnc:0,assembly:0};
+ state.orders.filter(oaIsProductionOrder).forEach(o=>{const l=orderLoads(o);t.cut+=l.cut;t.edge+=l.edge;t.cnc+=l.cnc;t.assembly+=l.assembly});
+ return t;
+}
+function hasSlidingDoorRisk(o){
+ const mats=(o.materials||[]).map(m=>String(m.type+' '+m.material+' '+m.status).toUpperCase()).join(' ');
+ const tasks=(o.tasks||[]).map(t=>String(t.name).toUpperCase()).join(' ');
+ const items=(o.items||[]).map(i=>String(i.raw||'').toUpperCase()).join(' ');
+ const isDoor=/DRZWI|PRZESUW/.test(tasks+' '+items);
+ const missingMirror=/LUSTRO/.test(mats)&&!/LUSTRO.*NA HALI/.test(mats);
+ const missingProfiles=/PROFIL/.test(mats)&&!/PROFIL.*NA HALI/.test(mats);
+ return {isDoor,missingMirror,missingProfiles};
+}
+function renderPlanning(){
+ const pt=byId('planningTable');if(!pt)return;
+ pt.innerHTML=state.orders.filter(oaIsProductionOrder).map(o=>{
+  const l=orderLoads(o),r=orderRisk(o),s=orderSchedule(o);
+  return `<tr><td>${esc(o.orderNo)}</td><td>${esc(o.client)}</td><td><input type="date" value="${esc(o.deadline||'')}" onchange="o.deadline=this.value;save();render()"></td><td>${s?esc(s.start):'-'}</td><td>${s?esc(s.stage1):'-'}</td><td>${s?esc(s.drilling):'-'}</td><td>${s?esc(s.assembly):'-'}</td><td>${l.cut}</td><td>${l.edge}</td><td>${l.cnc}</td><td>${l.assembly}</td><td><span class="pill ${r.level}">${esc(r.text)}</span></td></tr>`;
+ }).join('')||'<tr><td colspan=12>Brak zleceń.</td></tr>';
+ const ct=byId('capacityTable');if(!ct)return;
+ const totals=stationTotals();
+ const rows=[['🪚 Cięcie',totals.cut,CAPACITY.cut,'szt.'],['🟢 Oklejanie',totals.edge,CAPACITY.edge,'mb'],['⚙️ CNC',totals.cnc,CAPACITY.cnc,'operacji'],['🔨 Montaż HALA',totals.assembly,CAPACITY.assembly,'operacji']];
+ ct.innerHTML=rows.map(r=>{const d=daysNeeded(r[1],r[2]);const over=r[1]>r[2];return `<tr><td>${r[0]}</td><td><b>${r[1]}</b> ${r[3]}</td><td>${r[2]} ${r[3]}/dzień</td><td>${d}</td><td><span class="pill ${over?'bad':'done'}">${over?'Przeciążenie':'OK'}</span></td></tr>`}).join('');
+}
+function renderAlerts(){
+ const el=byId('alertsList');if(!el)return;
+ let alerts=[];
+ state.orders.filter(oaIsProductionOrder).forEach(o=>{
+  const r=orderRisk(o);
+  if(r.level==='bad'||r.level==='progress'||r.text==='Brak terminu')alerts.push({order:o,msg:r.text,level:r.level});
+  const door=hasSlidingDoorRisk(o);
+  if(door.isDoor&&door.missingMirror)alerts.push({order:o,msg:'Drzwi przesuwne: oczekiwanie na lustro',level:'bad'});
+  if(door.isDoor&&door.missingProfiles)alerts.push({order:o,msg:'Drzwi przesuwne: oczekiwanie na profile',level:'bad'});
+  (o.materials||[]).forEach(m=>{if(matStatus(m)!=='Na hali')alerts.push({order:o,msg:`${materialDisplayName(m)} — ${matStatus(m)}`,level:matStatus(m)==='Oczekiwanie na dostawę'?'bad':'progress'})});
+ });
+ el.innerHTML=alerts.length?alerts.map(a=>`<div class="card"><span class="pill ${a.level}">${a.level==='bad'?'🚨':'⚠️'}</span> <b>${esc(a.order.orderNo)} — ${esc(a.order.client)}</b><br>${esc(a.msg)}</div>`).join(''):'<div class="card"><span class="pill done">✅ Brak alertów</span></div>';
+}
+
+function exportData(){let blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='kms_cloud_test_backup.json';a.click()}
+function importData(){let f=byId('backupFile').files[0];if(!f)return;let r=new FileReader();r.onload=()=>{state=JSON.parse(r.result);save();render()};r.readAsText(f)}
+function clearTestData(){if(confirm('Wyczyścić dane?')){state={orders:[],completedOrders:[],waste:[],comm:[],customers:[]};save();render()}}
+
+/* ===== KMS TESTOWY 2.6: ANALIZA ZAMÓWIEŃ 1→2→3 ===== */
+let oaCurrentId='';
+let oaSelectedFile=null;
+let oaSaveTimer=null;
+let oaDraftOpen=false;
+let oaDraftMeta={orderNo:'',client:'',deadline:'',fileName:'',manufacturers:[]};
+const OA_DRAFT_KEY='kms_order_analysis_draft_v263';
+function oaPersistDraft(){
+ try{sessionStorage.setItem(OA_DRAFT_KEY,JSON.stringify({open:oaDraftOpen,meta:oaDraftMeta}))}catch(e){console.warn('KMS draft save',e)}
+}
+function oaClearDraft(){
+ oaDraftOpen=false;oaDraftMeta={orderNo:'',client:'',deadline:'',fileName:'',manufacturers:[]};
+ try{sessionStorage.removeItem(OA_DRAFT_KEY)}catch(e){}
+}
+function oaCaptureDraftMeta(){
+ if(oaCurrent())return;
+ oaDraftOpen=true;
+ oaDraftMeta={
+  orderNo:byId('oaOrderNo')?.value||'',
+  client:byId('oaClient')?.value||'',
+  deadline:byId('oaDeadline')?.value||'',
+  fileName:oaSelectedFile?.name||oaDraftMeta.fileName||'',
+  manufacturers:oaSelectedManufacturers()
+ };
+ oaPersistDraft();
+}
+function oaRestoreDraft(){
+ try{
+  const saved=JSON.parse(sessionStorage.getItem(OA_DRAFT_KEY)||'null');
+  if(!saved?.open)return;
+  oaDraftOpen=true;oaDraftMeta={orderNo:'',client:'',deadline:'',fileName:'',manufacturers:[],...(saved.meta||{})};
+  byId('oaWorkspace')?.classList.remove('hidden');
+  if(byId('oaOrderNo'))byId('oaOrderNo').value=oaDraftMeta.orderNo||'';
+  if(byId('oaClient'))byId('oaClient').value=oaDraftMeta.client||'';
+  if(byId('oaDeadline'))byId('oaDeadline').value=oaDraftMeta.deadline||'';
+  oaSetSelectedManufacturers(oaDraftMeta.manufacturers||[]);
+  if(oaDraftMeta.fileName&&byId('oaPreview'))byId('oaPreview').innerHTML=`<span class="pill progress">Poprzednio wybrano: ${esc(oaDraftMeta.fileName)}</span><br><span class="small">Po odświeżeniu strony plik trzeba wskazać ponownie, ale dane formularza zostały zachowane.</span>`;
+ }catch(e){console.warn('KMS draft restore',e)}
+}
+const OA_TECH=[
+  ['STANDARD','STANDARD — płyta 18MM'],
+  ['10MM','10MM — płyta 10 mm'],
+  ['16MM','16MM — płyta 16 mm'],
+  ['36MM','36MM — klejenie 2 × 18MM'],
+  ['ZBIORCZY_2','ZBIORCZY — 2 elementy + rzaz 5 mm'],
+  ['28MM','28MM — wymaga ręcznej kontroli materiałów'],
+  ['FRONTY_SLOJ','FRONTY ZE SŁOJEM — bez obracania'],
+  ['LAMELE','LAMELE — wymaga ręcznej kontroli'],
+  ['INNE','INNE / NIETYPOWE — ręczne potwierdzenie']
+];
+const OA_ROTATION={'W960 SM':'1','W960 ST7':'1'};
+function oaIsProductionOrder(o){return !o?.kmsWorkflow || ['PRODUCTION','COMPLETED'].includes(o.kmsWorkflow.status)}
+function oaAnalysisOrders(){return (state.orders||[]).filter(o=>o.kmsWorkflow)}
+function oaCurrent(){return (state.orders||[]).find(o=>String(o.id)===String(oaCurrentId)||String(o.cloudId)===String(oaCurrentId))}
+function oaFixedThickness(x={}){
+ if(x.materialGroup==='HDF'&&Number(x.thickness)>0)return Number(x.thickness);
+ const text=`${x.element||''} ${x.material||''} ${x.info||''} ${x.notes||''}`.toUpperCase();
+ if(x.technology==='10MM'||/\b10\s*MM\b/.test(text))return 10;
+ if(x.technology==='16MM'||/\b16\s*MM\b/.test(text))return 16;
+ if(x.technology==='36MM'||/\b36\s*MM\b/.test(text))return 36;
+ if(x.technology==='28MM'||/\b28\s*MM\b/.test(text))return 28;
+ return 18
+}
+function oaEmptyItem(){return{element:'',material:'',length:0,width:0,qty:1,thickness:18,edge1:'',edge2:'',edge3:'',edge4:'',pcvCode:'',technology:'STANDARD',info:'',notes:'',confidence:1,uncertain:false}}
+function oaStatusLabel(s){return({STAGE1_REVIEW:'ETAP 1 — WERYFIKACJA',STAGE2_REVIEW:'ETAP 2 — TECHNOLOGIA',CUTTING_REVIEW:'ROZKRÓJ — WERYFIKACJA',STAGE3_READY:'ETAP 3 — CSV',PRODUCTION:'PRODUKCJA'}[s]||s||'NOWE')}
+function oaStatusClass(s){return s==='PRODUCTION'?'done':s==='STAGE3_READY'?'blue':s==='CUTTING_REVIEW'?'progress':s==='STAGE2_REVIEW'?'progress':'todo'}
+function oaEdgeOptions(v){return['','1MM','2MM'].map(x=>`<option value="${x}" ${v===x?'selected':''}>${x||'-'}</option>`).join('')}
+function oaTechOptions(v){return OA_TECH.map(x=>`<option value="${x[0]}" ${v===x[0]?'selected':''}>${x[1]}</option>`).join('')}
+function oaDateNow(){return new Date().toISOString()}
+function oaNewOrder(){
+ if(oaDraftOpen&&(oaDraftMeta.orderNo||oaDraftMeta.client||oaSelectedFile)&&!confirm('Wyczyścić aktualnie rozpoczęte zamówienie robocze i zacząć nowe?'))return;
+ oaCurrentId='';oaSelectedFile=null;oaDraftOpen=true;oaDraftMeta={orderNo:'',client:'',deadline:'',fileName:'',manufacturers:[]};oaPersistDraft();
+ oaSetSelectedManufacturers([]);
+ byId('oaWorkspace').classList.remove('hidden');byId('oaOrderNo').value='';byId('oaClient').value='';byId('oaDeadline').value='';byId('oaFile').value='';byId('oaPreview').innerHTML='<span class="small">Wybierz zdjęcie, PDF, Excel lub CSV.</span>';byId('oaAnalyzeStatus').className='pill todo';byId('oaAnalyzeStatus').textContent='Brak rozpoczętej analizy';oaRenderOrdersList();oaRenderFlow({kmsWorkflow:{status:'STAGE1_REVIEW'}});oaRenderStage1(null);oaRenderStage2(null);oaRenderCuttingStage(null);oaRenderStage3(null);byId('oaApprove1Btn').disabled=true
+}
+function oaIsSpreadsheetFile(file){const n=String(file?.name||'').toLowerCase();const t=String(file?.type||'').toLowerCase();return /\.(xlsx|xls|csv)$/.test(n)||t.includes('spreadsheet')||t.includes('excel')||t==='text/csv'}
+async function oaSpreadsheetToText(file){
+ if(!window.XLSX)throw new Error('Nie załadowano biblioteki Excel. Odśwież stronę Ctrl+F5.');
+ const ext=String(file.name||'').toLowerCase();
+ if(ext.endsWith('.csv'))return (await file.text()).slice(0,120000);
+ const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:false,raw:false});
+ const parts=[];
+ for(const name of wb.SheetNames){
+  const ws=wb.Sheets[name];
+  const text=XLSX.utils.sheet_to_csv(ws,{FS:'\t',RS:'\n',blankrows:false});
+  parts.push(`ARKUSZ: ${name}\n${text}`);
+ }
+ return parts.join('\n\n').slice(0,120000);
+}
+function oaPreviewFile(ev){
+ oaSelectedFile=ev.target.files?.[0]||null;
+ oaDraftOpen=true;oaDraftMeta.fileName=oaSelectedFile?.name||'';oaCaptureDraftMeta();
+ const box=byId('oaPreview');
+ if(!oaSelectedFile){box.innerHTML='<span class="small">Wybierz zdjęcie, PDF, Excel lub CSV.</span>';return}
+ const name=String(oaSelectedFile.name||'');
+ const type=String(oaSelectedFile.type||'').toLowerCase();
+ if(type.startsWith('image/')){const r=new FileReader();r.onload=e=>box.innerHTML=`<img src="${e.target.result}">`;r.readAsDataURL(oaSelectedFile);return}
+ if(oaIsSpreadsheetFile(oaSelectedFile)){box.innerHTML=`<span class="pill blue">ARKUSZ: ${esc(name)}</span><br><span class="small">Plik zostanie zamieniony na czytelną tabelę i przekazany do analizy Etapu 1.</span>`;return}
+ if(type==='application/pdf'||/\.pdf$/i.test(name)){box.innerHTML=`<span class="pill blue">PDF: ${esc(name)}</span>`;return}
+ box.innerHTML=`<span class="pill bad">Nieobsługiwany typ pliku: ${esc(name)}</span>`;
+}
+async function oaCreateOrUpdateDraft(result,fileUrl='',fileName=''){
+ let o=oaCurrent();
+ const clean=v=>String(v??'').trim();
+ const inputOrderNo=clean(byId('oaOrderNo')?.value||oaDraftMeta.orderNo);
+ const inputClient=clean(byId('oaClient')?.value||oaDraftMeta.client);
+ const selectedManufacturers=(result?.selectedManufacturers?.length?result.selectedManufacturers:oaSelectedManufacturers()).slice(0,2);
+ const normalizedItems=(result?.items?.length?result.items:[oaEmptyItem()]).map(x=>{
+  const item={...oaEmptyItem(),...x};
+  item.element=clean(item.element);
+  item.material=clean(item.material);
+  item.length=Number(item.length)||0;
+  item.width=Number(item.width)||0;
+  item.qty=Number(item.qty)||0;
+  item.thickness=oaFixedThickness(item);
+  item.edge1=['1MM','2MM'].includes(item.edge1)?item.edge1:'';
+  item.edge2=['1MM','2MM'].includes(item.edge2)?item.edge2:'';
+  item.edge3=['1MM','2MM'].includes(item.edge3)?item.edge3:'';
+  item.edge4=['1MM','2MM'].includes(item.edge4)?item.edge4:'';
+  item.pcvCode=clean(item.pcvCode);
+  item.info=clean(item.info);
+  item.notes=clean(item.notes);
+  item.uncertain=!!item.uncertain;
+  oaApplyCatalogMatchToItem(item,selectedManufacturers);
+  return item
+ });
+ if(!o){
+  const draftDeadline=clean(byId('oaDeadline')?.value||oaDraftMeta.deadline);
+  o={id:Date.now()+Math.floor(Math.random()*99999),created:new Date().toISOString().slice(0,10),client:inputClient,orderNo:inputOrderNo,amount:'',deadline:draftDeadline,materials:[],tasks:[],items:[],cutItems:[],edgeItems:[],cncItems:[],assemblyItems:[],docs:[],kmsWorkflow:{version:'2.8.0-integrated-test',status:'STAGE1_REVIEW',createdAt:oaDateNow(),stage1:{approved:false,items:[],notes:'',confidence:0},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}}};
+  state.orders.unshift(o);oaCurrentId=String(o.id);oaClearDraft()
+ }
+ o.client=inputClient||clean(o.client);
+ o.orderNo=inputOrderNo||clean(o.orderNo);
+ o.deadline=clean(byId('oaDeadline')?.value)||clean(o.deadline);
+ o.kmsWorkflow=o.kmsWorkflow||{version:'2.8.0-integrated-test',status:'STAGE1_REVIEW',stage1:{approved:false,items:[]},stage2:{approved:false,items:[],materials:[]},stage3:{approved:false}};
+ o.kmsWorkflow.status='STAGE1_REVIEW';
+ o.kmsWorkflow.stage1={approved:false,items:normalizedItems,notes:clean(result?.notes)||clean(result?.rawSummary),confidence:Number(result?.confidence)||0,selectedManufacturers,analyzedAt:oaDateNow()};
+ o.kmsWorkflow.stage2={approved:false,items:[],materials:[]};o.kmsWorkflow.stage3={approved:false};
+ if(fileUrl){o.docs=o.docs||[];o.docs.unshift({name:fileName||'zamowienie',station:'Zamówienie',url:fileUrl});o.kmsWorkflow.sourceFileName=fileName||''}
+ save();render();await oaSaveCurrent('Utworzenie analizy zamówienia');oaOpen(o.id)
+}
+async function oaCanvasToBlob(canvas,type='image/jpeg',quality=.78){
+ return await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Nie udało się zmniejszyć obrazu.')),type,quality));
+}
+async function oaCompressImageForAnalysis(file){
+ const img=await loadImageFromFile(file);
+ let maxSide=2800,quality=.9,blob=null;
+ for(let attempt=0;attempt<8;attempt++){
+  const ratio=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
+  const w=Math.max(1,Math.round(img.naturalWidth*ratio));
+  const h=Math.max(1,Math.round(img.naturalHeight*ratio));
+  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+  const ctx=canvas.getContext('2d',{alpha:false});
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.drawImage(img,0,0,w,h);
+  blob=await oaCanvasToBlob(canvas,'image/jpeg',quality);
+  if(blob.size<=2.8*1024*1024)break;
+  if(quality>.66)quality-=.06;
+  else maxSide=Math.max(1800,Math.round(maxSide*.88));
+ }
+ if(!blob||blob.size>3.2*1024*1024)throw new Error('Zdjęcie jest zbyt duże nawet po zmniejszeniu. Zrób zwykły zrzut ekranu lub zdjęcie w niższej rozdzielczości.');
+ const base=String(file.name||'zamowienie').replace(/\.[^.]+$/,'');
+ return new File([blob],base+'_kms.jpg',{type:'image/jpeg',lastModified:Date.now()});
+}
+async function oaPrepareAnalysisFile(file){
+ const type=String(file?.type||'').toLowerCase();
+ const name=String(file?.name||'zamowienie');
+ const limit=3.4*1024*1024;
+ if(type.startsWith('image/')){
+  byId('oaAnalyzeStatus').textContent='Zmniejszam zdjęcie do analizy...';
+  return await oaCompressImageForAnalysis(file);
+ }
+ if(type==='application/pdf'||/\.pdf$/i.test(name)){
+  if(file.size<=limit)return file;
+  byId('oaAnalyzeStatus').textContent='Zmniejszam PDF do analizy...';
+  const dataUrl=await compressPdfForCloud(file,1400,.66);
+  const blob=dataUrlToBlob(dataUrl);
+  if(blob.size>limit)throw new Error('PDF jest zbyt duży do wysłania. Podziel go na mniejsze pliki albo zapisz w niższej jakości.');
+  return new File([blob],name.replace(/\.pdf$/i,'')+'_kms.pdf',{type:'application/pdf',lastModified:Date.now()});
+ }
+ if(file.size>limit)throw new Error('Plik przekracza bezpieczny limit wysyłania 3,4 MB. Zmniejsz plik albo podziel go na części.');
+ return file;
+}
+async function oaAnalyzeFile(){
+ if(!oaSelectedFile)return alert('Wybierz zdjęcie, PDF, Excel lub CSV.');
+ const selectedManufacturers=oaSelectedManufacturers();
+ if(!KMS_CATALOG_READY)return alert('Katalog KMS nie został załadowany. Analiza materiałów jest zablokowana.');
+ if(!selectedManufacturers.length)return alert('Najpierw wybierz producenta płyty.');
+ if(selectedManufacturers.length>2)return alert('Można wybrać maksymalnie dwóch producentów.');
+ byId('oaAnalyzeStatus').className='pill progress';
+ byId('oaAnalyzeStatus').textContent=oaIsSpreadsheetFile(oaSelectedFile)?'Odczytuję arkusz i przygotowuję analizę...':'AI analizuje plik...';
+ try{
+  const uploadFile=await oaPrepareAnalysisFile(oaSelectedFile);
+  const fd=new FormData();
+  fd.append('file',uploadFile,uploadFile.name);
+  fd.append('orderNo',byId('oaOrderNo').value||'');
+  fd.append('client',byId('oaClient').value||'');
+  fd.append('selectedManufacturers',JSON.stringify(selectedManufacturers));
+  if(oaIsSpreadsheetFile(oaSelectedFile)){
+   const spreadsheetText=await oaSpreadsheetToText(oaSelectedFile);
+   if(!spreadsheetText.trim())throw new Error('Arkusz jest pusty albo nie udało się odczytać komórek.');
+   fd.append('spreadsheetText',spreadsheetText);
+  }
+  const headers={};if(authSession?.access_token)headers.Authorization=`Bearer ${authSession.access_token}`;
+  const res=await fetch('/api/analyze-order',{method:'POST',headers,body:fd});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok||data.ok===false)throw new Error(data.error||('HTTP '+res.status));
+  const fileUrl=await fileToCloudDataUrl(oaSelectedFile);
+  await oaCreateOrUpdateDraft(data,fileUrl,oaSelectedFile.name);
+  byId('oaAnalyzeStatus').className='pill done';
+  byId('oaAnalyzeStatus').textContent=`Analiza gotowa — pewność ${Math.round((Number(data.confidence)||0)*100)}%`;
+ }catch(e){
+  console.error('KMS analiza pliku',e);
+  byId('oaAnalyzeStatus').className='pill bad';byId('oaAnalyzeStatus').textContent='Błąd analizy';
+  alert('AI nie wykonało analizy: '+e.message+'\nMożesz kliknąć „Wprowadź ręcznie” i dalej testować cały proces.');
+ }
+}
+async function oaStartManual(){await oaCreateOrUpdateDraft({orderNo:byId('oaOrderNo').value,client:byId('oaClient').value,items:[oaEmptyItem()],notes:'Wprowadzanie ręczne',confidence:1})}
+async function oaLoadTestExample(){
+ const result={orderNo:byId('oaOrderNo').value||'TEST/H3730-U788',client:byId('oaClient').value||'PRZYKŁAD TESTOWY',confidence:1,notes:'Przykład kontrolny Etapu 1',items:[
+  {element:'1',material:'H3730 ST10',length:2600,width:180,qty:2,thickness:18,edge1:'1MM',edge2:'1MM',edge3:'1MM',edge4:'1MM',pcvCode:'H3730 ST10 1MM',technology:'STANDARD',info:'',uncertain:false},
+  {element:'2',material:'H3730 ST10',length:2514,width:664,qty:1,thickness:18,technology:'STANDARD',info:'BRAK OKLEJANIA POTWIERDZONY',uncertain:false},
+  {element:'3',material:'H3730 ST10',length:664,width:190,qty:2,thickness:18,edge1:'1MM',pcvCode:'H3730 ST10 1MM',technology:'STANDARD',uncertain:false},
+  {element:'4',material:'H3730 ST10',length:664,width:162,qty:8,thickness:18,edge1:'1MM',pcvCode:'H3730 ST10 1MM',technology:'STANDARD',uncertain:false},
+  {element:'5',material:'U788 ST9',length:1164,width:50,qty:2,thickness:18,edge1:'1MM',pcvCode:'U788 ST9 1MM',technology:'ZBIORCZY_2',info:'ROZ X 50 MM X 2SZT',uncertain:false}
+ ]};await oaCreateOrUpdateDraft(result)
+}
+function oaOpen(id){oaClearDraft();oaCurrentId=String(id);const o=oaCurrent();if(!o)return;byId('oaWorkspace').classList.remove('hidden');byId('oaOrderNo').value=o.orderNo||'';byId('oaClient').value=o.client||'';byId('oaDeadline').value=o.deadline||'';oaSetSelectedManufacturers(o?.kmsWorkflow?.stage1?.selectedManufacturers||[]);const d=(o.docs||[])[0];if(d?.url){if(String(d.url).startsWith('data:image'))byId('oaPreview').innerHTML=`<img src="${d.url}">`;else byId('oaPreview').innerHTML=`<button class="doc" onclick="openKmsDocByIndex('${jsStr(o.id)}',0)">📎 Otwórz ${esc(d.name||'plik')}</button>`}else byId('oaPreview').innerHTML='<span class="small">Brak zapisanego podglądu.</span>';oaRender()}
+function oaUpdateStage1(i,k,v){const o=oaCurrent();if(!o)return;if(o.kmsWorkflow.stage1.approved){if(!confirm('Ta zmiana cofnie zatwierdzenie Etapu 1 i usunie wynik Etapu 2/3. Kontynuować?')){oaRender();return}o.kmsWorkflow.stage1.approved=false;o.kmsWorkflow.stage2={approved:false,items:[],materials:[]};o.kmsWorkflow.stage3={approved:false};o.kmsWorkflow.status='STAGE1_REVIEW'}const it=o.kmsWorkflow.stage1.items[i];if(k==='thickness')return;if(['length','width','qty','confidence'].includes(k))v=Number(v)||0;if(k==='uncertain')v=!!v;it[k]=v;if(['technology','element','material','info','notes'].includes(k))it.thickness=oaFixedThickness(it);if(k==='material')oaApplyCatalogMatchToItem(it,o.kmsWorkflow.stage1.selectedManufacturers||oaSelectedManufacturers());oaLocalChanged();oaRenderStage1(o)}
+function oaUpdateStage2(i,k,v){const o=oaCurrent();if(!o)return;if(o.kmsWorkflow.stage2.approved){if(!confirm('Ta zmiana cofnie zatwierdzenie Etapu 2 i zablokuje dotychczasowy CSV. Kontynuować?')){oaRender();return}o.kmsWorkflow.stage2.approved=false;o.kmsWorkflow.stage3={approved:false};o.kmsWorkflow.cutting={approved:false,result:null};o.kmsWorkflow.status='STAGE2_REVIEW'}const it=o.kmsWorkflow.stage2.items[i];if(['length','width','qty','thickness'].includes(k))v=Number(v)||0;if(['requiresConfirmation','confirmed'].includes(k))v=!!v;it[k]=v;oaRecalcStage2Summaries(o);oaLocalChanged();oaRenderStage2(o)}
+function oaLocalChanged(){save();clearTimeout(oaSaveTimer);oaSaveTimer=setTimeout(()=>{},500)}
+function oaAddStage1Row(){const o=oaCurrent();if(!o)return oaStartManual();o.kmsWorkflow.stage1.approved=false;o.kmsWorkflow.stage2={approved:false,items:[],materials:[]};o.kmsWorkflow.stage3={approved:false};o.kmsWorkflow.status='STAGE1_REVIEW';o.kmsWorkflow.stage1.items.push(oaEmptyItem());o.kmsWorkflow.stage1.approved=false;o.kmsWorkflow.status='STAGE1_REVIEW';save();oaRender()}
+function oaDeleteStage1Row(i){const o=oaCurrent();if(!o)return;o.kmsWorkflow.stage1.approved=false;o.kmsWorkflow.stage2={approved:false,items:[],materials:[]};o.kmsWorkflow.stage3={approved:false};o.kmsWorkflow.status='STAGE1_REVIEW';o.kmsWorkflow.stage1.items.splice(i,1);save();oaRender()}
+function oaAddStage2Row(){const o=oaCurrent();if(!o)return;o.kmsWorkflow.stage2.approved=false;o.kmsWorkflow.stage3={approved:false};o.kmsWorkflow.cutting={approved:false,result:null};o.kmsWorkflow.status='STAGE2_REVIEW';o.kmsWorkflow.stage2.items.push({...oaEmptyItem(),info:'RĘCZNIE DODANE',rule:'RĘCZNE',rotation:'',requiresConfirmation:true,confirmed:false});oaRecalcStage2Summaries(o);save();oaRender()}
+function oaDeleteStage2Row(i){const o=oaCurrent();if(!o)return;o.kmsWorkflow.stage2.approved=false;o.kmsWorkflow.stage3={approved:false};o.kmsWorkflow.cutting={approved:false,result:null};o.kmsWorkflow.status='STAGE2_REVIEW';o.kmsWorkflow.stage2.items.splice(i,1);oaRecalcStage2Summaries(o);save();oaRender()}
+async function oaSaveCurrent(reason='Zapis analizy',forceCloud=false){
+ const o=oaCurrent();if(!o)return;o.orderNo=byId('oaOrderNo').value||o.orderNo;o.client=byId('oaClient').value||o.client;o.deadline=byId('oaDeadline').value||o.deadline;save();
+ if(o.kmsWorkflow&&!forceCloud){o.kmsWorkflow.cloudPending=o.kmsWorkflow.status==='PRODUCTION'&&!o.cloudId;oaCurrentId=String(o.id);render();return {localOnly:true}}
+ let result;if(o.cloudId)result=await cloudUpdateOrder(o,reason);else result=await cloudSaveOrder(o);if(o.kmsWorkflow)o.kmsWorkflow.cloudPending=!o.cloudId;oaCurrentId=String(o.id);save();render();return result
+}
+async function oaSendCurrentToCloud(){const o=oaCurrent();if(!o||o.kmsWorkflow?.status!=='PRODUCTION')return alert('Najpierw przekaż zlecenie do Produkcji TEST.');if(!confirm('Wysłać to gotowe zlecenie do bieżącej chmury KMS? Zlecenie będzie widoczne także dla stanowisk produkcyjnych.'))return;await oaSaveCurrent('Ręczne wysłanie zlecenia testowego do chmury',true);alert(o.cloudId?'Zlecenie zapisane w chmurze.':'Zapis do chmury nie powiódł się. Zlecenie pozostaje bezpiecznie zapisane lokalnie.')}
+function oaValidateStage1(o){
+ const errs=[];
+ const formOrderNo=String(byId('oaOrderNo')?.value||'').trim();
+ const formClient=String(byId('oaClient')?.value||'').trim();
+ if(o){if(formOrderNo)o.orderNo=formOrderNo;if(formClient)o.client=formClient}
+ if(!String(o?.orderNo||'').trim())errs.push('Brak numeru zlecenia.');
+ if(!String(o?.client||'').trim())errs.push('Brak klienta.');
+ const selected=o?.kmsWorkflow?.stage1?.selectedManufacturers||[];
+ if(!selected.length)errs.push('Nie wybrano producenta płyty.');
+ if(selected.length>2)errs.push('Wybrano więcej niż dwóch producentów.');
+ if(!KMS_CATALOG_READY)errs.push('Katalog KMS nie jest dostępny.');
+ const rows=o?.kmsWorkflow?.stage1?.items||[];
+ if(!rows.length)errs.push('Brak pozycji.');
+ rows.forEach((x,i)=>{
+  const p=i+1;
+  if(!String(x.material||'').trim())errs.push(`Poz. ${p}: brak materiału.`);
+  else if(x.materialCatalogStatus!=='MATCHED')errs.push(`Poz. ${p}: materiał nie istnieje w katalogu wybranego producenta.`);
+  if(!(Number(x.length)>0&&Number(x.width)>0))errs.push(`Poz. ${p}: brak prawidłowych wymiarów.`);
+  if(!(Number(x.qty)>0))errs.push(`Poz. ${p}: brak ilości.`);
+  if(x.uncertain)errs.push(`Poz. ${p}: pozycja oznaczona jako niepewna.`);
+  if(x.technology==='FRONTY_SLOJ'&&!String(x.pcvCode||'').trim())errs.push(`Poz. ${p}: fronty ze słojem wymagają kodu PCV.`);
+ });
+ return errs
+}
+async function oaApproveStage1(){const o=oaCurrent();if(!o)return alert('Brak zlecenia.');o.orderNo=byId('oaOrderNo').value||o.orderNo;o.client=byId('oaClient').value||o.client;o.deadline=byId('oaDeadline').value||o.deadline;const errs=oaValidateStage1(o);if(errs.length)return alert('Etap 1 jest zablokowany:\n- '+errs.join('\n- '));if(!confirm('Zatwierdzić Etap 1? Dane klienta zostaną zamrożone jako źródło dla Etapu 2.'))return;o.orderNo=byId('oaOrderNo').value||o.orderNo;o.client=byId('oaClient').value||o.client;o.deadline=byId('oaDeadline').value||o.deadline;o.kmsWorkflow.stage1.approved=true;o.kmsWorkflow.stage1.approvedAt=oaDateNow();o.kmsWorkflow.stage1.approvedBy=kmsUserName||authProfile?.full_name||'';oaBuildStage2(o);o.kmsWorkflow.cutting={approved:false,result:null};o.kmsWorkflow.status='STAGE2_REVIEW';save();await oaSaveCurrent('Zatwierdzono Etap 1');oaRender()}
+function oaBuildStage2(o){
+ const out=[];const source=o.kmsWorkflow.stage1.items||[];
+ source.forEach((x,idx)=>{
+  const tech=x.technology||'STANDARD';const catalogRotation=x.catalogRotatable===true?'1':x.catalogRotatable===false?'0':'';let row={...x,sourceIndex:idx,rule:tech,rotation:OA_ROTATION[String(x.material||'').trim().toUpperCase()]??catalogRotation,requiresConfirmation:false,confirmed:true};
+  if(tech==='36MM'){row.length=Number(x.length)+20;row.width=Number(x.width)+20;row.qty=Number(x.qty)*2;row.thickness=18;row.info='36MM';row.notes='Po sklejeniu sformatować do wymiaru z Etapu 1.'}
+  else if(tech==='ZBIORCZY_2'){row.width=Number(x.width)*2+5;row.qty=Math.ceil(Number(x.qty)/2);row.info=String(x.info||`ROZ X ${x.width} MM X 2SZT`);const edge=x.edge1||x.edge2||'';row.edge1=edge;row.edge2=edge;row.edge3='';row.edge4='';row.notes='Element zbiorczy: dwa elementy + rzaz 5 mm.';if(Number(x.qty)%2!==0){row.requiresConfirmation=true;row.confirmed=false;row.notes+=' Nieparzysta ilość — wymaga decyzji.'}}
+  else if(tech==='FRONTY_SLOJ'){row.rotation='0';row.edge1=row.edge1||'1MM';row.edge2=row.edge2||'1MM';row.edge3=row.edge3||'1MM';row.edge4=row.edge4||'1MM';row.info=String(x.info||'FRONTY ZE SLOJEM');row.notes='Zachować układ i kierunek słoja.'}
+  else if(['28MM','LAMELE','INNE'].includes(tech)){row.requiresConfirmation=true;row.confirmed=false;row.notes=`Reguła ${tech} wymaga ręcznej kontroli i ewentualnej korekty elementu produkcyjnego.`}
+  out.push(row)
+ });
+ o.kmsWorkflow.stage2={approved:false,generatedAt:oaDateNow(),items:out,materials:[]};oaRecalcStage2Summaries(o)
+}
+function oaPcvMb(x){let mm=0;const q=Number(x.qty)||0;if(x.edge1)mm+=Number(x.length)||0;if(x.edge2)mm+=Number(x.length)||0;if(x.edge3)mm+=Number(x.width)||0;if(x.edge4)mm+=Number(x.width)||0;return mm*q/1000}
+function oaRecalcStage2Summaries(o){const rows=o.kmsWorkflow.stage2.items||[];const map={};rows.forEach(x=>{const key=String(x.material||'').trim();if(!key)return;if(!map[key])map[key]={material:key,positions:0,area:0,pcv:0,rotation:OA_ROTATION[key.toUpperCase()]??x.rotation??''};map[key].positions++;map[key].area+=(Number(x.length)||0)*(Number(x.width)||0)*(Number(x.qty)||0)/1e6;map[key].pcv+=oaPcvMb(x);if(x.rotation!==undefined&&x.rotation!=='')map[key].rotation=String(x.rotation)});o.kmsWorkflow.stage2.materials=Object.values(map).map(m=>({...m,pcvOrder:m.pcv*1.2}))}
+function oaSetRotation(material,v){const o=oaCurrent();if(!o)return;if(o.kmsWorkflow.stage2.approved){o.kmsWorkflow.stage2.approved=false;o.kmsWorkflow.stage3={approved:false};o.kmsWorkflow.cutting={approved:false,result:null};o.kmsWorkflow.status='STAGE2_REVIEW'}(o.kmsWorkflow.stage2.materials||[]).filter(m=>m.material===material).forEach(m=>m.rotation=v);(o.kmsWorkflow.stage2.items||[]).filter(x=>x.material===material).forEach(x=>x.rotation=v);save();oaRender()}
+function oaRebuildStage2(){const o=oaCurrent();if(!o?.kmsWorkflow?.stage1?.approved)return;if(!confirm('Przeliczyć Etap 2 ponownie? Ręczne poprawki w elementach produkcyjnych zostaną utracone.'))return;oaBuildStage2(o);o.kmsWorkflow.cutting={approved:false,result:null};o.kmsWorkflow.status='STAGE2_REVIEW';save();oaRender()}
+function oaValidateStage2(o){const errs=[];const s=o?.kmsWorkflow?.stage2;if(!s?.items?.length)errs.push('Brak elementów produkcyjnych.');(s?.materials||[]).forEach(m=>{if(!['0','1'].includes(String(m.rotation)))errs.push(`${m.material}: brak OBROTOWO 0/1.`)});(s?.items||[]).forEach((x,i)=>{if(!x.material||!(Number(x.length)>0&&Number(x.width)>0&&Number(x.qty)>0&&Number(x.thickness)>0))errs.push(`Element ${i+1}: brak wymaganych danych.`);if(x.requiresConfirmation&&!x.confirmed)errs.push(`Element ${i+1}: wyjątek ${x.rule} nie został potwierdzony.`)});return errs}
+async function oaApproveStage2(){const o=oaCurrent();if(!o)return;const errs=oaValidateStage2(o);if(errs.length)return alert('Etap 2 jest zablokowany:\n- '+errs.join('\n- '));if(!confirm('Zatwierdzić Etap 2 i przekazać dane do optymalizacji rozkroju?'))return;o.kmsWorkflow.stage2.approved=true;o.kmsWorkflow.stage2.approvedAt=oaDateNow();o.kmsWorkflow.stage2.approvedBy=kmsUserName||'';o.kmsWorkflow.cutting={approved:false,result:null};o.kmsWorkflow.status='CUTTING_REVIEW';save();await oaSaveCurrent('Zatwierdzono Etap 2');oaRender()}
+function oaCsvField(v){
+ return String(v??'').replace(/[;\r\n]+/g,' ').replace(/\s+/g,' ').trim()
+}
+function oaCsvEdge(v){return v==='2MM'?'2mm':v==='1MM'?'1mm':''}
+function oaCsvInfo(x){
+ const rule=String(x?.rule||x?.technology||'STANDARD').toUpperCase();
+ if(rule==='36MM')return '36MM';
+ if(rule==='28MM')return '28MM';
+ if(rule==='ZBIORCZY_2')return oaCsvField(x?.info||`ROZ X ${Math.round(Number(x?.width)||0)} MM X 2SZT`);
+ if(rule==='FRONTY_SLOJ')return oaCsvField(x?.info||'FRONTY SLOJ');
+ if(rule==='LAMELE')return oaCsvField(x?.info||'LAMELE');
+ if(rule==='INNE')return oaCsvField(x?.info||'INNE');
+ return ''
+}
+function oaCsvText(material){
+ const o=oaCurrent();
+ const rows=(o?.kmsWorkflow?.stage2?.items||[]).filter(x=>x.material===material);
+ const lines=rows.map((x,i)=>{
+  const rotation=['0','1'].includes(String(x.rotation))?String(x.rotation):'';
+  // Kanoniczny układ konwertera — dokładnie 17 pól, bez nagłówka:
+  // INFO | puste | ELEMENT | MATERIAŁ | DŁUGOŚĆ | SZEROKOŚĆ | ILOŚĆ |
+  // GRUBOŚĆ | 0 | OBROTOWO | OKL1 | OKL2 | OKL3 | OKL4 | puste | puste | puste
+  const fields=[
+   oaCsvInfo(x),
+   '',
+   String(i+1),
+   oaCsvField(x.material),
+   String(Math.round(Number(x.length)||0)),
+   String(Math.round(Number(x.width)||0)),
+   String(Math.round(Number(x.qty)||0)),
+   String(Math.round(Number(x.thickness)||0)),
+   '0',
+   rotation,
+   oaCsvEdge(x.edge1),
+   oaCsvEdge(x.edge2),
+   oaCsvEdge(x.edge3),
+   oaCsvEdge(x.edge4),
+   '',
+   '',
+   ''
+  ];
+  return fields.join(';')
+ });
+ return lines.join('\r\n')+(lines.length?'\r\n':'')
+}
+function oaCsvBytes(material){
+ // UTF-8 bez BOM. TextEncoder nie dodaje znacznika BOM.
+ return new TextEncoder().encode(oaCsvText(material))
+}
+function oaSafeName(v){return String(v||'MATERIAL').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9_-]+/g,'_').replace(/^_+|_+$/g,'')||'MATERIAL'}
+function oaDownloadCsv(material){
+ const o=oaCurrent();
+ if(!o?.kmsWorkflow?.cutting?.approved)return alert('Najpierw zatwierdź wynik Kreatora Rozkroju.');
+ const rows=(o.kmsWorkflow.stage2.items||[]).filter(x=>x.material===material);
+ if(!rows.length)return alert('Brak pozycji dla wybranego materiału.');
+ const missingRotation=rows.some(x=>!['0','1'].includes(String(x.rotation)));
+ if(missingRotation)return alert('CSV zablokowany: ustaw OBROTOWO 0/1 dla materiału.');
+ const blob=new Blob([oaCsvBytes(material)],{type:'application/octet-stream'});
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);
+ a.download=`${oaSafeName(o.orderNo)}_${oaSafeName(material)}.csv`;
+ document.body.appendChild(a);
+ a.click();
+ setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)
+}
+async function oaRouteToProduction(){const o=oaCurrent();if(!o?.kmsWorkflow?.cutting?.approved)return alert('Najpierw zatwierdź wynik Kreatora Rozkroju.');if(!confirm('Potwierdź: pliki CSV zostały sprawdzone i zlecenie ma zostać przekazane do produkcji KMS.'))return;const rows=o.kmsWorkflow.stage2.items||[];o.items=rows.map(x=>({raw:`${x.material} ${x.length}x${x.width} x${x.qty}`,category:'Płyta'}));o.cutItems=rows.map((x,i)=>({label:`${x.material} — ${x.length} × ${x.width} mm`,pcv:x.info||x.rule||'',qty:Number(x.qty)||1,unit:'szt.',done:false,sourceIndex:i}));o.edgeItems=rows.filter(x=>oaPcvMb(x)>0).map((x,i)=>({label:`${x.material} — ${x.length} × ${x.width} mm`,pcv:x.pcvCode||[x.edge1,x.edge2,x.edge3,x.edge4].filter(Boolean).join('/'),qty:Number(oaPcvMb(x).toFixed(3)),unit:'mb',done:false,sourceIndex:i}));o.cncItems=rows.filter(x=>/CNC|FREZ|OTWOR/i.test(String(x.info||'')+' '+String(x.notes||''))).map((x,i)=>({label:`${x.material} — ${x.info||'Operacja CNC'}`,pcv:'',qty:Number(x.qty)||1,unit:'szt.',done:false,sourceIndex:i}));o.assemblyItems=[];const supplierOrder=o.kmsWorkflow.cutting?.result?.supplierOrder||[];o.materials=supplierOrder.map(m=>({type:'Płyta',material:m.material,qty:Number(m.boards)||0,unit:'szt. płyt',status:'Do zamówienia'}));o.tasks=[{name:'Cięcie',station:'Cięcie',status:'Do wykonania',source:'Etap 3 CSV',qty:o.cutItems.length,unit:'pozycji'}];if(o.edgeItems.length)o.tasks.push({name:'Oklejanie',station:'Oklejanie',status:'Do wykonania',source:'Etap 2',qty:Number(o.edgeItems.reduce((s,x)=>s+(Number(x.qty)||0),0).toFixed(3)),unit:'mb'});if(o.cncItems.length)o.tasks.push({name:'CNC',station:'CNC',status:'Do wykonania',source:'Etap 2',qty:o.cncItems.length,unit:'pozycji'});o.kmsWorkflow.stage3={approved:true,approvedAt:oaDateNow(),approvedBy:kmsUserName||'',csvMaterials:[...new Set(rows.map(x=>x.material))]};o.kmsWorkflow.status='PRODUCTION';o.status='PRODUKCJA';o.note=(o.note?o.note+'\n':'')+'Zlecenie przekazane z Analizy Zamówień 1→2→3.';save();await oaSaveCurrent('Etap 3 — przekazano do produkcji');oaRender();alert('Zlecenie zostało przekazane do modułu Produkcja TEST i zapisane lokalnie. Po sprawdzeniu możesz osobno wysłać je do chmury.')}
+
+function kmsNormCatalogText(v){return String(v||'').toUpperCase().replace(/[._,;:()\[\]-]+/g,' ').replace(/\s+/g,' ').trim()}
+function oaSelectedManufacturers(){return [...new Set([byId('oaManufacturer1')?.value||'',byId('oaManufacturer2')?.value||''].filter(Boolean))].slice(0,2)}
+function oaSetSelectedManufacturers(list){
+ const arr=Array.isArray(list)?list:[];
+ if(byId('oaManufacturer1'))byId('oaManufacturer1').value=arr[0]||'';
+ if(byId('oaManufacturer2'))byId('oaManufacturer2').value=arr[1]||'';
+ oaRefreshMaterialDatalist();oaUpdateManufacturerStatus();
+}
+function kmsManufacturerProducts(list){const set=new Set((list||[]).map(kmsNormCatalogText));return KMS_MATERIAL_CATALOG.filter(p=>set.has(kmsNormCatalogText(p.manufacturer)))}
+function kmsFindCatalogProduct(value,manufacturers,thickness){
+ const wanted=kmsNormCatalogText(value);if(!wanted)return null;
+ let candidates=kmsManufacturerProducts(manufacturers).filter(p=>kmsNormCatalogText(p.materialLabel)===wanted||kmsNormCatalogText(`${p.symbol||''} ${p.structure||''}`)===wanted);
+ if(!candidates.length)candidates=kmsManufacturerProducts(manufacturers).filter(p=>(p.aliases||[]).some(a=>kmsNormCatalogText(a)===wanted));
+ if(!candidates.length)return null;
+ const distinct=[...new Set(candidates.map(p=>kmsNormCatalogText(p.materialLabel)))];if(distinct.length>1)return null;
+ const exactThickness=candidates.find(p=>Math.abs(Number(p.thickness)-Number(thickness))<.2);
+ return exactThickness||candidates[0];
+}
+function oaApplyCatalogMatchToItem(item,manufacturers){
+ const product=kmsFindCatalogProduct(item.material,manufacturers,item.thickness);
+ if(product){item.material=product.materialLabel;item.materialCatalogStatus='MATCHED';item.catalogProductId=product.id;item.manufacturer=product.manufacturer;item.materialName=product.name;item.catalogRotatable=product.rotatable;item.catalogLength=product.length;item.catalogWidth=product.width;if(item.sourceModule==='MEBLE_KMS'&&Number(item.length)>0&&Number(item.width)>0&&!/DO USTALENIA|POTWIERDŹ MATERIAŁ I GRUBOŚĆ|KREATOR FRONTÓW/i.test(String(item.notes||'')))item.uncertain=false}
+ else{item.materialCatalogStatus='BLOCKED_NOT_IN_CATALOG';item.catalogProductId='';item.manufacturer='';if(String(item.material||'').trim())item.uncertain=true}
+ return item
+}
+function oaRefreshMaterialDatalist(){
+ const el=byId('oaMaterialCatalogList');if(!el)return;const rows=kmsManufacturerProducts(oaSelectedManufacturers());
+ const uniq=new Map();rows.forEach(p=>{const k=kmsNormCatalogText(p.materialLabel);if(k&&!uniq.has(k))uniq.set(k,p)});
+ el.innerHTML=[...uniq.values()].slice(0,8000).map(p=>`<option value="${esc(p.materialLabel)}">${esc(p.manufacturer)} • ${esc(p.name||'')} • ${esc(p.thickness)} mm</option>`).join('')
+}
+function oaUpdateManufacturerStatus(){
+ const el=byId('oaManufacturerStatus'),btn=byId('oaAnalyzeBtn'),selected=oaSelectedManufacturers();if(!el)return;
+ if(!KMS_CATALOG_READY){el.className='catalog-lock bad';el.innerHTML=`<b>Analiza zablokowana:</b> katalog KMS nie został załadowany${KMS_CATALOG_ERROR?` — ${esc(KMS_CATALOG_ERROR)}`:''}.`;if(btn)btn.disabled=true;return}
+ if(!selected.length){el.className='catalog-lock bad';el.innerHTML='<b>Analiza zablokowana:</b> wybierz producenta płyty.';if(btn)btn.disabled=true;return}
+ const count=kmsManufacturerProducts(selected).length;el.className='catalog-lock ok';el.innerHTML=`<b>Ograniczenie aktywne:</b> AI i Etap 1 mogą użyć wyłącznie ${count} pozycji z katalogu: ${selected.map(esc).join(' + ')}.`;if(btn)btn.disabled=false
+}
+function oaManufacturerChanged(){
+ const a=byId('oaManufacturer1')?.value||'',b=byId('oaManufacturer2')?.value||'';if(a&&a===b){byId('oaManufacturer2').value='';alert('Drugi producent musi być inny od pierwszego.');}
+ const o=oaCurrent();if(o?.kmsWorkflow?.stage1){o.kmsWorkflow.stage1.selectedManufacturers=oaSelectedManufacturers();(o.kmsWorkflow.stage1.items||[]).forEach(x=>oaApplyCatalogMatchToItem(x,o.kmsWorkflow.stage1.selectedManufacturers));o.kmsWorkflow.stage1.approved=false;o.kmsWorkflow.stage2={approved:false,items:[],materials:[]};o.kmsWorkflow.cutting={approved:false,result:null};o.kmsWorkflow.stage3={approved:false};o.kmsWorkflow.status='STAGE1_REVIEW';save();oaRender()}
+ oaRefreshMaterialDatalist();oaUpdateManufacturerStatus();oaCaptureDraftMeta()
+}
+async function kmsLoadMaterialCatalog(){
+ try{const res=await fetch('data/kms-material-catalog.json',{cache:'force-cache'});if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json();KMS_MATERIAL_CATALOG=Array.isArray(data.products)?data.products:[];KMS_CATALOG_READY=KMS_MATERIAL_CATALOG.length>0;const manufacturers=data.manufacturers||[...new Set(KMS_MATERIAL_CATALOG.map(x=>x.manufacturer))];['oaManufacturer1','oaManufacturer2'].forEach((id,index)=>{const el=byId(id);if(!el)return;const selected=el.value;el.innerHTML=`<option value="">${index?'— BRAK DRUGIEGO —':'— WYBIERZ PRODUCENTA —'}</option>`+manufacturers.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('');el.value=selected});oaSetSelectedManufacturers(oaDraftMeta.manufacturers||oaCurrent()?.kmsWorkflow?.stage1?.selectedManufacturers||[])}catch(e){KMS_CATALOG_ERROR=e.message||String(e);KMS_CATALOG_READY=false;oaUpdateManufacturerStatus()}
+}
+function kmsShowSection(id){const btn=[...document.querySelectorAll('.nav button')].find(b=>(b.getAttribute('onclick')||'').includes(`show('${id}'`));show(id,btn||null)}
+async function kmsImportMebleStage1(payload){
+ const rows=Array.isArray(payload?.stage1Items)?payload.stage1Items:[];if(!rows.length)return alert('Inteligentna Szafka nie przekazała elementów. Dodaj model i rozbij go na elementy.');
+ const orderNo=prompt('Numer zlecenia dla zestawu z Inteligentnej Szafki:',`MEBLE-${new Date().toISOString().slice(0,10).replaceAll('-','')}`)||'';
+ const client=prompt('Klient:', '')||'';
+ oaNewOrder();byId('oaOrderNo').value=orderNo;byId('oaClient').value=client;byId('oaDeadline').value='';
+ await oaCreateOrUpdateDraft({orderNo,client,items:rows,notes:`Źródło: Inteligentna Szafka ${payload.version||''}. Materiały KORPUS / FRONT / HDF wymagają wyboru z Katalogu KMS.`,confidence:.95,selectedManufacturers:[]});
+ kmsShowSection('aiDrawing');alert(`Przekazano ${rows.length} pozycji do Etapu 1. Wybierz producenta i materiały z katalogu KMS.`)
+}
+function kmsBuildCuttingPayload(o){
+ if(!o?.kmsWorkflow?.stage2?.approved)throw new Error('Etap 2 nie jest zatwierdzony.');
+ const rows=o.kmsWorkflow.stage2.items||[],products=new Map(),items=[];
+ rows.forEach((x,index)=>{
+  const source=KMS_MATERIAL_CATALOG.find(p=>p.id===x.catalogProductId)||kmsFindCatalogProduct(x.material,o.kmsWorkflow.stage1.selectedManufacturers||[],x.thickness);
+  if(!source)throw new Error(`Brak produktu katalogowego dla: ${x.material}. Wróć do Etapu 1.`);
+  const key=`${source.id}-${Number(x.thickness)||source.thickness}`;const id=`CUT-${key}`;
+  if(!products.has(id))products.set(id,{id,manufacturer:source.manufacturer,symbol:source.symbol||source.materialLabel,structure:source.structure||'',name:source.name||source.materialLabel,thickness:Number(x.thickness)||source.thickness,length:Number(source.length)||2800,width:Number(source.width)||2070,workLength:(Number(source.length)||2800)===2800?2770:Math.max(1,(Number(source.length)||2800)-30),workWidth:(Number(source.width)||2070)===2070?2040:Math.max(1,(Number(source.width)||2070)-30),rotatable:String(x.rotation)==='1',priceStatus:source.priceStatus||'KATALOG KMS'});
+  const tech=['36MM','28MM'].includes(String(x.rule||x.technology))?String(x.rule||x.technology):'STANDARD';
+  const edge=v=>{const raw=String(v||'').toUpperCase();if(raw==='')return 'BRAK';if(['36MM','28MM'].includes(tech))return '43/2MM';return ['1MM','2MM','43/2MM'].includes(raw)?raw:'BRAK'};
+  items.push({name:x.element||`ELEMENT ${index+1}`,productId:id,length:Number(x.length)||0,width:Number(x.width)||0,qty:Number(x.qty)||0,technology:tech,gluePair:['36MM','28MM'].includes(tech)?`KLEJ-${tech}-${index+1}`:'',isFront:String(x.rule||'')==='FRONTY_SLOJ',edges:{left:edge(x.edge1),right:edge(x.edge2),top:edge(x.edge3),bottom:edge(x.edge4)},hdfLength:0,hdfQty:0,ledLength:0,ledQty:0,lamellaCuts:String(x.rule||'')==='LAMELE'?Number(x.qty)||0:0})
+ });
+ return {order:{orderNo:o.orderNo,customer:o.client,orderName:`ROZKRÓJ ${o.orderNo}`,date:new Date().toISOString().slice(0,10),operator:kmsUserName||'KMS'},catalog:[...products.values()],items}
+}
+function kmsPostCuttingPayload(){const frame=byId('cuttingFrame');if(!frame?.contentWindow||!kmsPendingCuttingPayload)return false;frame.contentWindow.postMessage({source:'KMS_HOST',type:'kms:cutting:load-stage2',payload:kmsPendingCuttingPayload},'*');return true}
+function kmsOpenCuttingForCurrent(){
+ const o=oaCurrent();if(!o)return alert('Otwórz zlecenie.');try{kmsPendingCuttingPayload=kmsBuildCuttingPayload(o);kmsCuttingOrderId=String(o.id);localStorage.setItem('kms_cutting_stage2_payload',JSON.stringify(kmsPendingCuttingPayload));kmsShowSection('cutting');byId('cuttingIntegrationTitle').textContent=`Rozkrój: ${o.orderNo} — ${o.client}`;byId('cuttingIntegrationStatus').textContent=`Przekazuję ${kmsPendingCuttingPayload.items.reduce((s,x)=>s+(Number(x.qty)||0),0)} fizycznych elementów z Etapu 2.`;setTimeout(kmsPostCuttingPayload,400)}catch(e){alert('Nie można uruchomić rozkroju: '+e.message)}
+}
+function kmsResendCuttingPayload(){if(!kmsPendingCuttingPayload){const raw=localStorage.getItem('kms_cutting_stage2_payload');if(raw)kmsPendingCuttingPayload=JSON.parse(raw)}if(!kmsPostCuttingPayload())alert('Brak danych Etapu 2 do wysłania.')}
+function oaRenderCuttingStage(o){
+ const card=byId('oaCuttingStage'),status=byId('oaCuttingStatus'),summary=byId('oaCuttingSummary'),approve=byId('oaApproveCuttingBtn'),wasteBtn=byId('oaConfirmWasteBtn'),openBtn=byId('oaOpenCuttingBtn');if(!card)return;
+ const unlocked=!!o?.kmsWorkflow?.stage2?.approved,cut=o?.kmsWorkflow?.cutting||{};card.classList.toggle('oa-stage-locked',!unlocked);if(openBtn)openBtn.disabled=!unlocked;
+ if(!unlocked){status.className='pill todo';status.textContent='ZABLOKOWANY';summary.className='card oa-blocker';summary.textContent='Najpierw zatwierdź Etap 2.';approve.disabled=true;wasteBtn.disabled=true;return}
+ if(!cut.result){status.className='pill progress';status.textContent='OCZEKUJE NA OPTYMALIZACJĘ';summary.className='card oa-blocker';summary.innerHTML='<b>Etap 2 zatwierdzony.</b> Otwórz Kreator Rozkroju i wykonaj optymalizację.';approve.disabled=true;wasteBtn.disabled=true;return}
+ const r=cut.result;status.className='pill '+(cut.approved?'done':'progress');status.textContent=cut.approved?'ROZKRÓJ ZATWIERDZONY':'WYNIK DO WERYFIKACJI';summary.className='card '+(cut.approved?'oa-ok':'oa-review');summary.innerHTML=`<b>${r.processedPieces||0} elementów → ${r.boards||0} płyt</b><br>Czas: ${Math.round(r.optimizationMs||0)} ms • planowane odpady: ${(r.wasteModuleTransfer||[]).length} • powierzchnia: ${Number((r.wasteModuleTransfer||[]).reduce((a,w)=>a+(Number(w.areaM2)||0),0)).toFixed(3)} m²${cut.wasteTransferredAt?'<br><span class="pill done">ODPADY PRZEKAZANE DO MODUŁU</span>':''}`;approve.disabled=!!cut.approved;wasteBtn.disabled=!cut.approved||!!cut.wasteTransferredAt
+}
+function oaApproveCuttingResult(){
+ const o=oaCurrent();if(!o)return alert('Otwórz zlecenie z analizą.');const cut=o.kmsWorkflow.cutting;if(!cut?.result)return alert('Brak wyniku optymalizacji.');const expected=(o.kmsWorkflow.stage2.items||[]).reduce((s,x)=>s+(Number(x.qty)||0),0);if(Number(cut.result.processedPieces)!==expected)return alert(`Rozkrój zablokowany: przetworzono ${cut.result.processedPieces} z ${expected} elementów.`);if(!(Number(cut.result.boards)>0))return alert('Rozkrój nie wyliczył liczby płyt.');if(!confirm(`Zatwierdzić rozkrój: ${cut.result.processedPieces} elementów, ${cut.result.boards} płyt?`))return;cut.approved=true;cut.approvedAt=oaDateNow();cut.approvedBy=kmsUserName||'';o.kmsWorkflow.status='STAGE3_READY';save();oaRender();alert('Wynik rozkroju zatwierdzony. Etap 3 CSV został odblokowany.')
+}
+function kmsConfirmCuttingAndTransferWaste(){
+ const o=oaCurrent();const cut=o?.kmsWorkflow?.cutting;if(!cut?.approved)return alert('Najpierw zatwierdź wynik rozkroju.');if(cut.wasteTransferredAt)return alert('Odpady z tego rozkroju zostały już przekazane.');if(!confirm('Potwierdzasz, że płyty zostały fizycznie rozcięte na pile? Dopiero teraz planowane odpady staną się dostępne.'))return;
+ const existing=new Set((state.waste||[]).map(w=>w.sourceWasteId).filter(Boolean)),records=cut.result.wasteModuleTransfer||[];let added=0;records.forEach((w,i)=>{if(existing.has(w.id))return;state.waste.push({id:Date.now()+i,type:'Płyta',decor:String(w.material||'').toUpperCase(),length:String(w.length),width:`× ${w.width} mm`,rack:'DO OZNACZENIA',status:'Dostępny',created:new Date().toISOString().slice(0,10),thickness:w.thickness,orderNo:o.orderNo,sourceWasteId:w.id,sourceBoardNo:w.sourceBoardNo,areaM2:w.areaM2});added++});cut.wasteTransferredAt=oaDateNow();cut.wasteTransferredCount=added;save();render();oaRender();alert(`Przekazano ${added} odpadów do modułu Odpady → Płyty → Cięcie.`)
+}
+window.addEventListener('message',event=>{
+ const msg=event.data||{};
+ if(msg.source==='KMS_MEBLE_MODULE'&&msg.type==='kms:meble:stage1-ready')kmsImportMebleStage1(msg.payload);
+ if(msg.source==='KMS_CUTTING_MODULE'){
+  if(msg.type==='kms:cutting:ready'){kmsCuttingReady=true;kmsPostCuttingPayload()}
+  if(msg.type==='kms:cutting:error'){byId('cuttingIntegrationStatus').textContent='Błąd: '+(msg.payload?.message||'nieznany')}
+  if(msg.type==='kms:cutting:result'){
+   const o=(state.orders||[]).find(x=>String(x.id)===String(kmsCuttingOrderId))||oaCurrent();if(!o?.kmsWorkflow)return;
+   o.kmsWorkflow.cutting={approved:false,result:msg.payload,receivedAt:oaDateNow()};o.kmsWorkflow.status='CUTTING_REVIEW';save();byId('cuttingIntegrationStatus').textContent=`Wynik gotowy: ${msg.payload.processedPieces} elementów, ${msg.payload.boards} płyt, ${(msg.payload.wasteModuleTransfer||[]).length} odpadów planowanych.`;oaRender()
+  }
+ }
+});
+function oaRenderOrdersList(){const el=byId('oaOrdersList');if(!el)return;const rows=oaAnalysisOrders();el.innerHTML=rows.length?rows.map(o=>`<div class="oa-order-row"><div><b>${esc(o.orderNo||'BEZ NUMERU')}</b><br><span class="small">${esc(o.client||'Brak klienta')}</span></div><div><span class="pill ${oaStatusClass(o.kmsWorkflow.status)}">${esc(oaStatusLabel(o.kmsWorkflow.status))}</span></div><div>${esc(o.created||'')}</div><div><button class="primary" onclick="oaOpen('${jsStr(o.id)}')">Otwórz</button>${kmsRole==='ADMIN'?`<button class="red" onclick="deleteCloudOrder('${jsStr(o.id)}')">Usuń</button>`:''}</div></div>`).join(''):'<div class="small" style="padding:12px">Brak zleceń w analizie. Kliknij „Nowe zamówienie”.</div>'}
+function oaRenderStage1(o){const rows=o?.kmsWorkflow?.stage1?.items||[];byId('oaStage1Rows').innerHTML=rows.map((x,i)=>`<tr class="${x.uncertain?'oa-low':''}"><td>${i+1}</td><td><input class="wide" value="${esc(x.element||'')}" onchange="oaUpdateStage1(${i},'element',this.value)"></td><td><input class="wide ${x.materialCatalogStatus==='MATCHED'?'':'price-missing'}" list="oaMaterialCatalogList" value="${esc(x.material||'')}" onchange="oaUpdateStage1(${i},'material',this.value)" title="${x.materialCatalogStatus==='MATCHED'?'Materiał potwierdzony w katalogu KMS':'Materiał zablokowany — wybierz z katalogu'}"></td><td><input type="number" value="${Number(x.length)||''}" onchange="oaUpdateStage1(${i},'length',this.value)"></td><td><input type="number" value="${Number(x.width)||''}" onchange="oaUpdateStage1(${i},'width',this.value)"></td><td><input type="number" step="1" value="${Number(x.qty)||''}" onchange="oaUpdateStage1(${i},'qty',this.value)"></td><td><input type="number" value="${oaFixedThickness(x)}" readonly title="Stała KMS: standard 18 mm; oznaczenia 10MM, 16MM, 28MM i 36MM ustalają grubość."></td><td><select onchange="oaUpdateStage1(${i},'edge1',this.value)">${oaEdgeOptions(x.edge1)}</select></td><td><select onchange="oaUpdateStage1(${i},'edge2',this.value)">${oaEdgeOptions(x.edge2)}</select></td><td><select onchange="oaUpdateStage1(${i},'edge3',this.value)">${oaEdgeOptions(x.edge3)}</select></td><td><select onchange="oaUpdateStage1(${i},'edge4',this.value)">${oaEdgeOptions(x.edge4)}</select></td><td><input class="wide" value="${esc(x.pcvCode||'')}" onchange="oaUpdateStage1(${i},'pcvCode',this.value)"></td><td><select class="wide" onchange="oaUpdateStage1(${i},'technology',this.value)">${oaTechOptions(x.technology||'STANDARD')}</select></td><td><input class="notes" value="${esc(x.info||x.notes||'')}" onchange="oaUpdateStage1(${i},'info',this.value)"></td><td style="text-align:center"><input type="checkbox" ${x.uncertain?'checked':''} onchange="oaUpdateStage1(${i},'uncertain',this.checked)"></td><td><button class="red" onclick="oaDeleteStage1Row(${i})">×</button></td></tr>`).join('');const errs=o?oaValidateStage1(o):['Brak zlecenia.'];byId('oaStage1Blocker').className='card '+(errs.length?'oa-blocker':'oa-ok');byId('oaStage1Blocker').innerHTML=errs.length?`<b>Etap 1 wymaga kontroli:</b><br>${errs.map(esc).join('<br>')}`:'<b>Kontrola kompletna.</b> Arkusz może zostać zatwierdzony.';byId('oaStage1Status').className='pill '+(o?.kmsWorkflow?.stage1?.approved?'done':errs.length?'progress':'blue');byId('oaStage1Status').textContent=o?.kmsWorkflow?.stage1?.approved?'ZAAKCEPTOWANE':errs.length?'DO WERYFIKACJI':'GOTOWE DO ZATWIERDZENIA';byId('oaApprove1Btn').disabled=!!o?.kmsWorkflow?.stage1?.approved}
+function oaRenderStage2(o){const unlocked=!!o?.kmsWorkflow?.stage1?.approved;byId('oaStage2').classList.toggle('oa-stage-locked',!unlocked);const s=o?.kmsWorkflow?.stage2||{items:[],materials:[]};byId('oaMaterialsRows').innerHTML=(s.materials||[]).map(m=>`<tr><td><b>${esc(m.material)}</b></td><td>${m.positions}</td><td>${Number(m.area).toFixed(3)}</td><td>${Number(m.pcv).toFixed(3)}</td><td>${Number(m.pcvOrder).toFixed(3)}</td><td><select onchange="oaSetRotation('${jsStr(m.material)}',this.value)"><option value="" ${m.rotation===''?'selected':''}>DO POTWIERDZENIA</option><option value="0" ${String(m.rotation)==='0'?'selected':''}>0 — NIEOBROTOWO</option><option value="1" ${String(m.rotation)==='1'?'selected':''}>1 — OBROTOWO</option></select></td><td><span class="pill ${['0','1'].includes(String(m.rotation))?'done':'progress'}">${['0','1'].includes(String(m.rotation))?'OK':'BRAK OBROTOWO'}</span></td></tr>`).join('')||'<tr><td colspan="7">Brak danych.</td></tr>';byId('oaStage2Rows').innerHTML=(s.items||[]).map((x,i)=>`<tr class="${x.requiresConfirmation&&!x.confirmed?'oa-review':''}"><td>${i+1}</td><td><input class="notes" value="${esc(x.info||'')}" onchange="oaUpdateStage2(${i},'info',this.value)"></td><td><input class="wide" value="${esc(x.element||'')}" onchange="oaUpdateStage2(${i},'element',this.value)"></td><td><input class="wide" value="${esc(x.material||'')}" onchange="oaUpdateStage2(${i},'material',this.value)"></td><td><input type="number" value="${Number(x.length)||''}" onchange="oaUpdateStage2(${i},'length',this.value)"></td><td><input type="number" value="${Number(x.width)||''}" onchange="oaUpdateStage2(${i},'width',this.value)"></td><td><input type="number" value="${Number(x.qty)||''}" onchange="oaUpdateStage2(${i},'qty',this.value)"></td><td><input type="number" value="${Number(x.thickness)||''}" onchange="oaUpdateStage2(${i},'thickness',this.value)"></td><td>${esc(x.rotation??'')}</td><td><select onchange="oaUpdateStage2(${i},'edge1',this.value)">${oaEdgeOptions(x.edge1)}</select></td><td><select onchange="oaUpdateStage2(${i},'edge2',this.value)">${oaEdgeOptions(x.edge2)}</select></td><td><select onchange="oaUpdateStage2(${i},'edge3',this.value)">${oaEdgeOptions(x.edge3)}</select></td><td><select onchange="oaUpdateStage2(${i},'edge4',this.value)">${oaEdgeOptions(x.edge4)}</select></td><td>${esc(x.rule||'STANDARD')}<br><span class="small">${esc(x.notes||'')}</span></td><td style="text-align:center">${x.requiresConfirmation?`<input type="checkbox" ${x.confirmed?'checked':''} onchange="oaUpdateStage2(${i},'confirmed',this.checked)">`:'✓'}</td><td><button class="red" onclick="oaDeleteStage2Row(${i})">×</button></td></tr>`).join('');const errs=unlocked?oaValidateStage2(o):['Etap 1 niezatwierdzony.'];byId('oaStage2Blocker').className='card '+(errs.length?'oa-blocker':'oa-ok');byId('oaStage2Blocker').innerHTML=errs.length?`<b>Etap 2 wymaga kontroli:</b><br>${errs.map(esc).join('<br>')}`:'<b>Kontrola kompletna.</b> Arkusze mogą zostać zatwierdzone.';byId('oaStage2Status').className='pill '+(s.approved?'done':errs.length?'progress':'blue');byId('oaStage2Status').textContent=!unlocked?'ZABLOKOWANY':s.approved?'ZAAKCEPTOWANE':errs.length?'DO WERYFIKACJI':'GOTOWE DO ZATWIERDZENIA';byId('oaApprove2Btn').disabled=!!s.approved||!unlocked;const cutBtn=byId('oaOpenCuttingBtn');if(cutBtn)cutBtn.disabled=!s.approved}
+function oaRenderStage3(o){const unlocked=!!o?.kmsWorkflow?.cutting?.approved;byId('oaStage3').classList.toggle('oa-stage-locked',!unlocked);const mats=o?.kmsWorkflow?.stage2?.materials||[];byId('oaCsvFiles').innerHTML=unlocked?`<div class="card oa-ok"><b>CSV gotowe do pobrania osobno dla każdego materiału.</b><br>${mats.map(m=>`<button class="oa-csv" onclick="oaDownloadCsv('${jsStr(m.material)}')">⬇️ ${esc(m.material)}.csv</button>`).join('')}</div><div class="small">Format kanoniczny konwertera: bez nagłówka, 17 pól, średnik, CRLF, bez BOM. Po imporcie sprawdź wynik i dopiero przekaż zlecenie do produkcji.</div>`:'<div class="card oa-blocker">Etap 3 odblokuje się po zatwierdzeniu wyniku Kreatora Rozkroju.</div>';byId('oaStage3Status').className='pill '+(o?.kmsWorkflow?.status==='PRODUCTION'?'done':unlocked?'blue':'todo');byId('oaStage3Status').textContent=o?.kmsWorkflow?.status==='PRODUCTION'?'PRZEKAZANO DO PRODUKCJI':unlocked?'CSV GOTOWE':'ZABLOKOWANY';byId('oaRouteBtn').disabled=!unlocked||o?.kmsWorkflow?.status==='PRODUCTION';byId('oaCloudBtn').disabled=o?.kmsWorkflow?.status!=='PRODUCTION'||!!o?.cloudId;byId('oaCloudBtn').textContent=o?.cloudId?'☁️ Zlecenie jest w chmurze':'☁️ Wyślij gotowe zlecenie do chmury'}
+function oaRenderFlow(o){const status=o?.kmsWorkflow?.status||'STAGE1_REVIEW';const order=['STAGE1_REVIEW','STAGE2_REVIEW','CUTTING_REVIEW','STAGE3_READY','PRODUCTION'];const cur=Math.max(0,order.indexOf(status));['oaFlow1','oaFlow2','oaFlowCut','oaFlow3','oaFlow4'].forEach((id,i)=>{const el=byId(id);if(el)el.className='oa-step '+(i<cur?'done':i===cur?'current':'locked')})}
+function oaRender(){
+ oaRenderOrdersList();const o=oaCurrent();
+ if(!o){
+  if(oaDraftOpen){
+   byId('oaWorkspace')?.classList.remove('hidden');
+   oaRenderFlow({kmsWorkflow:{status:'STAGE1_REVIEW'}});oaRenderStage1(null);oaRenderStage2(null);oaRenderStage3(null);byId('oaApprove1Btn').disabled=true;
+   return
+  }
+  byId('oaWorkspace')?.classList.add('hidden');return
+ }
+ byId('oaWorkspace').classList.remove('hidden');oaRenderFlow(o);oaRenderStage1(o);oaRenderStage2(o);oaRenderCuttingStage(o);oaRenderStage3(o)
+}
+const _oaBaseRender=render;
+render=function(){_oaBaseRender();oaRender()};
+renderPendingDocs();
+oaRestoreDraft();
+void kmsLoadMaterialCatalog();
+void kmsStorageBootstrap();
+showLogin('Sprawdzam sesję...');
+setTimeout(initKmsAuth,100);
+
+
+</script>
+
+<div id="orderNoteModal" class="note-modal hidden">
+  <div class="note-modal-card">
+    <h2>📝 Notatka produkcyjna</h2>
+    <div id="orderNoteTitle" class="small"></div>
+    <input id="orderNoteOrderId" type="hidden">
+    <textarea id="orderNoteText" placeholder="Wpisz ważną informację do zlecenia..."></textarea>
+    <div style="margin-top:10px">
+      <button class="green" onclick="saveOrderNote()">Zapisz notatkę</button>
+      <button class="gray" onclick="closeOrderNote()">Anuluj</button>
+      <button id="deleteOrderNoteBtn" class="red" onclick="clearOrderNote()" style="display:none">Usuń notatkę</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
