@@ -1,1 +1,751 @@
-{}
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KMS — Kreator Rozkroju TEST 0.8 — INTEGRACJA KMS</title>
+<style>
+:root{
+  --navy:#173b60;--blue:#2f6fa5;--blue2:#dceaf6;--bg:#f4f7fa;--card:#fff;
+  --line:#c7d5e2;--text:#1f2b36;--muted:#647586;--green:#def3e4;
+  --yellow:#fff3c9;--red:#ffe3e3;--orange:#ffedd5;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif}
+header{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;padding:20px 18px}
+header h1{margin:0;font-size:25px} header p{margin:7px 0 0;opacity:.93}
+.wrap{max-width:1720px;margin:0 auto;padding:16px}
+.panel,.item-card,.material-result{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px;margin-bottom:14px;box-shadow:0 2px 8px rgba(20,40,60,.05)}
+h2,h3,h4{margin-top:0}.toolbar,.status-line{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{border:0;border-radius:9px;padding:10px 14px;font:inherit;font-weight:700;cursor:pointer}
+button.primary{background:var(--blue);color:#fff}button.secondary{background:#e7eef5;color:#21384e}
+button.danger{background:#ffe4e4;color:#8e2525}button.small{padding:7px 10px;font-size:12px}
+button:disabled{opacity:.45;cursor:not-allowed}
+label{font-size:12px;font-weight:700;color:#52606d;display:block;margin-bottom:5px}
+input,select,textarea{width:100%;border:1px solid #b8c7d5;border-radius:8px;padding:9px;background:#fff;font:inherit}
+input[readonly]{background:#eef3f7;font-weight:700}input[type=checkbox]{width:auto}
+.meta-grid{display:grid;grid-template-columns:repeat(6,minmax(150px,1fr));gap:10px}
+.constants{display:grid;grid-template-columns:repeat(5,minmax(170px,1fr));gap:10px}
+.const{background:#edf5fb;border:1px solid #b9d2e6;border-radius:11px;padding:11px}.const b{display:block;font-size:19px;margin-top:4px}
+.badge{display:inline-block;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:700}.green{background:var(--green);color:#25613a}.yellow{background:var(--yellow);color:#765900}.red{background:var(--red);color:#8b2525}.blueb{background:#dcecff;color:#1d5688}.orange{background:var(--orange);color:#8a4b08}
+.item-head{display:grid;grid-template-columns:1.15fr 2.2fr .7fr .9fr auto;gap:9px;align-items:end}
+.item-grid{display:grid;grid-template-columns:repeat(8,minmax(105px,1fr));gap:9px;margin-top:10px}
+.item-services{display:grid;grid-template-columns:repeat(7,minmax(120px,1fr));gap:9px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.inline-check{display:flex;gap:7px;align-items:center;padding:9px;background:#f3f6f9;border-radius:8px;min-height:40px}.inline-check label{margin:0}
+.edge-box{background:#f8fafc;border:1px solid #d5e0e9;border-radius:10px;padding:9px}.edge-box strong{font-size:12px}.edge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:7px}
+.catalog-note,.note{font-size:12px;color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(8,minmax(135px,1fr));gap:10px}.metric{background:#f5f8fb;border:1px solid var(--line);border-radius:10px;padding:11px}.metric b{display:block;font-size:20px;margin-top:5px}
+.ok-box{background:#ecf8ef;border-left:5px solid #4b9b62;padding:12px;border-radius:8px}.warn-box{background:#fff9df;border-left:5px solid #e0b100;padding:12px;border-radius:8px}.error-box{background:#fff0f0;border-left:5px solid #c94b4b;padding:12px;border-radius:8px}
+table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #cbd7e3;padding:8px;text-align:left;font-size:12px}th{background:#dceaf6;position:sticky;top:0}.scroll{overflow:auto;max-height:540px}
+.board-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:12px}.board-card{border:2px solid #6d8daa;border-radius:12px;padding:10px;background:#fff}.board-card h4{margin:0 0 4px}.board-meta{font-size:12px;color:var(--muted);margin-bottom:7px}.board-svg{display:block;width:100%;height:auto;background:#f7fafc;border-radius:8px}
+.material-result{border-width:2px}.material-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.summary-grid{display:grid;grid-template-columns:repeat(5,minmax(145px,1fr));gap:9px;margin:10px 0}.summary-cell{background:#f6f9fb;border:1px solid var(--line);border-radius:9px;padding:9px}.summary-cell b{display:block;margin-top:4px}
+.hidden{display:none!important}
+.service-price-input{min-width:120px;text-align:right}.price-missing{background:#fff0f0!important;border-color:#c94b4b!important}.price-ok{background:#ecf8ef!important;border-color:#4b9b62!important}
+.modal-overlay{position:fixed;inset:0;z-index:10000;background:rgba(15,30,45,.68);display:none;align-items:center;justify-content:center;padding:18px}.modal-overlay.open{display:flex}.modal-card{width:min(720px,100%);max-height:88vh;overflow:auto;background:#fff;border-radius:16px;border:3px solid #c94b4b;box-shadow:0 20px 70px rgba(0,0,0,.35);padding:20px}.modal-card h2{color:#8b2525;margin-bottom:8px}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+@media(max-width:1200px){.meta-grid{grid-template-columns:repeat(3,1fr)}.constants{grid-template-columns:repeat(3,1fr)}.item-grid{grid-template-columns:repeat(4,1fr)}.item-services{grid-template-columns:repeat(4,1fr)}.kpis{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:760px){.meta-grid,.constants,.item-head,.item-grid,.item-services,.kpis,.summary-grid{grid-template-columns:1fr 1fr}.edge-grid{grid-template-columns:1fr 1fr}.board-grid{grid-template-columns:1fr}}
+@media(max-width:520px){.meta-grid,.constants,.item-head,.item-grid,.item-services,.kpis,.summary-grid{grid-template-columns:1fr}}
+@media print{body{background:#fff}.no-print{display:none!important}.panel,.item-card,.material-result{box-shadow:none;break-inside:avoid}.wrap{max-width:none;padding:0}header{background:#fff;color:#000;border-bottom:2px solid #000}.scroll{max-height:none;overflow:visible}th{position:static}}
+</style>
+</head>
+<body>
+<header><div class="wrap" style="padding:0"><h1>KMS — Kreator Rozkroju</h1><p>TEST 0.8 • Wynik Etapu 2 → optymalizacja 2000+ elementów → liczba płyt → odpady do modułu KMS</p></div></header>
+<div class="wrap">
+  <section class="panel">
+    <div class="meta-grid">
+      <div><label>Numer zlecenia</label><input id="orderNo" value="TEST-001"></div>
+      <div><label>Klient</label><input id="customer" value="TEST KMS"></div>
+      <div><label>Nazwa zamówienia</label><input id="orderName" value="ROZKRÓJ TESTOWY"></div>
+      <div><label>Data</label><input id="orderDate" type="date"></div>
+      <div><label>Operator</label><input id="operator" value="ŁUKASZ"></div>
+      <div><label>Status</label><input value="WERSJA TESTOWA" readonly></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Stałe technologiczne rozkroju</h2>
+    <div class="constants">
+      <div class="const">Pełna płyta EGGER<b>2800 × 2070 mm</b></div>
+      <div class="const">Pole robocze<b>2770 × 2040 mm</b></div>
+      <div class="const">Rzaz poziomy<b>4,4 mm</b></div>
+      <div class="const">Rzaz pionowy<b>4,4 mm</b></div>
+      <div class="const">Wąskie elementy ≤ 100 mm<b>W miarę możliwości środek płyty</b></div>
+      <div class="const">Płyta obrotowa<b>Pasy wzdłuż 2800 mm</b></div>
+      <div class="const">Priorytet optymalizacji<b>Największy użyteczny odpad</b></div>
+      <div class="const">Wymiar odpadu na pile<b>Z pełnej płyty 2800 × 2070 — bez brzegowania odpadu</b></div>
+      <div class="const">Przepływ modułów<b>Rozkrój → planowany odpad → potwierdzenie cięcia → DO WYKORZYSTANIA</b></div>
+      <div class="const">Elementy 36 mm<b>2 fizyczne formatki z Etapu 2 — suma m²</b></div>
+      <div class="const">Elementy 28 mm<b>2 fizyczne formatki z Etapu 2 — suma m²</b></div>
+      <div class="const">Wydajność optymalizacji<b>Minimum 2000 elementów różnych wymiarów jednego materiału</b></div>
+    </div>
+    <p class="note">Pole robocze 2770 × 2040 mm służy do układania formatek, ale odpad jest liczony jako fizyczny kawałek pozostały z pełnej płyty 2800 × 2070 mm. Odpadu nie brzegujemy automatycznie: pełny odpad boczny zachowuje długość 2800 mm. Rzaz 4,4 mm jest odejmowany w miejscu rzeczywistego oddzielenia odpadu. Kreator tworzy planowane rekordy odpadów i przygotowuje je do automatycznego przekazania do modułu Odpady. Po potwierdzeniu wykonania cięcia rekord zmienia status z PLANOWANY na DO WYKORZYSTANIA. Dzięki temu wirtualny magazyn nie otrzymuje odpadu, który istnieje tylko na niezrealizowanym planie.</p>
+  </section>
+
+  <section class="panel no-print">
+    <div class="toolbar">
+      <button class="primary" id="addItem">+ Dodaj formatkę</button>
+      <button class="secondary" id="loadExample">Wczytaj przykład</button>
+      <button class="secondary" id="loadStress2000">TEST 2000 — jeden kolor</button>
+      <button class="secondary" id="importCatalog">Importuj katalog JSON</button>
+      <button class="secondary" id="downloadCatalogTemplate">Szablon katalogu JSON</button>
+      <button class="secondary" id="saveLocal">Zapisz test</button>
+      <button class="secondary" id="loadLocal">Wczytaj zapis</button>
+      <button class="primary" id="optimize">OBLICZ I OPTYMALIZUJ</button>
+      <button class="secondary" id="exportJson">Eksport danych KMS JSON</button>
+      <button class="secondary" id="exportWasteJson">Eksport odpadów JSON</button>
+      <button class="secondary" onclick="window.print()">Drukuj / PDF</button>
+      <button class="danger" id="resetAll">Wyczyść</button>
+    </div>
+    <input id="catalogFile" type="file" accept="application/json,.json" class="hidden">
+    <div class="status-line" style="margin-top:10px">
+      <span class="badge blueb" id="catalogCount">Katalog testowy: 0 produktów</span>
+      <span class="badge yellow">Materiał można wybrać wyłącznie z katalogu</span>
+      <span class="badge green">Grubość przechowywana osobno od symbolu</span>
+      <span class="badge blueb">ODPADY: automatyczny pakiet integracyjny</span>
+      <span class="badge blueb" id="engineStatus">Silnik gotowy: 0 elementów</span>
+    </div>
+  </section>
+
+  <section class="panel" id="servicePricePanel">
+    <h2>Katalog cen usług — administrator</h2>
+    <p class="note">Cena jest wymagana tylko dla usługi, której ilość w danym zamówieniu jest większa od zera. Brak ceny blokuje finalną proformę i eksport.</p>
+    <div class="scroll"><table><thead><tr><th>Kod</th><th>Usługa</th><th>Jednostka</th><th>Cena netto</th><th>Status</th></tr></thead><tbody id="servicePriceTable"></tbody></table></div>
+  </section>
+
+  <section class="panel">
+    <h2>Formatki i operacje</h2>
+    <div id="items"></div>
+  </section>
+
+  <section class="panel" id="validationPanel">
+    <h2>Kontrola danych</h2>
+    <div id="validation"><div class="warn-box">Wprowadź formatki i uruchom optymalizację.</div></div>
+  </section>
+
+  <section class="panel" id="resultPanel">
+    <h2>Wyniki do proformy i zamówień</h2>
+    <div class="kpis">
+      <div class="metric">M² fizycznych formatek z Etapu 2<b id="kM2">0,000</b></div>
+      <div class="metric">Płyty do zamówienia<b id="kBoards">0</b></div>
+      <div class="metric">Elementy przetworzone<b id="kPieces">0</b></div>
+      <div class="metric">Czas optymalizacji<b id="kTime">0 ms</b></div>
+      <div class="metric">PCV 1 MM<b id="kEdge1">0,000 mb</b></div>
+      <div class="metric">PCV 2 MM<b id="kEdge2">0,000 mb</b></div>
+      <div class="metric">PCV 43/2 MM<b id="kEdge43">0,000 mb</b></div>
+      <div class="metric">36 MM — m² fizycznych elementów<b id="k36">0,000 m²</b></div>
+      <div class="metric">28 MM — m² fizycznych elementów<b id="k28">0,000 m²</b></div>
+      <div class="metric">Rozcinanie lameli<b id="kLamella">0 szt.</b></div>
+      <div class="metric">Cięcie ze słoja<b id="kGrain">0 frontów</b></div>
+      <div class="metric">Planowane odpady<b id="kWasteCount">0 szt.</b></div>
+      <div class="metric">Powierzchnia odpadów<b id="kWasteM2">0,000 m²</b></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Usługi — dane wynikowe do proformy</h2>
+    <div class="scroll"><table><thead><tr><th>Kod</th><th>Usługa</th><th>Ilość</th><th>Jednostka</th><th>Cena netto</th><th>Wartość netto</th><th>Status</th><th>Uwagi</th></tr></thead><tbody id="proformaTable"></tbody></table></div>
+  </section>
+
+  <section class="panel">
+    <h2>Zamówienie materiałów do dostawców</h2>
+    <div class="scroll"><table><thead><tr><th>ID katalogu</th><th>Materiał</th><th>Grubość</th><th>Format</th><th>Pole robocze</th><th>Obrotowość</th><th>M² produkcyjne</th><th>Liczba płyt</th><th>Wykorzystanie</th><th>Status ceny</th></tr></thead><tbody id="supplierTable"></tbody></table></div>
+  </section>
+
+  <section class="panel">
+    <h2>Podgląd rozkroju</h2>
+    <div id="layouts"><div class="note">Brak wyników.</div></div>
+  </section>
+
+
+  <section class="panel">
+    <h2>Odpady do wykorzystania — automatyczny przepływ KMS</h2>
+    <div class="ok-box"><b>Etap 2 tworzy plan odpadu.</b> Po potwierdzeniu wykonania cięcia KMS ma automatycznie zmienić status na <b>DO WYKORZYSTANIA</b> i zapisać rekord w module <b>Odpady → Płyty → Cięcie</b>.</div>
+    <div class="scroll"><table><thead><tr><th>ID odpadu</th><th>Zlecenie</th><th>Materiał</th><th>Grubość</th><th>Płyta</th><th>Typ odpadu</th><th>Wymiar fizyczny</th><th>M²</th><th>Obrotowość</th><th>Status teraz</th><th>Status po cięciu</th></tr></thead><tbody id="wasteTable"></tbody></table></div>
+  </section>
+
+  <section class="panel">
+    <h2>Rozpiska elementów produkcyjnych</h2>
+    <div class="scroll"><table><thead><tr><th>Element</th><th>Materiał</th><th>Grubość</th><th>Wymiar gotowy</th><th>Technologia</th><th>Wymiar do rozkroju</th><th>Ilość produkcyjna</th><th>Płyta</th><th>Pozycja</th><th>Obrót</th></tr></thead><tbody id="piecesTable"></tbody></table></div>
+  </section>
+</div>
+<div id="priceModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="priceModalTitle">
+  <div class="modal-card">
+    <h2 id="priceModalTitle">PROSZĘ PRZYPISAĆ CENĘ USŁUGI</h2>
+    <p>W zamówieniu występują usługi bez przypisanej ceny. Rozkrój może być oglądany, ale finalna proforma i eksport pozostają zablokowane.</p>
+    <div id="priceModalList" class="error-box"></div>
+    <div class="modal-actions"><button id="closePriceModal" class="primary" type="button">Przejdź do cen usług</button></div>
+  </div>
+</div>
+<script>
+const BOARD_FULL_L=2800, BOARD_FULL_W=2070;
+const BOARD_WORK_L=2770, BOARD_WORK_W=2040;
+const KERF=4.4;
+const NARROW_ELEMENT_MAX_MM=100;
+const STRIP_OPTIMIZATION=true;
+const REUSABLE_OFFCUT_PRIORITY=true;
+const PHYSICAL_WASTE_FROM_FULL_BOARD=true;
+const AUTO_WASTE_MODULE_TRANSFER=true;
+const WASTE_SOURCE_MODULE="KREATOR_ROZKROJU_ETAP_2";
+const WASTE_TARGET_MODULE="ODPADY_PLYTY_CIECIE";
+const WASTE_PLANNED_STATUS="PLANOWANY";
+const WASTE_AVAILABLE_STATUS="DO WYKORZYSTANIA";
+const MAX_BOARD_PREVIEW=24;
+const MAX_PIECE_PREVIEW=500;
+const MAX_WASTE_PREVIEW=500;
+const EDGE_TYPES=["BRAK","1MM","2MM","43/2MM"];
+const SERVICE_DEFS=[
+ {code:"FORMATKI_STANDARD_M2",name:"Cięcie formatek standardowych",unit:"m²"},
+ {code:"PCV_1MM",name:"Oklejanie PCV 1 MM",unit:"mb"},
+ {code:"PCV_2MM",name:"Oklejanie PCV 2 MM",unit:"mb"},
+ {code:"PCV_43_2MM",name:"Oklejanie PCV 43/2 MM",unit:"mb"},
+ {code:"FREZ_HDF_MALY",name:"Frez pod HDF — mały do 1 m",unit:"szt."},
+ {code:"FREZ_HDF_DUZY",name:"Frez pod HDF — duży powyżej 1 m",unit:"szt."},
+ {code:"FREZ_LED_MALY",name:"Frez LED — mały do 1 m",unit:"szt."},
+ {code:"FREZ_LED_DUZY",name:"Frez LED — duży powyżej 1 m",unit:"szt."},
+ {code:"FORMATKI_36MM_M2",name:"Cięcie fizycznych formatek do elementów 36 MM",unit:"m²"},
+ {code:"KLEJENIE_36MM_M2",name:"Klejenie elementów 36 MM",unit:"m²"},
+ {code:"FORMATKI_28MM_M2",name:"Cięcie fizycznych formatek do elementów 28 MM",unit:"m²"},
+ {code:"KLEJENIE_28MM_M2",name:"Klejenie elementów 28 MM",unit:"m²"},
+ {code:"ROZCINANIE_LAMELI",name:"Rozcinanie lameli",unit:"szt."},
+ {code:"CIECIE_ZE_SLOJA",name:"Cięcie ze słoja",unit:"front"}
+];
+let servicePrices=Object.fromEntries(SERVICE_DEFS.map(s=>[s.code,null]));
+
+const defaultCatalog=[
+ {id:"EGGER-W960-ST7-18",manufacturer:"EGGER",symbol:"W960",structure:"ST7",name:"Biały klasyczny",thickness:18,length:2800,width:2070,workLength:2770,workWidth:2040,rotatable:true,priceStatus:"NIEPOTWIERDZONA"},
+ {id:"EGGER-U999-ST7-18",manufacturer:"EGGER",symbol:"U999",structure:"ST7",name:"Czarny",thickness:18,length:2800,width:2070,workLength:2770,workWidth:2040,rotatable:true,priceStatus:"NIEPOTWIERDZONA"},
+ {id:"EGGER-H1385-ST40-18",manufacturer:"EGGER",symbol:"H1385",structure:"ST40",name:"Dąb Casella naturalny",thickness:18,length:2800,width:2070,workLength:2770,workWidth:2040,rotatable:false,priceStatus:"NIEPOTWIERDZONA"},
+ {id:"EGGER-H3730-ST10-18",manufacturer:"EGGER",symbol:"H3730",structure:"ST10",name:"Hikora naturalna",thickness:18,length:2800,width:2070,workLength:2770,workWidth:2040,rotatable:false,priceStatus:"NIEPOTWIERDZONA"}
+];
+let catalog=JSON.parse(JSON.stringify(defaultCatalog));
+let state={items:[],lastResult:null};
+function uid(){return crypto.randomUUID?crypto.randomUUID():`kms-${Date.now()}-${Math.random().toString(16).slice(2)}`}
+function n(v,f=0){const x=Number(v);return Number.isFinite(x)?x:f}
+function fmt(v,d=3){return n(v).toLocaleString("pl-PL",{minimumFractionDigits:d,maximumFractionDigits:d})}
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+function productLabel(p){return `${p.manufacturer} ${p.symbol} ${p.structure} | ${p.thickness} mm | ${p.name}`}
+function getProduct(id){return catalog.find(p=>p.id===id)||null}
+function emptyItem(){return {id:uid(),name:"ELEMENT",productId:catalog[0]?.id||"",length:720,width:396,qty:1,technology:"STANDARD",gluePair:"",isFront:false,edges:{top:"BRAK",bottom:"BRAK",left:"BRAK",right:"BRAK"},hdfLength:0,hdfQty:0,ledLength:0,ledQty:0,lamellaCuts:0}}
+function productOptions(selected){return `<option value="">— WYBIERZ Z KATALOGU —</option>`+catalog.map(p=>`<option value="${esc(p.id)}" ${p.id===selected?"selected":""}>${esc(productLabel(p))}</option>`).join("")}
+function edgeOptions(selected){return EDGE_TYPES.map(x=>`<option ${x===selected?"selected":""}>${x}</option>`).join("")}
+function renderItems(){
+ const host=document.getElementById("items");
+ if(!state.items.length){host.innerHTML='<div class="warn-box">Brak formatek. Dodaj pierwszą pozycję.</div>';return}
+ host.innerHTML=state.items.map((it,i)=>{
+  const p=getProduct(it.productId);
+  return `<div class="item-card">
+    <div class="item-head">
+      <div><label>Nazwa elementu</label><input data-id="${it.id}" data-field="name" value="${esc(it.name)}"></div>
+      <div><label>Produkt z Katalogu KMS</label><select data-id="${it.id}" data-field="productId">${productOptions(it.productId)}</select></div>
+      <div><label>Ilość</label><input type="number" min="1" data-id="${it.id}" data-field="qty" value="${it.qty}"></div>
+      <div><label>Technologia</label><select data-id="${it.id}" data-field="technology"><option ${it.technology==="STANDARD"?"selected":""}>STANDARD</option><option ${it.technology==="36MM"?"selected":""}>36MM</option><option ${it.technology==="28MM"?"selected":""}>28MM</option></select></div>
+      <div class="toolbar no-print"><button class="secondary small" data-action="duplicate" data-id="${it.id}">Duplikuj</button><button class="danger small" data-action="remove" data-id="${it.id}">Usuń</button></div>
+    </div>
+    <div class="item-grid">
+      <div><label>DŁUGOŚĆ [mm]</label><input type="number" min="1" data-id="${it.id}" data-field="length" value="${it.length}"></div>
+      <div><label>SZEROKOŚĆ [mm]</label><input type="number" min="1" data-id="${it.id}" data-field="width" value="${it.width}"></div>
+      <div><label>GRUBOŚĆ</label><input value="${p?esc(p.thickness):"—"} mm" readonly></div>
+      <div><label>SYMBOL</label><input value="${p?esc(`${p.symbol} ${p.structure}`):"—"}" readonly></div>
+      <div><label>FORMAT PRODUKTU</label><input value="${p?`${p.length} × ${p.width}`:"—"}" readonly></div>
+      <div><label>POLE ROBOCZE</label><input value="${p?`${p.workLength} × ${p.workWidth}`:"—"}" readonly></div>
+      <div><label>OBROTOWOŚĆ</label><input value="${p?(p.rotatable?"OBROTOWA":"NIEOBROTOWA"):"—"}" readonly></div>
+      <div><label>PARA KLEJENIA</label><input data-id="${it.id}" data-field="gluePair" value="${esc(it.gluePair||"")}" placeholder="np. KLEJ-01" ${it.technology==="STANDARD"?"disabled":""}></div>
+      <div class="inline-check"><input type="checkbox" data-id="${it.id}" data-field="isFront" ${it.isFront?"checked":""}><label>FRONT — cięcie ze słoja</label></div>
+    </div>
+    <div class="edge-box" style="margin-top:10px"><strong>Oklejanie krawędzi</strong><div class="edge-grid">
+      <div><label>GÓRA (${it.width} mm)</label><select data-id="${it.id}" data-edge="top">${edgeOptions(it.edges.top)}</select></div>
+      <div><label>DÓŁ (${it.width} mm)</label><select data-id="${it.id}" data-edge="bottom">${edgeOptions(it.edges.bottom)}</select></div>
+      <div><label>LEWA (${it.length} mm)</label><select data-id="${it.id}" data-edge="left">${edgeOptions(it.edges.left)}</select></div>
+      <div><label>PRAWA (${it.length} mm)</label><select data-id="${it.id}" data-edge="right">${edgeOptions(it.edges.right)}</select></div>
+    </div></div>
+    <div class="item-services">
+      <div><label>Frez HDF — długość [mm]</label><input type="number" min="0" data-id="${it.id}" data-field="hdfLength" value="${it.hdfLength}"></div>
+      <div><label>Frez HDF — ilość / element</label><input type="number" min="0" data-id="${it.id}" data-field="hdfQty" value="${it.hdfQty}"></div>
+      <div><label>Frez LED — długość [mm]</label><input type="number" min="0" data-id="${it.id}" data-field="ledLength" value="${it.ledLength}"></div>
+      <div><label>Frez LED — ilość / element</label><input type="number" min="0" data-id="${it.id}" data-field="ledQty" value="${it.ledQty}"></div>
+      <div><label>Rozcinanie lameli / element</label><input type="number" min="0" data-id="${it.id}" data-field="lamellaCuts" value="${it.lamellaCuts}"></div>
+      <div><label>M² fizyczne z Etapu 2</label><input value="${fmt(it.length*it.width*it.qty/1e6)}" readonly></div>
+      <div><label>Uwagi technologiczne</label><input value="${it.technology==="36MM"?"INFO 36MM; fizyczne elementy z Etapu 2; powierzchnia sumowana; bez ponownego ×2":it.technology==="28MM"?"INFO 28MM; fizyczne elementy z Etapu 2; powierzchnia sumowana; bez ponownego ×2":"STANDARD"}" readonly></div>
+    </div>
+  </div>`}).join("");
+}
+function applyTechnologyEdgeRule(item){
+ if(item.technology==="36MM"||item.technology==="28MM"){
+  Object.keys(item.edges).forEach(k=>{if(item.edges[k]!=="BRAK")item.edges[k]="43/2MM"})
+ }else item.gluePair="";
+}
+function validateCatalogProduct(p){return p&&p.id&&p.symbol&&p.structure&&n(p.thickness)>0&&n(p.length)>0&&n(p.width)>0&&n(p.workLength)>0&&n(p.workWidth)>0}
+function validate(){
+ const errors=[],warnings=[],glueGroups=new Map();
+ if(!state.items.length)errors.push("Brak formatek w zamówieniu.");
+ state.items.forEach((it,idx)=>{
+  const no=idx+1,p=getProduct(it.productId);
+  if(!p)errors.push(`Pozycja ${no}: nie wybrano produktu z Katalogu KMS.`);
+  else if(!validateCatalogProduct(p))errors.push(`Pozycja ${no}: produkt katalogowy ma niepełne dane.`);
+  if(n(it.length)<=0||n(it.width)<=0)errors.push(`Pozycja ${no}: długość i szerokość muszą być większe od zera.`);
+  if(n(it.qty)<1)errors.push(`Pozycja ${no}: ilość musi wynosić co najmniej 1.`);
+  if(p){
+    const L=n(it.length),W=n(it.width),fitsNormal=L<=p.workLength&&W<=p.workWidth,fitsRot=p.rotatable&&W<=p.workLength&&L<=p.workWidth;
+    if(!(fitsNormal||fitsRot))errors.push(`Pozycja ${no} (${it.name}): fizyczny wymiar z Etapu 2 ${L} × ${W} mm przekracza pole robocze ${p.workLength} × ${p.workWidth} mm. WYMAGANY PODZIAŁ ELEMENTU.`);
+    if(!fitsNormal&&fitsRot)warnings.push(`Pozycja ${no}: element zmieści się wyłącznie po obrocie.`);
+    if(p.priceStatus!=="POTWIERDZONA PRZEZ ADMINISTRATORA")warnings.push(`Pozycja ${no}: cena produktu ${p.symbol} ${p.structure} jest niepotwierdzona.`);
+  }
+  if(it.technology==="36MM"||it.technology==="28MM"){
+    if(Object.values(it.edges).some(x=>x==="1MM"||x==="2MM"))errors.push(`Pozycja ${no}: dla technologii ${it.technology} wskazane krawędzie muszą używać PCV 43/2MM.`);
+    const pair=(it.gluePair||"").trim();
+    if(!pair)errors.push(`Pozycja ${no}: element ${it.technology} wymaga identyfikatora pary klejenia.`);
+    else{
+      if(!glueGroups.has(pair))glueGroups.set(pair,{technology:it.technology,qty:0,rows:[]});
+      const g=glueGroups.get(pair);g.qty+=n(it.qty);g.rows.push(no);
+      if(g.technology!==it.technology)errors.push(`Para klejenia ${pair}: nie można łączyć technologii ${g.technology} i ${it.technology}.`);
+    }
+  }
+ });
+ glueGroups.forEach((g,pair)=>{
+   if(g.qty<2)errors.push(`Para klejenia ${pair}: wymagane są co najmniej 2 fizyczne elementy z Etapu 2.`);
+   if(g.qty%2!==0)errors.push(`Para klejenia ${pair}: liczba fizycznych elementów (${g.qty}) musi być parzysta — 2 elementy tworzą 1 gotowy element.`);
+ });
+ return {errors,warnings};
+}
+function productionPieces(){
+ const out=[];
+ state.items.forEach((it,itemIndex)=>{
+  const p=getProduct(it.productId);if(!p)return;
+  const L=n(it.length),W=n(it.width);
+  for(let q=1;q<=n(it.qty,1);q++)out.push({id:uid(),itemId:it.id,itemIndex,name:it.name,product:p,length:L,width:W,finishedLength:L,finishedWidth:W,technology:it.technology,gluePair:it.gluePair||"",copy:q,canRotate:!!p.rotatable,placed:null});
+ });
+ return out;
+}
+function isNarrowPiece(piece){return Math.min(n(piece.length),n(piece.width))<=NARROW_ELEMENT_MAX_MM}
+function pieceOrientations(piece,product){
+ const options=[{stripWidth:n(piece.width),runLength:n(piece.length),rotated:false}];
+ if(piece.canRotate&&piece.length!==piece.width)options.push({stripWidth:n(piece.length),runLength:n(piece.width),rotated:true});
+ return options.filter(o=>o.stripWidth<=n(product.workWidth)+1e-9&&o.runLength<=n(product.workLength)+1e-9);
+}
+function orientationCapacity(product,o){
+ const across=Math.floor((n(product.workWidth)+KERF)/(o.stripWidth+KERF));
+ const along=Math.floor((n(product.workLength)+KERF)/(o.runLength+KERF));
+ return Math.max(0,across)*Math.max(0,along);
+}
+function preferredOrientation(piece,product){
+ const options=pieceOrientations(piece,product).map(o=>({...o,capacity:orientationCapacity(product,o)}));
+ options.sort((a,b)=>b.capacity-a.capacity||a.stripWidth-b.stripWidth||b.runLength-a.runLength);
+ return options[0]||null;
+}
+function binUsedWidth(bin){
+ if(!bin.strips.length)return 0;
+ return bin.strips.reduce((sum,s)=>sum+s.width,0)+KERF*(bin.strips.length-1);
+}
+function stripRemainingLength(strip,product){return n(product.workLength)-n(strip.usedLength)}
+function canAppendToStrip(strip,o,product){
+ if(Math.abs(strip.width-o.stripWidth)>.05)return false;
+ const needed=(strip.pieces.length?KERF:0)+o.runLength;
+ return needed<=stripRemainingLength(strip,product)+1e-9;
+}
+function canCreateStrip(bin,o,product){
+ const needed=(bin.strips.length?KERF:0)+o.stripWidth;
+ return binUsedWidth(bin)+needed<=n(product.workWidth)+1e-9;
+}
+function placementCandidateScore(candidate){
+ return [
+  candidate.kind,
+  -candidate.capacity,
+  candidate.remainingPrimary,
+  candidate.remainingSecondary,
+  candidate.orientation.stripWidth,
+  candidate.binIndex,
+  candidate.stripIndex
+ ];
+}
+function lexicographicLess(a,b){
+ if(!b)return true;
+ const sa=placementCandidateScore(a),sb=placementCandidateScore(b);
+ for(let i=0;i<sa.length;i++){
+  if(Math.abs(sa[i]-sb[i])>.1e-9)return sa[i]<sb[i];
+ }
+ return false;
+}
+function findStripPlacement(bins,piece,product){
+ const orientations=pieceOrientations(piece,product);
+ let best=null;
+ bins.forEach((bin,binIndex)=>{
+  orientations.forEach(o=>{
+   const capacity=orientationCapacity(product,o);
+   bin.strips.forEach((strip,stripIndex)=>{
+    if(!canAppendToStrip(strip,o,product))return;
+    const needed=(strip.pieces.length?KERF:0)+o.runLength;
+    const candidate={kind:0,binIndex,stripIndex,orientation:o,capacity,remainingPrimary:stripRemainingLength(strip,product)-needed,remainingSecondary:n(product.workWidth)-binUsedWidth(bin)};
+    if(lexicographicLess(candidate,best))best=candidate;
+   });
+   if(canCreateStrip(bin,o,product)){
+    const needed=(bin.strips.length?KERF:0)+o.stripWidth;
+    const candidate={kind:1,binIndex,stripIndex:-1,orientation:o,capacity,remainingPrimary:n(product.workWidth)-binUsedWidth(bin)-needed,remainingSecondary:n(product.workLength)-o.runLength};
+    if(lexicographicLess(candidate,best))best=candidate;
+   }
+  });
+ });
+ return best;
+}
+function appendPieceToStrip(bin,strip,piece,o){
+ const y=strip.usedLength+(strip.pieces.length?KERF:0);
+ strip.pieces.push({piece,y,runLength:o.runLength,rotated:o.rotated});
+ strip.usedLength=y+o.runLength;
+ bin.used.push(piece);
+}
+function createStripForPiece(bin,piece,o){
+ const strip={width:o.stripWidth,usedLength:0,pieces:[],x:0,narrow:isNarrowPiece(piece)};
+ bin.strips.push(strip);
+ appendPieceToStrip(bin,strip,piece,o);
+}
+function stripBlockWidth(strips){return strips.length?strips.reduce((sum,s)=>sum+s.width,0)+KERF*(strips.length-1):0}
+function arrangeStripsForNarrowCenter(bin,product){
+ const normal=bin.strips.filter(s=>!s.narrow);
+ const narrow=bin.strips.filter(s=>s.narrow);
+ let ordered=[...bin.strips];
+ if(narrow.length){
+  const narrowWidth=stripBlockWidth(narrow),boardCenter=n(product.workWidth)/2;
+  let bestIndex=0,bestDistance=Infinity;
+  for(let i=0;i<=normal.length;i++){
+   const left=stripBlockWidth(normal.slice(0,i));
+   const start=left+(i>0?KERF:0);
+   const center=start+narrowWidth/2;
+   const distance=Math.abs(center-boardCenter);
+   if(distance<bestDistance){bestDistance=distance;bestIndex=i}
+  }
+  ordered=[...normal.slice(0,bestIndex),...narrow,...normal.slice(bestIndex)];
+ }
+ let x=0;
+ ordered.forEach((strip,index)=>{
+  strip.x=x;
+  strip.pieces.forEach(entry=>{
+   const piece=entry.piece;
+   const actualW=strip.width,actualH=entry.runLength;
+   piece.placed={board:bin.no,x,y:entry.y,w:actualW,h:actualH,rotated:entry.rotated,stripOptimized:true,narrowElement:isNarrowPiece(piece),centerPreferenceApplied:isNarrowPiece(piece)};
+  });
+  x+=strip.width+(index<ordered.length-1?KERF:0);
+ });
+ bin.strips=ordered;
+ bin.usedWidth=stripBlockWidth(ordered);
+}
+function packGroup(pieces,product){
+ // SILNIK 0.7: dwuetapowa optymalizacja gilotynowa pod piłę panelową.
+ // 1) elementy tego samego materiału są grupowane w pasy według szerokości cięcia,
+ // 2) gotowe pasy są pakowane na arkusze z priorytetem najmniejszego niedomiaru,
+ // 3) całość działa na pełnej liście fizycznych elementów, także 2000+ sztuk.
+ const oriented=[];
+ pieces.forEach(piece=>{
+  const o=preferredOrientation(piece,product);
+  if(!o)throw new Error(`Element ${piece.name} nie mieści się na produkcie ${product.symbol} ${product.structure}.`);
+  oriented.push({piece,stripWidth:o.stripWidth,runLength:o.runLength,rotated:o.rotated});
+ });
+
+ // Grupowanie szerokości pasów z tolerancją 0,1 mm.
+ const widthGroups=new Map();
+ oriented.forEach(entry=>{
+  const key=(Math.round(entry.stripWidth*10)/10).toFixed(1);
+  if(!widthGroups.has(key))widthGroups.set(key,[]);
+  widthGroups.get(key).push(entry);
+ });
+
+ const strips=[];
+ [...widthGroups.entries()]
+  .sort((a,b)=>Number(b[0])-Number(a[0]))
+  .forEach(([key,entries])=>{
+   entries.sort((a,b)=>b.runLength-a.runLength||b.piece.length*b.piece.width-a.piece.length*a.piece.width||String(a.piece.name).localeCompare(String(b.piece.name),'pl'));
+   const local=[];
+   entries.forEach(entry=>{
+    let bestIndex=-1,bestRemaining=Infinity;
+    for(let i=0;i<local.length;i++){
+     const strip=local[i];
+     const needed=(strip.pieces.length?KERF:0)+entry.runLength;
+     const remaining=n(product.workLength)-strip.usedLength-needed;
+     if(remaining>=-1e-9&&remaining<bestRemaining){bestRemaining=remaining;bestIndex=i;if(remaining<0.01)break}
+    }
+    if(bestIndex<0){
+     const strip={width:entry.stripWidth,usedLength:0,pieces:[],x:0,narrow:isNarrowPiece(entry.piece)};
+     local.push(strip);bestIndex=local.length-1;
+    }
+    const strip=local[bestIndex];
+    const y=strip.usedLength+(strip.pieces.length?KERF:0);
+    strip.pieces.push({piece:entry.piece,y,runLength:entry.runLength,rotated:entry.rotated});
+    strip.usedLength=y+entry.runLength;
+    strip.narrow=strip.narrow||isNarrowPiece(entry.piece);
+   });
+   strips.push(...local);
+  });
+
+ // Pakowanie pasów na arkusze: Best-Fit Decreasing po szerokości pasa.
+ strips.sort((a,b)=>b.width-a.width||b.usedLength-a.usedLength);
+ const bins=[];
+ strips.forEach(strip=>{
+  let bestBin=-1,bestRemaining=Infinity;
+  for(let i=0;i<bins.length;i++){
+   const bin=bins[i];
+   const needed=(bin.strips.length?KERF:0)+strip.width;
+   const remaining=n(product.workWidth)-binUsedWidth(bin)-needed;
+   if(remaining>=-1e-9&&remaining<bestRemaining){bestRemaining=remaining;bestBin=i;if(remaining<0.01)break}
+  }
+  if(bestBin<0){
+   bins.push({no:bins.length+1,strips:[],used:[],product,usedWidth:0});
+   bestBin=bins.length-1;
+  }
+  const bin=bins[bestBin];
+  bin.strips.push(strip);
+  strip.pieces.forEach(entry=>bin.used.push(entry.piece));
+ });
+
+ bins.forEach(bin=>arrangeStripsForNarrowCenter(bin,product));
+ verifyPackedBins(bins,product,pieces.length);
+ return bins;
+}
+function verifyPackedBins(bins,product,expectedCount){
+ const ids=new Set();let count=0;
+ bins.forEach(bin=>{
+  if(binUsedWidth(bin)>n(product.workWidth)+0.1)throw new Error(`Kontrola rozkroju: przekroczono szerokość pola roboczego na płycie ${bin.no}.`);
+  bin.strips.forEach(strip=>{
+   if(strip.usedLength>n(product.workLength)+0.1)throw new Error(`Kontrola rozkroju: przekroczono długość pola roboczego na płycie ${bin.no}.`);
+   strip.pieces.forEach(entry=>{
+    const piece=entry.piece,r=piece.placed;count++;
+    if(ids.has(piece.id))throw new Error(`Kontrola rozkroju: element ${piece.name} został rozmieszczony podwójnie.`);
+    ids.add(piece.id);
+    if(!r)throw new Error(`Kontrola rozkroju: element ${piece.name} nie otrzymał pozycji.`);
+    if(r.x<-0.1||r.y<-0.1||r.x+r.w>n(product.workWidth)+0.1||r.y+r.h>n(product.workLength)+0.1)throw new Error(`Kontrola rozkroju: element ${piece.name} wychodzi poza pole robocze płyty ${bin.no}.`);
+   });
+  });
+ });
+ if(count!==expectedCount)throw new Error(`Kontrola rozkroju: rozmieszczono ${count} z ${expectedCount} elementów.`);
+}
+
+function roundDim(v){return Math.max(0,Math.round(n(v)*10)/10)}
+function wasteRecordId(product,boardNo,type,index){
+ const order=(orderNo.value||"BEZ-ZLECENIA").replace(/[^A-Z0-9_-]/gi,"_");
+ const material=(product.symbol||"MATERIAL").replace(/[^A-Z0-9_-]/gi,"_");
+ return `ODP-${order}-${material}-P${boardNo}-${type}-${index}`;
+}
+function buildWasteModuleTransfer(groups){
+ const records=[];
+ groups.forEach(group=>group.bins.forEach(bin=>{
+  const p=group.product,fullLength=n(p.length,BOARD_FULL_L),fullWidth=n(p.width,BOARD_FULL_W);
+  bin.wasteRecords=[];
+  if(!bin.used.length)return;
+  const candidates=[];
+  const usedWidth=roundDim(bin.usedWidth||stripBlockWidth(bin.strips||[]));
+  const sideWidth=roundDim(fullWidth-usedWidth-KERF);
+  if(sideWidth>0){
+   candidates.push({type:"BOCZNY_PEŁNA_DŁUGOŚĆ",length:roundDim(fullLength),width:sideWidth,rect:{x:roundDim(usedWidth+KERF),y:0,w:sideWidth,h:roundDim(fullLength)},note:"Odpad zachowuje fizyczną długość pełnej płyty 2800 mm; bez brzegowania odpadu."});
+  }
+  (bin.strips||[]).forEach((strip,stripIndex)=>{
+   const endLength=roundDim(fullLength-n(strip.usedLength)-KERF);
+   if(endLength>0&&strip.width>0){
+    candidates.push({type:"KONIEC_PASA",length:endLength,width:roundDim(strip.width),rect:{x:roundDim(strip.x),y:roundDim(strip.usedLength+KERF),w:roundDim(strip.width),h:endLength},note:`Fizyczny prostokątny odpad na końcu pasa ${stripIndex+1}.`});
+   }
+  });
+  candidates.forEach((c,index)=>{
+   const rec={
+    id:wasteRecordId(p,bin.no,c.type,index+1),sourceModule:WASTE_SOURCE_MODULE,targetModule:WASTE_TARGET_MODULE,
+    category:"PŁYTY",process:"CIĘCIE",orderNo:orderNo.value||"",customer:customer.value||"",orderName:orderName.value||"",
+    materialId:p.id,manufacturer:p.manufacturer,material:`${p.symbol} ${p.structure}`,materialName:p.name,thickness:p.thickness,
+    sourceBoardNo:bin.no,type:c.type,length:c.length,width:c.width,areaM2:roundDim(c.length*c.width)/1e6,
+    rotatable:!!p.rotatable,grainLocked:!p.rotatable,physicalBoard:[fullLength,fullWidth],workArea:[p.workLength,p.workWidth],kerf:KERF,
+    physicalDimensions:true,edgeTrimmed:false,currentStatus:WASTE_PLANNED_STATUS,statusAfterCutConfirmation:WASTE_AVAILABLE_STATUS,
+    activationEvent:"POTWIERDZENIE_WYKONANIA_CIĘCIA",automaticTransferReady:AUTO_WASTE_MODULE_TRANSFER,requiresPhysicalConfirmation:true,
+    note:c.note,rect:c.rect,createdAt:new Date().toISOString()
+   };
+   bin.wasteRecords.push(rec);records.push(rec);
+  });
+ }));
+ return records;
+}
+
+function calculateMetrics(groups){
+ const m={finishedM2:0,standardM2:0,productionM2:0,boards:0,edge:{"1MM":0,"2MM":0,"43/2MM":0},hdfSmall:0,hdfLarge:0,ledSmall:0,ledLarge:0,m236:0,m228:0,glue36:0,glue28:0,lamella:0,grain:0};
+ state.items.forEach(it=>{
+  const qty=n(it.qty,1),L=n(it.length),W=n(it.width),area=L*W*qty/1e6;m.finishedM2+=area;
+  if(it.technology==="36MM"){m.m236+=area;m.glue36+=area}
+  else if(it.technology==="28MM"){m.m228+=area;m.glue28+=area}
+  else m.standardM2+=area;
+  const sideLengths={top:W,bottom:W,left:L,right:L};Object.keys(it.edges).forEach(side=>{const t=it.edges[side];if(m.edge[t]!=null)m.edge[t]+=sideLengths[side]*qty/1000});
+  const hq=n(it.hdfQty)*qty;if(hq>0){if(n(it.hdfLength)<=1000)m.hdfSmall+=hq;else m.hdfLarge+=hq}
+  const lq=n(it.ledQty)*qty;if(lq>0){if(n(it.ledLength)<=1000)m.ledSmall+=lq;else m.ledLarge+=lq}
+  m.lamella+=n(it.lamellaCuts)*qty;if(it.isFront)m.grain+=qty;
+ });
+ groups.forEach(g=>{m.boards+=g.bins.length;m.productionM2+=g.pieces.reduce((sum,p)=>sum+p.length*p.width/1e6,0)});m.pieces=groups.reduce((sum,g)=>sum+g.pieces.length,0);return m;
+}
+function buildProforma(metrics){return [
+ {code:"FORMATKI_STANDARD_M2",name:"Cięcie formatek standardowych",qty:metrics.standardM2,unit:"m²",note:"Fizyczne formatki STANDARD z Etapu 2"},
+ {code:"PCV_1MM",name:"Oklejanie PCV 1 MM",qty:metrics.edge["1MM"],unit:"mb",note:"Podział według krawędzi"},
+ {code:"PCV_2MM",name:"Oklejanie PCV 2 MM",qty:metrics.edge["2MM"],unit:"mb",note:"Podział według krawędzi"},
+ {code:"PCV_43_2MM",name:"Oklejanie PCV 43/2 MM",qty:metrics.edge["43/2MM"],unit:"mb",note:"Elementy 36 MM i 28 MM"},
+ {code:"FREZ_HDF_MALY",name:"Frez pod HDF — mały do 1 m",qty:metrics.hdfSmall,unit:"szt.",note:"Długość frezu ≤ 1000 mm"},
+ {code:"FREZ_HDF_DUZY",name:"Frez pod HDF — duży powyżej 1 m",qty:metrics.hdfLarge,unit:"szt.",note:"Długość frezu > 1000 mm"},
+ {code:"FREZ_LED_MALY",name:"Frez LED — mały do 1 m",qty:metrics.ledSmall,unit:"szt.",note:"Długość frezu ≤ 1000 mm"},
+ {code:"FREZ_LED_DUZY",name:"Frez LED — duży powyżej 1 m",qty:metrics.ledLarge,unit:"szt.",note:"Długość frezu > 1000 mm"},
+ {code:"FORMATKI_36MM_M2",name:"Fizyczne formatki do elementów 36 MM",qty:metrics.m236,unit:"m²",note:"Suma rzeczywistych elementów z Etapu 2 — bez ponownego mnożenia ×2"},
+ {code:"KLEJENIE_36MM_M2",name:"Klejenie elementów 36 MM",qty:metrics.glue36,unit:"m²",note:"Powierzchnia wszystkich fizycznych elementów należących do par klejenia"},
+ {code:"FORMATKI_28MM_M2",name:"Fizyczne formatki do elementów 28 MM",qty:metrics.m228,unit:"m²",note:"Suma rzeczywistych elementów z Etapu 2 — bez ponownego mnożenia ×2"},
+ {code:"KLEJENIE_28MM_M2",name:"Klejenie elementów 28 MM",qty:metrics.glue28,unit:"m²",note:"Powierzchnia wszystkich fizycznych elementów należących do par klejenia"},
+ {code:"ROZCINANIE_LAMELI",name:"Rozcinanie lameli",qty:metrics.lamella,unit:"szt.",note:"Według liczby operacji"},
+ {code:"CIECIE_ZE_SLOJA",name:"Cięcie ze słoja",qty:metrics.grain,unit:"front",note:"Liczone od liczby frontów"}
+].filter(x=>x.qty>0)}
+
+function renderServicePrices(){
+ const host=document.getElementById("servicePriceTable");
+ host.innerHTML=SERVICE_DEFS.map(def=>{const price=servicePrices[def.code],ok=n(price)>0;return `<tr><td><b>${esc(def.code)}</b></td><td>${esc(def.name)}</td><td>${esc(def.unit)}</td><td><input class="service-price-input ${ok?"price-ok":"price-missing"}" type="number" min="0" step="0.01" data-service-code="${esc(def.code)}" value="${ok?price:""}" placeholder="PRZYPISZ CENĘ"></td><td>${ok?'<span class="badge green">CENA PRZYPISANA</span>':'<span class="badge red">BRAK CENY</span>'}</td></tr>`}).join("");
+}
+function applyServicePrices(rows){
+ const priced=rows.map(row=>{const price=n(servicePrices[row.code]);return {...row,price:price>0?price:null,value:price>0?row.qty*price:null,priceStatus:price>0?"CENA PRZYPISANA":"BRAK CENY"}});
+ return {rows:priced,missing:priced.filter(row=>!row.price)};
+}
+function showPriceModal(missing){
+ document.getElementById("priceModalList").innerHTML=`<b>Brak ceny dla:</b><ul>${missing.map(x=>`<li>${esc(x.code)} — ${esc(x.name)} (${x.unit})</li>`).join("")}</ul>`;
+ document.getElementById("priceModal").classList.add("open");
+}
+function hidePriceModal(){document.getElementById("priceModal").classList.remove("open")}
+
+function svgBoard(bin){
+ const p=bin.product,fullW=n(p.width,BOARD_FULL_W),fullH=n(p.length,BOARD_FULL_L),scale=Math.min(690/fullW,690/fullH),w=fullW*scale,h=fullH*scale,pad=38;
+ let body=`<rect x="${pad}" y="${pad}" width="${w}" height="${h}" fill="#eef4f8" stroke="#1f4e78" stroke-width="3"/>`;
+ body+=`<rect x="${pad}" y="${pad}" width="${p.workWidth*scale}" height="${p.workLength*scale}" fill="none" stroke="#7a8b99" stroke-width="1.5" stroke-dasharray="7 5"/>`;
+ (bin.wasteRecords||[]).forEach(waste=>{const r=waste.rect,x=pad+r.x*scale,y=pad+r.y*scale,pw=r.w*scale,ph=r.h*scale;body+=`<rect x="${x}" y="${y}" width="${pw}" height="${ph}" fill="#def3e4" stroke="#2f7d4a" stroke-width="1.6" stroke-dasharray="6 4"/><text x="${x+pw/2}" y="${y+ph/2-3}" text-anchor="middle" font-size="10" font-weight="700">ODPAD</text><text x="${x+pw/2}" y="${y+ph/2+11}" text-anchor="middle" font-size="9">${fmt(waste.length,1)}×${fmt(waste.width,1)}</text>`});
+ bin.used.forEach((piece,idx)=>{const r=piece.placed,x=pad+r.x*scale,y=pad+r.y*scale,pw=r.w*scale,ph=r.h*scale;body+=`<rect x="${x}" y="${y}" width="${pw}" height="${ph}" fill="${idx%2?'#fff3d8':'#e6f2ff'}" stroke="#334e68" stroke-width="1.4"/><text x="${x+pw/2}" y="${y+ph/2-4}" text-anchor="middle" font-size="${Math.max(8,Math.min(13,pw/6))}" font-weight="700">${esc(piece.name)}</text><text x="${x+pw/2}" y="${y+ph/2+12}" text-anchor="middle" font-size="10">${piece.length}×${piece.width}${r.rotated?' ↻':''}</text>`});
+ return `<svg class="board-svg" viewBox="0 0 ${w+pad*2} ${h+pad*2+22}">${body}<text x="${pad+w/2}" y="${pad+h+19}" text-anchor="middle" font-size="12" font-weight="700">Płyta fizyczna ${p.length} × ${p.width} mm • pole robocze ${p.workLength} × ${p.workWidth} mm</text></svg>`
+}
+function renderResult(result){
+ const m=result.metrics;document.getElementById("kM2").textContent=fmt(m.finishedM2);document.getElementById("kBoards").textContent=m.boards;document.getElementById("kPieces").textContent=fmt(m.pieces,0);document.getElementById("kTime").textContent=`${fmt(result.optimizationMs||0,0)} ms`;document.getElementById("engineStatus").textContent=`Przetworzono ${fmt(m.pieces,0)} elementów • ${m.boards} płyt • ${fmt(result.optimizationMs||0,0)} ms`;document.getElementById("kEdge1").textContent=`${fmt(m.edge["1MM"])} mb`;document.getElementById("kEdge2").textContent=`${fmt(m.edge["2MM"])} mb`;document.getElementById("kEdge43").textContent=`${fmt(m.edge["43/2MM"])} mb`;document.getElementById("k36").textContent=`${fmt(m.m236)} m²`;document.getElementById("k28").textContent=`${fmt(m.m228)} m²`;document.getElementById("kLamella").textContent=`${fmt(m.lamella,0)} szt.`;document.getElementById("kGrain").textContent=`${fmt(m.grain,0)} frontów`;document.getElementById("kWasteCount").textContent=`${result.wasteModuleTransfer.length} szt.`;document.getElementById("kWasteM2").textContent=`${fmt(result.wasteModuleTransfer.reduce((sum,w)=>sum+w.areaM2,0))} m²`;
+ document.getElementById("proformaTable").innerHTML=result.proforma.map(x=>`<tr><td>${x.code}</td><td>${x.name}</td><td><b>${x.unit==="m²"||x.unit==="mb"?fmt(x.qty):fmt(x.qty,0)}</b></td><td>${x.unit}</td><td>${x.price?`${fmt(x.price,2)} zł`:"—"}</td><td>${x.value?`<b>${fmt(x.value,2)} zł</b>`:"—"}</td><td>${x.price?'<span class="badge green">CENA PRZYPISANA</span>':'<span class="badge red">BRAK CENY</span>'}</td><td>${x.note}</td></tr>`).join("")||'<tr><td colspan="8">Brak usług wynikowych.</td></tr>';
+ document.getElementById("supplierTable").innerHTML=result.groups.map(g=>{const p=g.product,used=g.pieces.reduce((s,x)=>s+x.length*x.width,0),capacity=g.bins.length*p.workLength*p.workWidth,util=capacity?used/capacity*100:0;return `<tr><td>${esc(p.id)}</td><td><b>${esc(p.symbol)} ${esc(p.structure)}</b><br>${esc(p.name)}</td><td>${p.thickness} mm</td><td>${p.length} × ${p.width}</td><td>${p.workLength} × ${p.workWidth}</td><td>${p.rotatable?"OBROTOWA":"NIEOBROTOWA"}</td><td>${fmt(used/1e6)} m²</td><td><b>${g.bins.length}</b></td><td>${fmt(util,1)}%</td><td>${esc(p.priceStatus)}</td></tr>`}).join("");
+ document.getElementById("layouts").innerHTML=result.groups.map(g=>{const shown=g.bins.slice(0,MAX_BOARD_PREVIEW),hidden=Math.max(0,g.bins.length-shown.length);return `<div class="material-result"><div class="material-head"><div><h3>${esc(g.product.symbol)} ${esc(g.product.structure)} — ${g.product.thickness} mm</h3><div class="note">${esc(g.product.name)} • ${g.product.rotatable?"OBROTOWA":"NIEOBROTOWA"}</div></div><span class="badge blueb">${g.bins.length} płyt</span></div>${hidden?`<div class="warn-box">Podgląd pokazuje pierwsze ${shown.length} z ${g.bins.length} płyt. Pełny rozkrój znajduje się w wyniku JSON.</div>`:""}<div class="board-grid">${shown.map(bin=>`<div class="board-card"><h4>PŁYTA ${bin.no}</h4><div class="board-meta">Elementy: ${bin.used.length} • rzaz 4,4 mm • optymalizacja pasowa • wąskie ≤ 100 mm: ${bin.used.filter(isNarrowPiece).length} • planowane odpady: ${(bin.wasteRecords||[]).length}</div>${svgBoard(bin)}</div>`).join("")}</div></div>`}).join("");
+ document.getElementById("wasteTable").innerHTML=result.wasteModuleTransfer.slice(0,MAX_WASTE_PREVIEW).map(w=>`<tr><td><b>${esc(w.id)}</b></td><td>${esc(w.orderNo)}<br>${esc(w.customer)}</td><td><b>${esc(w.material)}</b><br>${esc(w.materialName)}</td><td>${w.thickness} mm</td><td>PŁYTA ${w.sourceBoardNo}</td><td>${esc(w.type)}</td><td><b>${fmt(w.length,1)} × ${fmt(w.width,1)} mm</b><br><span class="note">pełna płyta ${w.physicalBoard[0]} × ${w.physicalBoard[1]}</span></td><td>${fmt(w.areaM2)} m²</td><td>${w.rotatable?"OBROTOWY":"NIEOBROTOWY / SŁÓJ"}</td><td><span class="badge yellow">${esc(w.currentStatus)}</span></td><td><span class="badge green">${esc(w.statusAfterCutConfirmation)}</span></td></tr>`).join("")||'<tr><td colspan="11">Brak prostokątnych odpadów do przekazania.</td></tr>';
+ const placementById=new Map();result.groups.forEach(g=>g.bins.forEach(b=>b.used.forEach(p=>placementById.set(p.id,p.placed))));
+ const previewPieces=result.groups.flatMap(g=>g.pieces).slice(0,MAX_PIECE_PREVIEW);document.getElementById("piecesTable").innerHTML=previewPieces.map(p=>{const r=placementById.get(p.id);return `<tr><td>${esc(p.name)} / ${p.copy}</td><td>${esc(p.product.symbol)} ${esc(p.product.structure)}</td><td>${p.product.thickness}</td><td>${p.finishedLength} × ${p.finishedWidth}</td><td>${p.technology}${p.gluePair?`<br><span class="badge orange">${esc(p.gluePair)}</span>`:""}${isNarrowPiece(p)?`<br><span class="badge blueb">≤ 100 MM — ŚRODEK, JEŚLI MOŻLIWE</span>`:""}</td><td><b>${p.length} × ${p.width}</b></td><td>1</td><td>${r?.board||"—"}</td><td>${r?`${fmt(r.x,1)} / ${fmt(r.y,1)}`:"—"}</td><td>${r?.rotated?"TAK":"NIE"}</td></tr>`}).join("");
+}
+function optimize(showMissingModal=true){
+ const started=performance.now();
+ const v=validate(),val=document.getElementById("validation");
+ document.getElementById("engineStatus").textContent="Optymalizacja w toku…";
+ if(v.errors.length){val.innerHTML=`<div class="error-box"><b>NIEPRAWIDŁOWE INFORMACJE — PROSZĘ O WERYFIKACJĘ ADMINISTRATORA</b><ul>${v.errors.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>${v.warnings.length?`<div class="warn-box"><ul>${v.warnings.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:""}`;state.lastResult=null;clearResults();return}
+ try{
+  const pieces=productionPieces(),map=new Map();pieces.forEach(piece=>{if(!map.has(piece.product.id))map.set(piece.product.id,{product:piece.product,pieces:[]});map.get(piece.product.id).pieces.push(piece)});
+  const groups=[...map.values()].map(g=>({...g,bins:packGroup(g.pieces,g.product)}));
+  const wasteModuleTransfer=buildWasteModuleTransfer(groups),metrics=calculateMetrics(groups),priced=applyServicePrices(buildProforma(metrics));
+  const optimizationMs=performance.now()-started;
+  state.lastResult={groups,metrics,wasteModuleTransfer,proforma:priced.rows,missingServicePrices:priced.missing,priceComplete:priced.missing.length===0,optimizationMs,createdAt:new Date().toISOString()};
+  renderResult(state.lastResult);
+  emitHostResult();
+  if(priced.missing.length){val.innerHTML=`<div class="error-box"><b>ROZKRÓJ WYKONANY — FINALNA PROFORMA ZABLOKOWANA</b><br>PROSZĘ PRZYPISAĆ CENĘ USŁUGI.<ul>${priced.missing.map(x=>`<li>${esc(x.code)} — ${esc(x.name)}</li>`).join("")}</ul></div>${v.warnings.length?`<div class="warn-box" style="margin-top:8px"><ul>${v.warnings.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:""}`;if(showMissingModal)showPriceModal(priced.missing)}
+  else{hidePriceModal();val.innerHTML=`<div class="ok-box"><b>Dane spójne, ceny usług przypisane — rozkrój i proforma gotowe.</b></div>${v.warnings.length?`<div class="warn-box" style="margin-top:8px"><ul>${v.warnings.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:""}`}
+ }catch(err){val.innerHTML=`<div class="error-box"><b>Błąd optymalizacji:</b> ${esc(err.message)}</div>`;state.lastResult=null;clearResults()}
+}
+function clearResults(){["kM2","kBoards","kPieces"].forEach(id=>document.getElementById(id).textContent="0");document.getElementById("kTime").textContent="0 ms";document.getElementById("engineStatus").textContent="Silnik gotowy: 0 elementów";document.getElementById("kEdge1").textContent="0,000 mb";document.getElementById("kEdge2").textContent="0,000 mb";document.getElementById("kEdge43").textContent="0,000 mb";document.getElementById("k36").textContent="0,000 m²";document.getElementById("k28").textContent="0,000 m²";document.getElementById("kLamella").textContent="0 szt.";document.getElementById("kGrain").textContent="0 frontów";document.getElementById("kWasteCount").textContent="0 szt.";document.getElementById("kWasteM2").textContent="0,000 m²";document.getElementById("wasteTable").innerHTML="";document.getElementById("proformaTable").innerHTML="";document.getElementById("supplierTable").innerHTML="";document.getElementById("layouts").innerHTML='<div class="note">Brak wyników.</div>';document.getElementById("piecesTable").innerHTML=""}
+function payload(){return {version:"KMS KREATOR ROZKROJU TEST 0.8 INTEGRATED",constants:{boardFull:[BOARD_FULL_L,BOARD_FULL_W],boardWork:[BOARD_WORK_L,BOARD_WORK_W],kerf:KERF,narrowElementMaxMm:NARROW_ELEMENT_MAX_MM,stripOptimization:STRIP_OPTIMIZATION,reusableOffcutPriority:REUSABLE_OFFCUT_PRIORITY,physicalWasteFromFullBoard:PHYSICAL_WASTE_FROM_FULL_BOARD,automaticWasteModuleTransfer:AUTO_WASTE_MODULE_TRANSFER,wasteLifecycle:"PLANOWANY po optymalizacji; DO WYKORZYSTANIA po potwierdzeniu wykonania cięcia",stripRule:"Dla materiału obrotowego porównaj obie orientacje; buduj pasy wzdłuż 2800 mm i zachowaj największy prostokątny odpad",wasteRule:"Odpad fizyczny licz z pełnej płyty 2800 × 2070 mm; odpad boczny zachowuje długość 2800 mm i nie jest brzegowany",narrowPlacementRule:"W miarę możliwości pośrodku pola roboczego płyty; bez kolizji, zmiany orientacji i zwiększania liczby płyt",gluingRule:"Etap 2 przekazuje fizyczne elementy; bez ponownego mnożenia x2"},order:{orderNo:orderNo.value,customer:customer.value,orderName:orderName.value,date:orderDate.value,operator:operator.value},catalogSnapshot:catalog,servicePrices,items:state.items,result:state.lastResult?{metrics:state.lastResult.metrics,proforma:state.lastResult.proforma,priceComplete:state.lastResult.priceComplete,missingServicePrices:state.lastResult.missingServicePrices,wasteModuleTransfer:state.lastResult.wasteModuleTransfer,supplierOrder:state.lastResult.groups.map(g=>({catalogProductId:g.product.id,material:`${g.product.symbol} ${g.product.structure}`,thickness:g.product.thickness,fullFormat:[g.product.length,g.product.width],workArea:[g.product.workLength,g.product.workWidth],rotatable:g.product.rotatable,boards:g.bins.length,productionM2:g.pieces.reduce((sum,p)=>sum+p.length*p.width/1e6,0)})),layouts:state.lastResult.groups.map(g=>({catalogProductId:g.product.id,boards:g.bins.map(b=>({boardNo:b.no,pieces:b.used.map(p=>({name:p.name,length:p.length,width:p.width,technology:p.technology,gluePair:p.gluePair,x:p.placed.x,y:p.placed.y,rotated:p.placed.rotated,stripOptimized:!!p.placed.stripOptimized,narrowElement:isNarrowPiece(p),centerPreferenceApplied:!!p.placed.centerPreferenceApplied})),plannedWaste:(b.wasteRecords||[]).map(w=>({id:w.id,type:w.type,length:w.length,width:w.width,areaM2:w.areaM2,currentStatus:w.currentStatus,statusAfterCutConfirmation:w.statusAfterCutConfirmation}))}))}))}:null}}
+function download(name,data,type="application/json"){const blob=new Blob([data],{type});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+function updateCatalogCount(){document.getElementById("catalogCount").textContent=`Katalog testowy: ${catalog.length} produktów`}
+function stressTest2000(){
+ const productId="EGGER-W960-ST7-18";
+ const dimensions=[
+  [2700,100],[2400,560],[2100,200],[2000,350],[1800,120],
+  [1500,600],[1300,450],[1200,80],[1100,420],[1000,500],
+  [900,300],[800,250],[740,600],[720,396],[716,596],
+  [650,550],[600,300],[560,500],[450,400],[400,100]
+ ];
+ state.items=dimensions.map((d,index)=>({
+  id:uid(),name:`TEST 2000 — WYMIAR ${index+1}`,productId,length:d[0],width:d[1],qty:100,
+  technology:"STANDARD",gluePair:"",isFront:false,
+  edges:{top:"BRAK",bottom:"BRAK",left:"BRAK",right:"BRAK"},
+  hdfLength:0,hdfQty:0,ledLength:0,ledQty:0,lamellaCuts:0
+ }));
+ orderNo.value="TEST-2000";customer.value="TEST KMS";orderName.value="2000 RÓŻNYCH ELEMENTÓW — W960 ST7";
+ renderItems();
+ requestAnimationFrame(()=>optimize(false));
+}
+function example(){state.items=[
+ {id:uid(),name:"BOK WYSOKI",productId:"EGGER-W960-ST7-18",length:2400,width:560,qty:2,technology:"STANDARD",gluePair:"",isFront:false,edges:{top:"1MM",bottom:"BRAK",left:"1MM",right:"1MM"},hdfLength:2400,hdfQty:1,ledLength:0,ledQty:0,lamellaCuts:0},
+ {id:uid(),name:"FRONT A",productId:"EGGER-H1385-ST40-18",length:716,width:396,qty:4,technology:"STANDARD",gluePair:"",isFront:true,edges:{top:"2MM",bottom:"2MM",left:"2MM",right:"2MM"},hdfLength:0,hdfQty:0,ledLength:716,ledQty:1,lamellaCuts:0},
+ {id:uid(),name:"BOK 36MM — WARSTWA 1",productId:"EGGER-U999-ST7-18",length:740,width:600,qty:1,technology:"36MM",gluePair:"KLEJ-36-01",isFront:false,edges:{top:"43/2MM",bottom:"BRAK",left:"43/2MM",right:"43/2MM"},hdfLength:0,hdfQty:0,ledLength:0,ledQty:0,lamellaCuts:2},
+ {id:uid(),name:"BOK 36MM — WARSTWA 2",productId:"EGGER-U999-ST7-18",length:740,width:600,qty:1,technology:"36MM",gluePair:"KLEJ-36-01",isFront:false,edges:{top:"BRAK",bottom:"BRAK",left:"BRAK",right:"BRAK"},hdfLength:0,hdfQty:0,ledLength:0,ledQty:0,lamellaCuts:0},
+ {id:uid(),name:"BOK 28MM — WARSTWA 1",productId:"EGGER-W960-ST7-18",length:720,width:560,qty:1,technology:"28MM",gluePair:"KLEJ-28-01",isFront:false,edges:{top:"43/2MM",bottom:"BRAK",left:"43/2MM",right:"43/2MM"},hdfLength:0,hdfQty:0,ledLength:0,ledQty:0,lamellaCuts:0},
+ {id:uid(),name:"BOK 28MM — WARSTWA 2",productId:"EGGER-W960-ST7-18",length:720,width:560,qty:1,technology:"28MM",gluePair:"KLEJ-28-01",isFront:false,edges:{top:"BRAK",bottom:"BRAK",left:"BRAK",right:"BRAK"},hdfLength:0,hdfQty:0,ledLength:0,ledQty:0,lamellaCuts:0},
+ {id:uid(),name:"LAMELA",productId:"EGGER-H3730-ST10-18",length:2600,width:120,qty:6,technology:"STANDARD",gluePair:"",isFront:false,edges:{top:"BRAK",bottom:"BRAK",left:"1MM",right:"1MM"},hdfLength:0,hdfQty:0,ledLength:0,ledQty:0,lamellaCuts:1}
+];renderItems();optimize()}
+document.addEventListener("change",e=>{const code=e.target.dataset.serviceCode;if(!code)return;const price=n(e.target.value);servicePrices[code]=price>0?price:null;renderServicePrices();if(state.lastResult)optimize(false)});
+document.addEventListener("change",e=>{const id=e.target.dataset.id,field=e.target.dataset.field;if(!id||!field)return;const it=state.items.find(x=>x.id===id);if(!it)return;if(e.target.type==="checkbox")it[field]=e.target.checked;else if(["qty","length","width","hdfLength","hdfQty","ledLength","ledQty","lamellaCuts"].includes(field))it[field]=Math.max(0,n(e.target.value));else it[field]=e.target.value;if(field==="technology")applyTechnologyEdgeRule(it);state.lastResult=null;renderItems()});
+document.addEventListener("change",e=>{const id=e.target.dataset.id,edge=e.target.dataset.edge;if(id&&edge){const it=state.items.find(x=>x.id===id);if(it){it.edges[edge]=e.target.value;state.lastResult=null}}});
+document.addEventListener("click",e=>{const b=e.target.closest("button[data-action]");if(!b)return;const it=state.items.find(x=>x.id===b.dataset.id);if(!it)return;if(b.dataset.action==="remove")state.items=state.items.filter(x=>x.id!==it.id);if(b.dataset.action==="duplicate"){const c=JSON.parse(JSON.stringify(it));c.id=uid();c.name+=" KOPIA";state.items.splice(state.items.indexOf(it)+1,0,c)}renderItems()});
+addItem.onclick=()=>{state.items.push(emptyItem());renderItems()};loadExample.onclick=example;loadStress2000.onclick=stressTest2000;optimize.onclick=()=>requestAnimationFrame(()=>optimize(true));
+resetAll.onclick=()=>{if(confirm("Wyczyścić kreator rozkroju?")){state={items:[],lastResult:null};catalog=JSON.parse(JSON.stringify(defaultCatalog));servicePrices=Object.fromEntries(SERVICE_DEFS.map(s=>[s.code,null]));renderItems();renderServicePrices();updateCatalogCount();clearResults()}};
+saveLocal.onclick=()=>{localStorage.setItem("kms-cutting-test-070-2000-engine",JSON.stringify(payload()));alert("Zapisano w tej przeglądarce.")};
+loadLocal.onclick=()=>{const raw=localStorage.getItem("kms-cutting-test-070-2000-engine");if(!raw)return alert("Brak zapisu.");const p=JSON.parse(raw);catalog=p.catalogSnapshot||catalog;servicePrices={...servicePrices,...(p.servicePrices||{})};state.items=(p.items||[]).map(it=>({...it,gluePair:it.gluePair||""}));orderNo.value=p.order?.orderNo||"";customer.value=p.order?.customer||"";orderName.value=p.order?.orderName||"";orderDate.value=p.order?.date||"";operator.value=p.order?.operator||"";state.lastResult=null;updateCatalogCount();renderServicePrices();renderItems();optimize()};
+exportJson.onclick=()=>{if(!state.lastResult)optimize();if(!state.lastResult)return;if(!state.lastResult.priceComplete){showPriceModal(state.lastResult.missingServicePrices);return}download(`KMS_ROZKROJ_${(orderNo.value||"TEST").replace(/[^A-Z0-9_-]/gi,"_")}.json`,JSON.stringify(payload(),null,2))};
+exportWasteJson.onclick=()=>{if(!state.lastResult)optimize(false);if(!state.lastResult)return;download(`KMS_ODPADY_PLANOWANE_${(orderNo.value||"TEST").replace(/[^A-Z0-9_-]/gi,"_")}.json`,JSON.stringify({version:"KMS ODPADY TRANSFER 0.8",sourceModule:WASTE_SOURCE_MODULE,targetModule:WASTE_TARGET_MODULE,activationEvent:"POTWIERDZENIE_WYKONANIA_CIĘCIA",records:state.lastResult.wasteModuleTransfer},null,2))};
+downloadCatalogTemplate.onclick=()=>download("KMS_KATALOG_ROZKROJ_SZABLON.json",JSON.stringify({products:[{id:"EGGER-H1385-ST40-18",manufacturer:"EGGER",symbol:"H1385",structure:"ST40",name:"Dąb Casella naturalny",thickness:18,length:2800,width:2070,workLength:2770,workWidth:2040,rotatable:false,priceStatus:"NIEPOTWIERDZONA"}]},null,2));
+importCatalog.onclick=()=>catalogFile.click();catalogFile.onchange=async()=>{const f=catalogFile.files[0];if(!f)return;try{const obj=JSON.parse(await f.text()),arr=Array.isArray(obj)?obj:obj.products;if(!Array.isArray(arr)||!arr.length)throw new Error("Brak tablicy products.");const invalid=arr.filter(x=>!validateCatalogProduct(x));if(invalid.length)throw new Error(`Niepełne dane w ${invalid.length} produktach.`);catalog=arr.map(x=>({...x,thickness:n(x.thickness),length:n(x.length),width:n(x.width),workLength:n(x.workLength),workWidth:n(x.workWidth),rotatable:!!x.rotatable,priceStatus:x.priceStatus||"NIEPOTWIERDZONA"}));state.items.forEach(it=>{if(!getProduct(it.productId))it.productId=""});updateCatalogCount();renderItems();alert(`Zaimportowano ${catalog.length} produktów.`)}catch(err){alert(`Błąd importu katalogu: ${err.message}`)}finally{catalogFile.value=""}};
+function compactHostResult(){
+ if(!state.lastResult)return null;
+ return {
+  version:"KMS_CUTTING_RESULT_0.8",
+  createdAt:state.lastResult.createdAt,
+  order:{orderNo:orderNo.value,customer:customer.value,orderName:orderName.value,date:orderDate.value,operator:operator.value},
+  metrics:JSON.parse(JSON.stringify(state.lastResult.metrics)),
+  optimizationMs:state.lastResult.optimizationMs,
+  priceComplete:state.lastResult.priceComplete,
+  missingServicePrices:JSON.parse(JSON.stringify(state.lastResult.missingServicePrices||[])),
+  supplierOrder:state.lastResult.groups.map(g=>({
+   catalogProductId:g.product.id,manufacturer:g.product.manufacturer,material:`${g.product.symbol} ${g.product.structure}`.trim(),
+   thickness:g.product.thickness,fullFormat:[g.product.length,g.product.width],workArea:[g.product.workLength,g.product.workWidth],
+   rotatable:g.product.rotatable,boards:g.bins.length,productionM2:g.pieces.reduce((sum,p)=>sum+p.length*p.width/1e6,0)
+  })),
+  wasteModuleTransfer:JSON.parse(JSON.stringify(state.lastResult.wasteModuleTransfer||[])),
+  processedPieces:state.lastResult.metrics.pieces,
+  boards:state.lastResult.metrics.boards
+ };
+}
+function emitHost(type,payload){
+ const detail={source:"KMS_CUTTING_MODULE",type,payload};
+ window.dispatchEvent(new CustomEvent(type,{detail}));
+ if(window.parent&&window.parent!==window)window.parent.postMessage(detail,"*");
+}
+function emitHostResult(){const result=compactHostResult();if(result)emitHost("kms:cutting:result",result)}
+function loadStage2Payload(input){
+ const data=input||{};
+ const products=Array.isArray(data.catalog)?data.catalog:[];
+ const rows=Array.isArray(data.items)?data.items:[];
+ if(!products.length)throw new Error("Brak katalogu materiałów z Etapu 2.");
+ catalog=products.map(p=>({
+  id:String(p.id),manufacturer:String(p.manufacturer||"KMS"),symbol:String(p.symbol||p.material||"MATERIAŁ"),structure:String(p.structure||""),
+  name:String(p.name||p.material||"Materiał z Etapu 2"),thickness:n(p.thickness,18),length:n(p.length,BOARD_FULL_L),width:n(p.width,BOARD_FULL_W),
+  workLength:n(p.workLength,n(p.length,BOARD_FULL_L)-30),workWidth:n(p.workWidth,n(p.width,BOARD_FULL_W)-30),rotatable:!!p.rotatable,
+  priceStatus:String(p.priceStatus||"KATALOG KMS")
+ }));
+ state.items=rows.map((it,index)=>({
+  id:uid(),name:String(it.name||it.element||`ELEMENT ${index+1}`),productId:String(it.productId||products[0].id),
+  length:n(it.length),width:n(it.width),qty:Math.max(1,n(it.qty,1)),technology:["36MM","28MM"].includes(String(it.technology||it.rule))?String(it.technology||it.rule):"STANDARD",
+  gluePair:String(it.gluePair||""),isFront:!!it.isFront,
+  edges:{top:String(it.edges?.top||"BRAK"),bottom:String(it.edges?.bottom||"BRAK"),left:String(it.edges?.left||"BRAK"),right:String(it.edges?.right||"BRAK")},
+  hdfLength:n(it.hdfLength),hdfQty:n(it.hdfQty),ledLength:n(it.ledLength),ledQty:n(it.ledQty),lamellaCuts:n(it.lamellaCuts)
+ }));
+ const meta=data.order||{};
+ orderNo.value=String(meta.orderNo||"");customer.value=String(meta.customer||meta.client||"");orderName.value=String(meta.orderName||"ROZKRÓJ Z ETAPU 2");
+ orderDate.value=String(meta.date||new Date().toISOString().slice(0,10));operator.value=String(meta.operator||"KMS");
+ servicePrices={...servicePrices,...(data.servicePrices||{})};state.lastResult=null;
+ updateCatalogCount();renderServicePrices();renderItems();clearResults();
+ requestAnimationFrame(()=>optimize(false));
+ return true;
+}
+window.KMSCuttingModule={
+ version:"0.8-integrated-test",loadStage2Payload,getResult:()=>compactHostResult(),getPayload:()=>payload(),optimize:()=>optimize(false),clear:()=>{state={items:[],lastResult:null};renderItems();clearResults()}
+};
+window.addEventListener("message",event=>{
+ const msg=event.data||{};
+ if(msg.source==="KMS_HOST"&&msg.type==="kms:cutting:load-stage2"){
+  try{loadStage2Payload(msg.payload);emitHost("kms:cutting:loaded",{ok:true,items:state.items.length})}
+  catch(error){emitHost("kms:cutting:error",{message:error.message||String(error)})}
+ }
+});
+document.getElementById("closePriceModal").onclick=()=>{hidePriceModal();document.getElementById("servicePricePanel").scrollIntoView({behavior:"smooth",block:"start"})};
+orderDate.value=new Date().toISOString().slice(0,10);updateCatalogCount();renderServicePrices();
+if(new URLSearchParams(location.search).get("embedded")==="1"){state={items:[],lastResult:null};renderItems();clearResults()}else example();
+setTimeout(()=>emitHost("kms:cutting:ready",{version:"0.8-integrated-test"}),0);
+</script>
+</body>
+</html>

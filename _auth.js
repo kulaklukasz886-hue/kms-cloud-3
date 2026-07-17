@@ -1,64 +1,230 @@
-const SUPABASE_URL=process.env.SUPABASE_URL||'';
-const PUBLIC_KEY=process.env.SUPABASE_ANON_KEY||process.env.SUPABASE_PUBLISHABLE_KEY||'';
-const DB_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||PUBLIC_KEY;
+import {sendCors,requireAuth,fail} from './_auth.js';
+import formidable from 'formidable';
+import fs from 'fs/promises';
+import path from 'path';
+import OpenAI from 'openai';
 
-export function sendCors(res,methods='GET,POST,PUT,DELETE,OPTIONS'){
-  res.setHeader('Access-Control-Allow-Credentials','true');
-  res.setHeader('Access-Control-Allow-Origin','*');
-  res.setHeader('Access-Control-Allow-Methods',methods);
-  res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization, apikey');
+export const config = { api: { bodyParser: false } };
+function parseForm(req){const form=formidable({multiples:false,maxFileSize:25*1024*1024});return new Promise((resolve,reject)=>form.parse(req,(err,fields,files)=>err?reject(err):resolve({fields,files})))}
+function first(v){return Array.isArray(v)?v[0]:v}
+function dataUrl(mime,b64){return `data:${mime||'application/octet-stream'};base64,${b64}`}
+
+let materialCatalogCache=null;
+function normCatalog(v){return String(v||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[._,;:()\[\]-]+/g,' ').replace(/\s+/g,' ').trim()}
+async function loadMaterialCatalog(){
+ if(materialCatalogCache)return materialCatalogCache;
+ const file=path.join(process.cwd(),'data','kms-material-catalog.json');
+ const raw=await fs.readFile(file,'utf8');const parsed=JSON.parse(raw);
+ materialCatalogCache=Array.isArray(parsed.products)?parsed.products:[];return materialCatalogCache
 }
-function bearer(req){
-  const h=String(req.headers?.authorization||'');
-  return h.startsWith('Bearer ')?h.slice(7).trim():'';
+function selectedManufacturerList(raw){
+ try{const arr=JSON.parse(String(raw||'[]'));return [...new Set((Array.isArray(arr)?arr:[]).map(x=>String(x||'').trim()).filter(Boolean))].slice(0,2)}catch{return[]}
 }
-async function jsonFetch(url,options={}){
-  const r=await fetch(url,options); const text=await r.text(); let data=null;
-  try{data=text?JSON.parse(text):null}catch{data=text}
-  if(!r.ok)throw new Error(data?.msg||data?.message||data?.error_description||data?.error||text||`HTTP ${r.status}`);
-  return data;
+function uniqueByLabel(rows){const map=new Map();for(const p of rows){const k=normCatalog(p.materialLabel);if(k&&!map.has(k))map.set(k,p)}return [...map.values()]}
+function productMatchFromText(text,allowed,thickness){
+ const t=normCatalog(text);if(!t)return null;const candidates=[];
+ for(const p of allowed){
+  const symbol=normCatalog(p.symbol),structure=normCatalog(p.structure),label=normCatalog(p.materialLabel),name=normCatalog(p.name);
+  if(label&&t.includes(label))candidates.push(p);
+  else if(symbol&&t.includes(symbol)&&(!structure||t.includes(structure)))candidates.push(p);
+  else if(symbol&&t===symbol)candidates.push(p);
+  else if(name&&name.length>5&&t.includes(name))candidates.push(p);
+ }
+ if(!candidates.length)return null;
+ const labels=uniqueByLabel(candidates);if(labels.length>1){
+  const exactThickness=labels.filter(p=>Math.abs(Number(p.thickness)-Number(thickness))<.2);
+  if(exactThickness.length===1)return exactThickness[0];
+  return null
+ }
+ const sameLabel=candidates.filter(p=>normCatalog(p.materialLabel)===normCatalog(labels[0].materialLabel));
+ return sameLabel.find(p=>Math.abs(Number(p.thickness)-Number(thickness))<.2)||sameLabel[0]
 }
-export async function requireAuth(req,allowedRoles=[]){
-  if(!SUPABASE_URL||!PUBLIC_KEY)throw Object.assign(new Error('Brak konfiguracji Supabase Auth.'),{status:500});
-  const token=bearer(req);
-  if(!token)throw Object.assign(new Error('Wymagane logowanie.'),{status:401});
-  let user;
-  try{
-    user=await jsonFetch(`${SUPABASE_URL.replace(/\/$/,'')}/auth/v1/user`,{headers:{apikey:PUBLIC_KEY,Authorization:`Bearer ${token}`}});
-  }catch(e){throw Object.assign(new Error('Sesja wygasła. Zaloguj się ponownie.'),{status:401})}
-  let rows=[];
-  try{
-    rows=await db(`profiles?id=eq.${encodeURIComponent(user.id)}&select=id,email,full_name,role,active`,{},token);
-  }catch(e){throw Object.assign(new Error('Brak profilu użytkownika. Administrator musi przypisać rolę.'),{status:403})}
-  const profile=Array.isArray(rows)?rows[0]:null;
-  if(!profile||profile.active===false)throw Object.assign(new Error('Konto nieaktywne lub bez przypisanej roli.'),{status:403});
-  const role=String(profile.role||'').toUpperCase();
-  if(allowedRoles.length&&!allowedRoles.map(x=>x.toUpperCase()).includes(role)){
-    throw Object.assign(new Error('Brak uprawnień do tej operacji.'),{status:403});
+function applyCatalogRestriction(parsed,selected,allProducts){
+ const selectedKeys=new Set(selected.map(normCatalog));
+ const allowed=allProducts.filter(p=>selectedKeys.has(normCatalog(p.manufacturer)));
+ const items=Array.isArray(parsed.items)?parsed.items:[];let active=null;
+ const rawMaterials=items.map(x=>String(x.material||''));
+ for(let i=0;i<items.length;i++){
+  const item=items[i];const windowText=rawMaterials.slice(i,i+4).join(' ');
+  const direct=productMatchFromText(windowText,allowed,item.thickness);
+  const currentRaw=String(item.material||'').trim();
+  const hasCodeLike=/\b[A-Z]{1,4}\s*\d{2,6}\b/i.test(currentRaw)||/\b\d{3,6}\b/.test(currentRaw);
+  if(direct)active=direct;else if(hasCodeLike&&currentRaw&&!productMatchFromText(currentRaw,allowed,item.thickness))active=null;
+  if(active){
+   item.material=String(active.materialLabel||'').trim();item.materialCatalogStatus='MATCHED';item.catalogProductId=active.id;item.manufacturer=active.manufacturer;item.materialName=active.name||'';item.catalogRotatable=active.rotatable;item.catalogLength=active.length;item.catalogWidth=active.width
+  }else{
+   const rejected=currentRaw;item.material='';item.materialCatalogStatus='BLOCKED_NOT_IN_CATALOG';item.catalogProductId='';item.manufacturer='';item.uncertain=true;item.notes=[String(item.notes||'').trim(),rejected?`ZABLOKOWANO MATERIAŁ SPOZA KATALOGU: ${rejected}`:'BRAK PEWNEGO MATERIAŁU W WYBRANYM KATALOGU'].filter(Boolean).join(' | ')
   }
-  return{token,user,profile:{...profile,role}};
+ }
+ parsed.selectedManufacturers=selected;
+ parsed.catalogValidation={selectedManufacturers:selected,allowedProducts:allowed.length,blockedItems:items.filter(x=>x.materialCatalogStatus!=='MATCHED').length};
+ return parsed
 }
-export async function db(path,options={},userToken=''){
-  if(!SUPABASE_URL||!DB_KEY)throw new Error('Brak konfiguracji Supabase.');
-  const key=DB_KEY;
-  const auth=process.env.SUPABASE_SERVICE_ROLE_KEY?key:(userToken||key);
-  const r=await fetch(`${SUPABASE_URL.replace(/\/$/,'')}/rest/v1/${path}`,{
-    ...options,
-    headers:{apikey:key,Authorization:`Bearer ${auth}`,'Content-Type':'application/json',Prefer:'return=representation',...(options.headers||{})}
+
+const edge={type:'string',enum:['','1MM','2MM']};
+const schema={type:'object',additionalProperties:false,properties:{
+ orderNo:{type:'string'},client:{type:'string'},rawSummary:{type:'string'},notes:{type:'string'},confidence:{type:'number'},
+ items:{type:'array',items:{type:'object',additionalProperties:false,properties:{
+  element:{type:'string'},material:{type:'string'},length:{type:'number'},width:{type:'number'},qty:{type:'number'},thickness:{type:'number'},
+  edge1:edge,edge2:edge,edge3:edge,edge4:edge,pcvCode:{type:'string'},technology:{type:'string',enum:['STANDARD','10MM','16MM','36MM','ZBIORCZY_2','28MM','FRONTY_SLOJ','LAMELE','INNE']},info:{type:'string'},notes:{type:'string'},confidence:{type:'number'},uncertain:{type:'boolean'}
+ },required:['element','material','length','width','qty','thickness','edge1','edge2','edge3','edge4','pcvCode','technology','info','notes','confidence','uncertain']}}
+},required:['orderNo','client','rawSummary','notes','confidence','items']};
+const pcvAuditSchema={type:'object',additionalProperties:false,properties:{
+ globalPcv:{type:'string',enum:['','1MM','2MM']},
+ globalPcvUncertain:{type:'boolean'},
+ notes:{type:'string'},
+ rows:{type:'array',items:{type:'object',additionalProperties:false,properties:{
+  row:{type:'number'},
+  length:{type:'number'},
+  width:{type:'number'},
+  qty:{type:'number'},
+  lengthMarks:{type:'number',enum:[0,1,2]},
+  widthMarks:{type:'number',enum:[0,1,2]},
+  uncertain:{type:'boolean'},
+  notes:{type:'string'}
+ },required:['row','length','width','qty','lengthMarks','widthMarks','uncertain','notes']}}
+},required:['globalPcv','globalPcvUncertain','notes','rows']};
+
+
+export default async function handler(req,res){
+ sendCors(res,'GET,POST,OPTIONS');if(req.method==='OPTIONS')return res.status(200).json({ok:true});
+ try{await requireAuth(req,['ADMIN','BIURO']);}catch(e){return fail(res,e,'Brak dostępu do analizy zamówień');}
+ if(req.method==='GET')return res.status(200).json({ok:true,message:'KMS Analiza Zamówień 1→2→3 działa. Użyj POST z plikiem.'});
+ if(req.method!=='POST')return res.status(405).json({ok:false,error:'Only GET and POST allowed'});
+ try{
+  if(!process.env.OPENAI_API_KEY)return res.status(500).json({ok:false,error:'Brak OPENAI_API_KEY w Vercel Environment Variables.'});
+  const {fields,files}=await parseForm(req);const file=first(files.file);if(!file)return res.status(400).json({ok:false,error:'Brak pliku.'});
+  const selectedManufacturers=selectedManufacturerList(first(fields.selectedManufacturers));
+  if(!selectedManufacturers.length)return res.status(400).json({ok:false,error:'Wybierz producenta płyty przed analizą.'});
+  const materialCatalog=await loadMaterialCatalog();
+  const availableManufacturers=new Set(materialCatalog.map(p=>normCatalog(p.manufacturer)));
+  const invalidManufacturers=selectedManufacturers.filter(m=>!availableManufacturers.has(normCatalog(m)));
+  if(invalidManufacturers.length)return res.status(400).json({ok:false,error:`Nieprawidłowy producent: ${invalidManufacturers.join(', ')}`});
+  const bytes=await fs.readFile(file.filepath);const mime=String(file.mimetype||'application/octet-stream').toLowerCase();
+  const fileName=String(file.originalFilename||'zamowienie');
+  const spreadsheetText=String(first(fields.spreadsheetText)||'').slice(0,120000);
+  const isSpreadsheet=/\.(xlsx|xls|csv)$/i.test(fileName)||mime.includes('spreadsheet')||mime.includes('excel')||mime==='text/csv';
+  let sourcePart=null;
+  if(isSpreadsheet){
+   if(!spreadsheetText.trim())return res.status(400).json({ok:false,error:'Nie udało się odczytać treści arkusza Excel/CSV w przeglądarce.'});
+  }else if(mime==='application/pdf'||/\.pdf$/i.test(fileName)){
+   sourcePart={type:'input_file',filename:fileName,file_data:dataUrl(mime,bytes.toString('base64'))};
+  }else if(mime.startsWith('image/')){
+   sourcePart={type:'input_image',image_url:dataUrl(mime,bytes.toString('base64')),detail:'original'};
+  }else{
+   return res.status(400).json({ok:false,error:'Obsługiwane pliki: zdjęcia, PDF, XLSX, XLS i CSV.'});
+  }
+  const client=new OpenAI({apiKey:process.env.OPENAI_API_KEY});
+  const prompt=`Jesteś modułem KMS — ETAP 1: wierne mapowanie zamówienia klienta z odręcznej rozpiski, zdjęcia lub PDF.
+
+NADRZĘDNE ZASADY:
+0. WYBRANI PRODUCENCI: ${selectedManufacturers.join(' + ')}. Materiał może pochodzić wyłącznie z katalogu tych producentów. Nie twórz symbolu, którego nie widzisz na źródle. Fragmenty symbolu, struktury i nazwy rozłożone w kolejnych wierszach traktuj jako opis jednego materiału i dziedzicz go do następnego prawidłowego symbolu.
+1. Przepisz dane 1:1. Na Etapie 1 nie stosuj zmian technologicznych i nie poprawiaj wymiarów klienta.
+2. Zachowaj pełny symbol materiału dokładnie tak, jak jest zapisany. Nie skracaj i nie zgaduj dekoru.
+3. Długość zapisuj jako pierwszy wymiar, szerokość jako drugi. Wszystkie wymiary w mm.
+4. Ilość, grubość i każdą krawędź do oklejania odczytaj oddzielnie.
+5. Zapis „2570 × 800 × 1” oznacza: długość 2570, szerokość 800, ILOŚĆ 1. Ostatnie „×1”, „×2”, „x1”, „x2” jest zawsze ilością — NIGDY grubością PCV.
+6. Kreski technologiczne mogą być narysowane NAD, POD albo bezpośrednio przy cyfrze wymiaru. Są częścią zamówienia i muszą być odczytane osobno dla każdego wymiaru.
+7. Pierwszy wymiar to długość:
+   - jedna kreska przy pierwszym wymiarze = edge1,
+   - dwie kreski przy pierwszym wymiarze = edge1 i edge2.
+8. Drugi wymiar to szerokość:
+   - jedna kreska przy drugim wymiarze = edge3,
+   - dwie kreski przy drugim wymiarze = edge3 i edge4.
+9. Ogólna notatka „PCV 1MM” lub „PCV 2MM” określa typ obrzeża. Zastosuj ten typ WYŁĄCZNIE do krawędzi wskazanych kreskami. Sama notatka PCV bez kresek nie tworzy żadnej krawędzi.
+10. Brak kreski przy danym wymiarze oznacza brak oklejania na krawędziach tego wymiaru.
+11. Ostatnie „×1” lub „×2” oznacza wyłącznie ilość sztuk i nigdy nie może zmienić PCV ani liczby kresek.
+12. Szczególnie dokładnie rozróżniaj ręcznie zapisane cyfry 9, 8 i 5. Przed zwróceniem wyniku wykonaj ponowne porównanie każdej wartości zawierającej 9 ze zdjęciem. Nie zamieniaj 90 na 80 ani 50. Jeśli znak pozostaje niepewny, ustaw uncertain=true zamiast zgadywać.
+13. Grubość ustala KMS, nie odczyt AI: zwykła płyta = 18 mm; oznaczenie 10MM = 10 mm; oznaczenie 16MM = 16 mm; oznaczenie 28MM = 28 mm; oznaczenie 36MM = 36 mm. Nie pobieraj grubości z końcowego x1/x2 ani z opisu PCV.
+14. Nie wymyślaj kodu PCV. Przepisz go tylko, gdy występuje.
+15. technology jest jedynie sugestią do późniejszej kontroli: 10MM, 16MM, 36MM, 28MM, element zbiorczy, fronty ze słojem, lamele, inne; nie przeliczaj jeszcze wymiarów.
+16. Jeżeli cokolwiek jest nieczytelne, wpisz 0 lub pusty tekst, opisz problem w notes, ustaw uncertain=true i obniż confidence.
+17. Każdy osobny wiersz/element zamówienia zwróć jako osobną pozycję.
+
+Dane podane przez pracownika (mogą być puste): nr zlecenia: ${first(fields.orderNo)||''}; klient: ${first(fields.client)||''}.
+Zwróć wyłącznie JSON zgodny ze schematem.`;
+  const content=[{type:'input_text',text:prompt}];
+  if(isSpreadsheet)content.push({type:'input_text',text:`ŹRÓDŁO: ARKUSZ EXCEL/CSV ${fileName}\nKolumny i wiersze zostały odczytane z pliku. Zachowaj każdy wiersz 1:1.\n\n${spreadsheetText}`});
+  else content.push(sourcePart);
+  const model=process.env.OPENAI_MODEL||'gpt-5.6-sol';
+  const response=await client.responses.create({model,input:[{role:'user',content}],text:{format:{type:'json_schema',name:'kms_order_stage1',schema,strict:true}}});
+  let parsed=JSON.parse(response.output_text);
+
+  // Drugi, niezależny przebieg: wyłącznie wymiary kontrolne, rodzaj PCV i liczba kresek.
+  let pcvAudit=null;
+  if(!isSpreadsheet){
+   const rowsForAudit=(parsed.items||[]).map((x,i)=>({
+    row:i+1,
+    length:Number(x.length)||0,
+    width:Number(x.width)||0,
+    qty:Number(x.qty)||0
+   }));
+   const pcvPrompt=`Jesteś wyspecjalizowanym kontrolerem oznaczeń PCV w KMS.
+Nie wykonujesz ponownie pełnej analizy. Masz sprawdzić TYLKO:
+1. Czy na źródle występuje ogólna adnotacja PCV 1MM albo PCV 2MM.
+2. Ile kresek znajduje się przy PIERWSZYM wymiarze każdego wiersza: 0, 1 albo 2.
+3. Ile kresek znajduje się przy DRUGIM wymiarze każdego wiersza: 0, 1 albo 2.
+4. Kontrolnie popraw długość, szerokość i ilość, szczególnie cyfry 9/8/5.
+
+ZASADY:
+- Kreska może znajdować się NAD cyfrą, POD cyfrą albo bezpośrednio przy cyfrze.
+- Jedna linia oznacza 1 krawędź, dwie równoległe linie oznaczają 2 krawędzie.
+- Pierwszy wymiar = długość. Drugi wymiar = szerokość.
+- Końcowe x1/x2 to ilość, nigdy PCV.
+- Ogólne „PCV 1MM” lub „PCV 2MM” określa grubość obrzeża dla wszystkich zaznaczonych kresek.
+- Nie zwracaj pełnych elementów ani materiałów. Zwróć dokładnie jeden wpis dla każdego podanego wiersza.
+- Jeżeli linia jest wyraźnie widoczna, policz ją; nie kasuj wszystkich oznaczeń tylko dlatego, że pismo jest odręczne.
+- uncertain=true ustaw tylko dla konkretnego wiersza, którego naprawdę nie można rozstrzygnąć.
+
+Wiersze wstępnie odczytane przez pierwszy przebieg:
+${JSON.stringify(rowsForAudit)}`;
+   const auditContent=[{type:'input_text',text:pcvPrompt},sourcePart];
+   const audited=await client.responses.create({
+    model,
+    input:[{role:'user',content:auditContent}],
+    text:{format:{type:'json_schema',name:'kms_pcv_marks_audit',schema:pcvAuditSchema,strict:true}}
+   });
+   pcvAudit=JSON.parse(audited.output_text);
+  }
+
+  const suppliedOrderNo=String(first(fields.orderNo)||'').trim();
+  const suppliedClient=String(first(fields.client)||'').trim();
+  parsed.orderNo=suppliedOrderNo;
+  parsed.client=suppliedClient;
+  const firstPassPcv=(parsed.items||[]).flatMap(x=>[x.edge1,x.edge2,x.edge3,x.edge4]).find(v=>v==='1MM'||v==='2MM')||'';
+  const summaryText=`${parsed.rawSummary||''} ${parsed.notes||''}`.toUpperCase();
+  const summaryPcv=/PCV\s*2\s*MM/.test(summaryText)?'2MM':/PCV\s*1\s*MM/.test(summaryText)?'1MM':'';
+  const globalPcv=pcvAudit?.globalPcv||firstPassPcv||summaryPcv||'';
+  const auditRows=new Map((pcvAudit?.rows||[]).map(r=>[Number(r.row),r]));
+
+  parsed.items=(parsed.items||[]).map((x,i)=>{
+   const text=`${x.element||''} ${x.material||''} ${x.info||''} ${x.notes||''}`.toUpperCase();
+   const fixedThickness=(x.technology==='10MM'||/\b10\s*MM\b/.test(text))?10:(x.technology==='16MM'||/\b16\s*MM\b/.test(text))?16:(x.technology==='36MM'||/\b36\s*MM\b/.test(text))?36:(x.technology==='28MM'||/\b28\s*MM\b/.test(text))?28:18;
+   const audit=auditRows.get(i+1);
+   const lengthMarks=Math.max(0,Math.min(2,Number(audit?.lengthMarks)||0));
+   const widthMarks=Math.max(0,Math.min(2,Number(audit?.widthMarks)||0));
+   const hasMarks=lengthMarks>0||widthMarks>0;
+   const noPcvForMarks=hasMarks&&!globalPcv;
+   const auditNote=String(audit?.notes||'').trim();
+   const combinedNotes=[String(x.notes||'').trim(),auditNote,pcvAudit?.globalPcvUncertain?'Niepewny rodzaj PCV.':'',noPcvForMarks?'Widoczne kreski, ale nie odczytano 1MM/2MM.':''].filter(Boolean).join(' | ');
+   return {
+    ...x,
+    length:Number(audit?.length)||Number(x.length)||0,
+    width:Number(audit?.width)||Number(x.width)||0,
+    qty:Number(audit?.qty)||Number(x.qty)||0,
+    thickness:fixedThickness,
+    edge1:lengthMarks>=1&&globalPcv?globalPcv:'',
+    edge2:lengthMarks>=2&&globalPcv?globalPcv:'',
+    edge3:widthMarks>=1&&globalPcv?globalPcv:'',
+    edge4:widthMarks>=2&&globalPcv?globalPcv:'',
+    notes:combinedNotes,
+    uncertain:!!audit?.uncertain||!!pcvAudit?.globalPcvUncertain||noPcvForMarks
+   }
   });
-  const text=await r.text();let data=null;try{data=text?JSON.parse(text):null}catch{data=text}
-  if(!r.ok)throw new Error(data?.message||data?.error||text||`Supabase HTTP ${r.status}`);
-  return data;
-}
-export async function audit(ctx,action,entityType='',entityId='',details={}){
-  try{
-    await db('audit_logs',{method:'POST',body:JSON.stringify({
-      user_id:ctx.user.id,user_email:ctx.user.email||ctx.profile.email||'',user_name:ctx.profile.full_name||'',role:ctx.profile.role,
-      action,entity_type:entityType,entity_id:String(entityId||''),details
-    })},ctx.token);
-  }catch(e){console.error('audit',e.message)}
-}
-export function fail(res,e,label='Błąd API'){
-  const status=Number(e?.status)||500;
-  return res.status(status).json({ok:false,error:e?.message||label});
+  if(pcvAudit){
+   parsed.notes=[String(parsed.notes||'').trim(),`Kontrola PCV: ${pcvAudit.globalPcv||'nie odczytano'}; ${pcvAudit.notes||''}`].filter(Boolean).join(' | ');
+  }
+  parsed=applyCatalogRestriction(parsed,selectedManufacturers,materialCatalog);
+  return res.status(200).json(parsed);
+ }catch(e){console.error(e);return res.status(500).json({ok:false,error:e.message||'Błąd analizy AI',details:'Sprawdź OPENAI_API_KEY, model i logi Vercel.'})}
 }

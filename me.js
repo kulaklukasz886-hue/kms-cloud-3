@@ -1,6 +1,3 @@
-import {sendCors,requireAuth,fail} from './_auth.js';
-export default async function handler(req,res){
- sendCors(res,'GET,OPTIONS'); if(req.method==='OPTIONS')return res.status(200).json({ok:true});
- try{if(req.method!=='GET')return res.status(405).json({ok:false,error:'Only GET allowed'});const ctx=await requireAuth(req);return res.status(200).json({ok:true,user:{id:ctx.user.id,email:ctx.user.email},profile:ctx.profile})}
- catch(e){return fail(res,e,'Błąd profilu')}
-}
+import {sendCors,requireAuth,db,audit,fail} from './_auth.js';
+const ALL=['ADMIN','BIURO','KOORDYNACJA','PILA','OKLEINIARKA','CNC','MONTAZ','PRODUKCJA'];
+export default async function handler(req,res){sendCors(res,'GET,POST,OPTIONS');if(req.method==='OPTIONS')return res.status(200).json({ok:true});try{const ctx=await requireAuth(req,ALL);if(req.method==='GET')return res.status(200).json({ok:true,data:await db('materials?select=*',{},ctx.token)});if(req.method==='POST'){const data=await db('materials',{method:'POST',body:JSON.stringify(req.body)},ctx.token);await audit(ctx,'MATERIALS_CREATE','materials','',{});return res.status(200).json({ok:true,data})}return res.status(405).json({ok:false,error:'Only GET and POST allowed'})}catch(e){return fail(res,e,'Błąd API materials')}}

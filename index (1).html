@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="kms-module" content="MEBLE_KMS">
+<meta name="kms-module-version" content="0.2.0-integrated-test">
+<title>Meble KMS — Inteligentna Szafka TEST 0.2.0 — INTEGRACJA KMS</title>
+<link rel="stylesheet" href="assets/kms-meble.css">
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="header-brand">
+    <img class="brand-logo" src="assets/logo-inteligentna-szafa.svg" alt="Inteligentna Szafa — jedna baza, nieskończone możliwości">
+    <div class="header-copy"><h1>Meble KMS — Moduł Meble</h1><div class="subtitle">Katalog → model → ilość → gotowe</div></div>
+  </div>
+  <div class="header-actions">
+    <a class="author-doc" href="docs/INTELIGENTNA_SZAFA_25_LAT_DOSWIADCZENIA_LUKASZA_KULAKA.pdf" target="_blank" rel="noopener" title="Dokument autorski Łukasza Kułaka">25 lat doświadczenia</a>
+    <div class="version">MODUŁ TEST 0.2.0 • KMS 2.8.0</div>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <div class="section-title"><b>1. Wybierz podkatalog</b><span>prosty podział modeli</span></div>
+    <div class="catalogs" id="catalogs"></div>
+  </section>
+
+  <section class="card" style="margin-top:10px">
+    <div class="section-title"><b>2. Wybierz model</b><span>przesuń palcem</span></div>
+    <div class="model-strip" id="modelStrip"></div>
+  </section>
+
+  <section class="card quick-card">
+    <div class="quick-head">
+      <div><h2 id="selectedName"></h2><div class="dimline" id="selectedDims"></div></div>
+      <span id="selectedState" class="badge ok">GOTOWY STANDARD</span>
+    </div>
+    <div id="smartBrand" class="smart-brand" hidden>
+      <img src="assets/logo-inteligentna-szafa.svg" alt="Logo Inteligentna Szafa">
+      <div><b>Inteligentna Szafa</b><span>Blokujesz wybrane miejsce. Reszta dopasowuje się automatycznie.</span><a class="smart-doc-link" href="docs/INTELIGENTNA_SZAFA_25_LAT_DOSWIADCZENIA_LUKASZA_KULAKA.pdf" target="_blank" rel="noopener">Dokument: 25 lat doświadczenia Łukasza Kułaka</a></div>
+    </div>
+    <div class="quick-grid">
+      <div class="field"><label>Ilość identycznych szafek</label>
+        <div class="qty"><button id="qtyMinus">−</button><input id="qty" type="number" min="1" max="999" value="1"><button id="qtyPlus">+</button></div>
+      </div>
+      <div class="field"><label>PCV</label><select disabled><option>1MM</option></select></div>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="openDetails">Edytuj szczegóły</button>
+      <button class="btn primary" id="addModel">Dodaj do zamówienia</button>
+    </div>
+  </section>
+
+  <section class="card order">
+    <div class="section-title"><b>3. Twoje zamówienie</b><span id="configCount">0 konfiguracji</span></div>
+    <div id="orderList" class="empty">Wybierz pierwszy model i dodaj go do zestawu.</div>
+    <div class="summary"><span>Łączna liczba szafek</span><b id="cabinetTotal">0 szt.</b></div>
+  </section>
+</main>
+</div>
+
+<div class="sticky">
+  <div class="sticky-inner">
+    <div class="sticky-info"><b id="stickyTotal">ZAMÓWIENIE: 0 SZAFEK</b><span id="stickyWarn">Dodaj pierwszy model</span></div>
+    <button class="btn green" id="nextBtn" disabled>Przejdź dalej</button>
+  </div>
+</div>
+
+<div class="modal" id="editModal">
+  <div class="sheet">
+    <div class="sheet-head"><div><b id="editTitle">Edycja szafki</b><div class="subtitle" id="editSubtitle"></div></div><button class="btn ghost" data-close="editModal">✕</button></div>
+    <div class="sheet-body">
+      <div id="dimensionArea" class="locked">
+        <div class="edit-grid">
+          <div class="field"><label>Wysokość [mm]</label><input id="editH" type="number"></div>
+          <div class="field"><label>Szerokość [mm]</label><input id="editW" type="number"></div>
+          <div class="field"><label>Głębokość z frontem [mm]</label><input id="editD" type="number"></div>
+        </div>
+        <div class="edit-grid" style="margin-top:8px">
+          <div class="field"><label>PCV</label><select id="editPcv"><option value="1MM">PCV 1MM — standard</option><option value="2MM">PCV 2MM — wyjątek</option></select></div>
+          <div class="field"><label>Ilość sztuk</label><input id="editQty" type="number" min="1"></div>
+        </div>
+      </div>
+      <button class="btn" id="unlockEdit" style="width:100%;margin-top:9px">Odblokuj wymiary i PCV</button>
+      <div class="lock-note" id="lockNote">Standard jest zabezpieczony przed przypadkową zmianą.</div>
+
+      <div id="frontCreator" class="front-creator" style="display:none">
+        <div class="front-creator-head brand-front-head"><img src="assets/logo-inteligentna-szafa.svg" alt="Inteligentna Szafa"><div><b>Inteligentny Kreator Frontów</b><div class="subtitle">Szerokość −4 mm • wysokość −4 mm • przerwa 4 mm</div></div></div>
+        <div class="front-actions">
+          <button class="btn primary" id="splitH">Podział poziomy</button>
+          <button class="btn primary" id="splitV">Podział pionowy</button>
+          <button class="btn ghost" id="resetFront" style="grid-column:1/-1">Przywróć 1 front</button>
+        </div>
+        <div class="front-stage-wrap"><div id="frontStage" class="front-stage"></div></div>
+        <div class="front-controls">
+          <div id="selectedFrontInfo" class="notice">Kliknij front, a następnie wybierz podział poziomy albo pionowy.</div>
+          <div class="edit-grid" style="margin-top:8px">
+            <div class="field"><label id="lockLabel">Wymiar wybranego frontu [mm]</label><input id="lockValue" type="number" min="1"></div>
+            <button class="btn orange" id="lockFront">Zablokuj wymiar</button>
+          </div>
+          <div class="front-note">Po zablokowaniu jednego wymiaru pozostały front automatycznie przejmuje resztę. Przy zmianie korpusu zablokowany wymiar zostaje.</div>
+        </div>
+      </div>
+
+      <div class="detail-block"><h3>Rozpiska elementów</h3>
+        <div style="overflow:auto"><table><thead><tr><th>Element</th><th>Wymiar</th><th>Ilość</th><th>PCV</th></tr></thead><tbody id="partsBody"></tbody></table></div>
+      </div>
+      <div id="editWarning" class="notice" style="margin-top:10px;display:none"></div>
+    </div>
+    <div class="sheet-foot"><button class="btn" data-close="editModal">Anuluj</button><button class="btn green" id="saveEdit">Zapisz konfigurację</button></div>
+  </div>
+</div>
+
+<div class="modal" id="servicesModal">
+  <div class="sheet">
+    <div class="sheet-head"><div><b>Przed przejściem do Etapu 1</b><div class="subtitle">Dwa szybkie wybory</div></div><button class="btn ghost" data-close="servicesModal">✕</button></div>
+    <div class="sheet-body">
+      <div class="service"><div><b>Wiercenie szafek</b><small>utworzy usługę i zadania produkcyjne</small></div><div class="switch" data-service="drilling"></div></div>
+      <div class="service"><div><b>Składanie szafek</b><small>utworzy usługę i zadania produkcyjne</small></div><div class="switch" data-service="assembly"></div></div>
+      <div class="notice">Po zatwierdzeniu zestaw trafi do Etapu 1. Dla kuchni dopiszesz tam cokoły i blaty.</div>
+    </div>
+    <div class="sheet-foot"><button class="btn" data-close="servicesModal">Wróć</button><button class="btn green" id="sendStage1">Wyślij do Etapu 1</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="assets/kms-meble.js"></script>
+</body>
+</html>

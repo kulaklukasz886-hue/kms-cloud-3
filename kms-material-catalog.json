@@ -1,0 +1,3 @@
+import {sendCors,requireAuth,db,audit,fail} from './_auth.js';
+const ALL=['ADMIN','BIURO','KOORDYNACJA','PILA','OKLEINIARKA','CNC','MONTAZ','PRODUKCJA'];
+export default async function handler(req,res){sendCors(res,'GET,POST,OPTIONS');if(req.method==='OPTIONS')return res.status(200).json({ok:true});try{const ctx=await requireAuth(req,ALL);if(req.method==='GET')return res.status(200).json({ok:true,data:await db('tasks?select=*',{},ctx.token)});if(req.method==='POST'){const data=await db('tasks',{method:'POST',body:JSON.stringify(req.body)},ctx.token);await audit(ctx,'TASKS_CREATE','tasks','',{});return res.status(200).json({ok:true,data})}return res.status(405).json({ok:false,error:'Only GET and POST allowed'})}catch(e){return fail(res,e,'Błąd API tasks')}}

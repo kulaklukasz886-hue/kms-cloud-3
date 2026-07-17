@@ -1,11 +1,35 @@
-{
-  "version": "2.6.1-test-order-analysis-clean-deploy",
-  "base_version": "2.5.3-parser-admin-fix",
-  "stable_untouched": true,
-  "order_analysis_stage1": true,
-  "order_technology_stage2": true,
-  "csv_stage3": true,
-  "route_to_production": true,
-  "countertop_ai_removed": true,
-  "warning": "TEST ONLY - deploy on separate GitHub branch and separate Vercel project/domain"
-}
+# CHANGELOG
+
+## TEST 0.2.0 — Integracja KMS 2.8.0
+
+- Rozbicie każdej szafki na fizyczne pozycje Etapu 1.
+- Przekazanie danych do głównego KMS przez postMessage.
+- Materiał nie jest zgadywany — każda grupa KORPUS / FRONT / HDF wymaga wyboru z Katalogu KMS.
+- Oryginalny moduł pozostaje TEST.
+
+
+## TEST 0.1.2 - Dokument autorski
+
+- Dodano osobny PDF `Inteligentna Szafa - 25 lat doświadczenia Łukasza Kułaka`.
+- Dokument jest dostępny bezpośrednio z nagłówka programu oraz z karty Inteligentnej Szafy.
+- Dodano metadane autora i źródła wiedzy do manifestu modułu.
+- Dodano plik `docs/AUTOR_I_WIZJA.md`.
+- Moduł pozostaje wyłącznie w wersji TEST.
+
+
+## 0.1.1-test
+- dodano logo „Inteligentna Szafa”
+- logo widoczne w nagłówku modułu
+- logo i hasło pojawiają się przy modelu Inteligentna Szafka
+- logo dodano do nagłówka Kreatora Frontów
+
+# Changelog
+
+## 0.1.0-test
+- wydzielono osobny moduł Meble KMS,
+- dodano manifest i API integracyjne,
+- dodano zdarzenia dla hosta KMS,
+- zachowano katalog Meble kuchenne,
+- dodano katalog Szafy i szafki,
+- dodano Inteligentną szafkę z podziałami frontów i blokowaniem wymiarów,
+- przygotowano payload do Etapu 1.
