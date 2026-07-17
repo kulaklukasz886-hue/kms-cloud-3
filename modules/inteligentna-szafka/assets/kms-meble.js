@@ -1,0 +1,388 @@
+const STORE='kms_module_meble_test_010';
+const MODULE_VERSION='0.1.1-test';
+
+
+const catalogs=[
+ {id:'kitchen',name:'Meble kuchenne'},
+ {id:'storage',name:'Szafy i szafki'}
+];
+
+const models=[
+ {id:'m1',catalog:'kitchen',nr:1,name:'Dolna uchylna',short:'Uchylna',thumb:'one',ready:true,H:720,W:600,D:523,bodyD:505},
+ {id:'m2',catalog:'kitchen',nr:2,name:'Pod zlew',short:'Pod zlew',thumb:'sink',ready:false,H:720,W:600,D:523,bodyD:505},
+ {id:'m3',catalog:'kitchen',nr:3,name:'Dolna szuflady',short:'Szuflady',thumb:'drawers',disabled:true},
+ {id:'m4',catalog:'kitchen',nr:4,name:'Górna 1 front',short:'Górna',thumb:'wall',disabled:true},
+ {id:'m5',catalog:'kitchen',nr:5,name:'Słupek',short:'Słupek',thumb:'tall',disabled:true},
+ {id:'s1',catalog:'storage',nr:1,name:'Inteligentna szafka',short:'Inteligentna',thumb:'smart',ready:true,H:720,W:600,D:523,bodyD:505,intelligent:true}
+];
+
+let state=JSON.parse(localStorage.getItem(STORE)||'null')||{
+ catalog:'kitchen',selected:'m1',qty:1,items:[],services:{drilling:false,assembly:false}
+};
+let editIndex=null,editingUnlocked=false,editDraft=null,selectedLeafId=null;
+
+const $=id=>document.getElementById(id);
+const currentModel=()=>models.find(m=>m.id===state.selected)||models.find(m=>m.catalog===state.catalog&&!m.disabled);
+const totalCabinets=()=>state.items.reduce((s,x)=>s+(+x.qty||0),0);
+const bodyDepth=item=>Math.max(0,(+item.D||523)-18);
+const newLeaf=()=>({id:'n_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8),type:'leaf'});
+const newLayout=()=>newLeaf();
+
+function persist(){localStorage.setItem(STORE,JSON.stringify(state));notifyHost('kms:meble:state-changed',JSON.parse(JSON.stringify(state)))}
+function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',1900)}
+function openModal(id){$(id).classList.add('open')}
+function closeModal(id){$(id).classList.remove('open')}
+
+
+function buildStage1Payload(){
+  return {
+    module:'MEBLE_KMS',
+    version:MODULE_VERSION,
+    createdAt:new Date().toISOString(),
+    items:JSON.parse(JSON.stringify(state.items)),
+    totalCabinets:totalCabinets(),
+    services:JSON.parse(JSON.stringify(state.services)),
+    nextStep:'ETAP 1',
+    requiredStage1Additions: state.catalog==='kitchen' ? ['COKOLY','BLATY'] : []
+  };
+}
+function notifyHost(type,payload){
+  const detail={type,module:'MEBLE_KMS',version:MODULE_VERSION,payload};
+  window.dispatchEvent(new CustomEvent(type,{detail}));
+  if(window.parent && window.parent!==window){
+    window.parent.postMessage({source:'KMS_MEBLE_MODULE',...detail},'*');
+  }
+}
+window.KMSMebleModule={
+  version:MODULE_VERSION,
+  getState:()=>JSON.parse(JSON.stringify(state)),
+  getStage1Payload:()=>buildStage1Payload(),
+  loadState:(next)=>{state=JSON.parse(JSON.stringify(next));persist();render();notifyHost('kms:meble:state-changed',state);},
+  clear:()=>{localStorage.removeItem(STORE);location.reload();},
+  openCatalog:(catalogId)=>{const c=catalogs.find(x=>x.id===catalogId);if(!c)return false;state.catalog=catalogId;const first=models.find(m=>m.catalog===catalogId&&!m.disabled);if(first)state.selected=first.id;persist();render();return true;}
+};
+
+function renderCatalogs(){
+ $('catalogs').innerHTML=catalogs.map(c=>`<button class="catalog ${c.id===state.catalog?'active':''}" data-cat="${c.id}">${c.name}</button>`).join('');
+ document.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{
+   state.catalog=b.dataset.cat;
+   const first=models.find(m=>m.catalog===state.catalog&&!m.disabled);
+   state.selected=first.id;state.qty=1;persist();render();toast(`Otwarty katalog: ${first.catalog==='kitchen'?'Meble kuchenne':'Szafy i szafki'}`);
+ });
+}
+
+function renderModels(){
+ const list=models.filter(m=>m.catalog===state.catalog);
+ $('modelStrip').innerHTML=list.map(m=>`<button class="model ${m.id===state.selected?'active':''} ${m.disabled?'disabled':''}" data-model="${m.id}">
+ <span class="thumb ${m.thumb}"></span><b>${m.nr}. ${m.short}</b><small>${m.disabled?'do rozpisania':m.intelligent?'nieograniczone warianty':m.ready?'standard':'reguła do uzupełnienia'}</small></button>`).join('');
+ document.querySelectorAll('[data-model]').forEach(b=>b.onclick=()=>{
+   const m=models.find(x=>x.id===b.dataset.model);
+   if(m.disabled){toast('Ten model najpierw rozpiszemy razem. KMS nie zgaduje.');return}
+   state.selected=m.id;state.qty=1;persist();render();toast(`Wybrano model ${m.nr}`);
+ });
+}
+
+function renderQuick(){
+ const m=currentModel();
+ $('selectedName').textContent=`${m.catalog==='storage'?'Szafy i szafki':'Meble kuchenne'} • Model ${m.nr} — ${m.name}`;
+ $('selectedDims').textContent=`${m.H} × ${m.W} × ${m.bodyD} mm korpus + front`;
+ $('qty').value=state.qty;
+ $('selectedState').textContent=m.intelligent?'INTELIGENTNA BAZA':m.ready?'GOTOWY STANDARD':'WYMAGA REGUŁY';
+ $('selectedState').className='badge '+((m.ready||m.intelligent)?'ok':'warn');
+ const smartBrand=$('smartBrand');
+ if(smartBrand) smartBrand.hidden=!m.intelligent;
+ $('addModel').textContent=`Dodaj ${state.qty} szt.`;
+}
+
+function makeSnapshot(){
+ const m=currentModel();
+ return {
+   model:m.id,catalog:m.catalog,nr:m.nr,name:m.name,H:m.H,W:m.W,D:m.D,pcv:'1MM',
+   qty:Math.max(1,+state.qty||1),custom:false,intelligent:!!m.intelligent,
+   frontLayout:m.intelligent?newLayout():null
+ };
+}
+
+function layoutSignature(node){
+ if(!node)return null;
+ if(node.type==='leaf')return {type:'leaf'};
+ return {
+   type:'split',direction:node.direction,
+   lockedIndex:node.lockedChild===node.children[0].id?0:node.lockedChild===node.children[1].id?1:null,
+   lockedValue:Number.isFinite(node.lockedValue)?node.lockedValue:null,
+   children:[layoutSignature(node.children[0]),layoutSignature(node.children[1])]
+ };
+}
+function comparable(item){
+ return JSON.stringify({model:item.model,H:item.H,W:item.W,D:item.D,pcv:item.pcv,frontLayout:layoutSignature(item.frontLayout)});
+}
+
+function addCurrent(){
+ const snap=makeSnapshot();
+ const same=state.items.find(x=>comparable(x)===comparable(snap)&&!x.custom);
+ if(same)same.qty+=snap.qty;else state.items.push(snap);
+ persist();render();toast(`Dodano ${snap.qty} szt. Wybierz następny model.`);
+}
+
+function countLeaves(node){
+ if(!node)return 0;
+ if(node.type==='leaf')return 1;
+ return countLeaves(node.children[0])+countLeaves(node.children[1]);
+}
+
+function renderItems(){
+ const root=$('orderList');
+ if(!state.items.length){root.className='empty';root.innerHTML='Wybierz pierwszy model i dodaj go do zestawu.'}
+ else{
+   root.className='order-list';
+   root.innerHTML=state.items.map((x,i)=>`<div class="order-row">
+     <div class="order-icon">${x.catalog==='storage'?'S':'K'}${x.nr}</div>
+     <div class="order-main"><b>${x.catalog==='storage'?'Szafy i szafki':'Kuchnia'} • ${x.name}</b>
+     <div><strong>${x.qty} szt.</strong> • ${x.H} × ${x.W} × ${bodyDepth(x)} mm • PCV ${x.pcv}${x.custom?' • INDYWIDUALNE':''}${x.intelligent?` • ${countLeaves(x.frontLayout)} frontów`:''}</div></div>
+     <div class="row-actions"><button class="iconbtn" title="Edytuj" data-edit="${i}">✎</button><button class="iconbtn" title="Duplikuj" data-dup="${i}">＋</button><button class="iconbtn del" title="Usuń" data-del="${i}">×</button></div>
+   </div>`).join('');
+   document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openEdit(+b.dataset.edit));
+   document.querySelectorAll('[data-dup]').forEach(b=>b.onclick=()=>{
+     state.items.push(JSON.parse(JSON.stringify(state.items[+b.dataset.dup])));persist();render();toast('Duplikat dodany jako osobna konfiguracja');
+   });
+   document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{state.items.splice(+b.dataset.del,1);persist();render();toast('Usunięto pozycję')});
+ }
+ const total=totalCabinets();
+ $('configCount').textContent=`${state.items.length} konfiguracji`;
+ $('cabinetTotal').textContent=`${total} szt.`;
+ $('stickyTotal').textContent=`ZAMÓWIENIE: ${total} ${total===1?'SZAFKA':'SZAFEK'}`;
+ $('stickyWarn').textContent=total?'Gotowe do wyboru usług':'Dodaj pierwszy model';
+ $('nextBtn').disabled=!total;
+}
+
+function frontField(item){
+ return {
+   w:Math.max(1,item.W-4),
+   h:Math.max(1,item.H-(item.catalog==='kitchen'?7:4))
+ };
+}
+
+function findNode(node,id,parent=null,index=null){
+ if(!node)return null;
+ if(node.id===id)return {node,parent,index};
+ if(node.type==='split'){
+   return findNode(node.children[0],id,node,0)||findNode(node.children[1],id,node,1);
+ }
+ return null;
+}
+
+function calculateRects(node,x,y,w,h,out,parent=null){
+ if(node.type==='leaf'){
+   out.push({id:node.id,x,y,w,h,parent});
+   return;
+ }
+ const gap=4;
+ if(node.direction==='h'){
+   const available=Math.max(2,h-gap);
+   let h1=available/2,h2=available-h1;
+   if(node.lockedChild&&Number.isFinite(node.lockedValue)){
+     if(node.children[0].id===node.lockedChild){h1=Math.max(1,Math.min(available-1,node.lockedValue));h2=available-h1}
+     else if(node.children[1].id===node.lockedChild){h2=Math.max(1,Math.min(available-1,node.lockedValue));h1=available-h2}
+   }
+   calculateRects(node.children[0],x,y,w,h1,out,node);
+   calculateRects(node.children[1],x,y+h1+gap,w,h2,out,node);
+ }else{
+   const available=Math.max(2,w-gap);
+   let w1=available/2,w2=available-w1;
+   if(node.lockedChild&&Number.isFinite(node.lockedValue)){
+     if(node.children[0].id===node.lockedChild){w1=Math.max(1,Math.min(available-1,node.lockedValue));w2=available-w1}
+     else if(node.children[1].id===node.lockedChild){w2=Math.max(1,Math.min(available-1,node.lockedValue));w1=available-w2}
+   }
+   calculateRects(node.children[0],x,y,w1,h,out,node);
+   calculateRects(node.children[1],x+w1+gap,y,w2,h,out,node);
+ }
+}
+
+function frontRects(item){
+ const field=frontField(item),out=[];
+ calculateRects(item.frontLayout,0,0,field.w,field.h,out,null);
+ return {field,rects:out};
+}
+
+function splitSelected(direction){
+ if(!selectedLeafId){toast('Najpierw kliknij front');return}
+ const found=findNode(editDraft.frontLayout,selectedLeafId);
+ if(!found||found.node.type!=='leaf')return;
+ const oldId=found.node.id;
+ const split={id:oldId,type:'split',direction,lockedChild:null,lockedValue:null,children:[newLeaf(),newLeaf()]};
+ if(!found.parent)editDraft.frontLayout=split;else found.parent.children[found.index]=split;
+ selectedLeafId=split.children[0].id;
+ renderFrontCreator();renderParts(editDraft);
+}
+
+function resetFrontLayout(){
+ editDraft.frontLayout=newLayout();selectedLeafId=editDraft.frontLayout.id;renderFrontCreator();renderParts(editDraft);
+}
+
+function renderFrontCreator(){
+ if(!editDraft||!editDraft.intelligent){$('frontCreator').style.display='none';return}
+ $('frontCreator').style.display='block';
+ const {field,rects}=frontRects(editDraft),stage=$('frontStage');
+ stage.innerHTML='';
+ const sw=stage.clientWidth||250,sh=stage.clientHeight||360;
+ rects.forEach((r,i)=>{
+   const e=document.createElement('div');
+   const found=findNode(editDraft.frontLayout,r.id);
+   const locked=found?.parent?.lockedChild===r.id;
+   e.className='front-leaf '+(selectedLeafId===r.id?'selected ':'')+(locked?'locked-front':'');
+   e.style.left=(r.x/field.w*100)+'%';e.style.top=(r.y/field.h*100)+'%';
+   e.style.width=(r.w/field.w*100)+'%';e.style.height=(r.h/field.h*100)+'%';
+   e.innerHTML=`F${i+1}<br>${Math.round(r.h)} × ${Math.round(r.w)} mm`;
+   e.onclick=()=>{selectedLeafId=r.id;renderFrontCreator()};
+   stage.appendChild(e);
+ });
+ const selected=rects.find(r=>r.id===selectedLeafId);
+ if(!selected){
+   selectedLeafId=rects[0]?.id||null;
+   if(selectedLeafId)return renderFrontCreator();
+ }
+ const found=findNode(editDraft.frontLayout,selectedLeafId);
+ if(!found?.parent){
+   $('selectedFrontInfo').textContent=`Jeden front: ${Math.round(field.h)} × ${Math.round(field.w)} mm. Wybierz podział poziomy albo pionowy.`;
+   $('lockLabel').textContent='Najpierw podziel front';
+   $('lockValue').value='';
+   $('lockValue').disabled=true;$('lockFront').disabled=true;$('lockFront').textContent='Zablokuj wymiar';
+ }else{
+   const axis=found.parent.direction==='h'?'wysokość':'szerokość';
+   const value=found.parent.direction==='h'?selected.h:selected.w;
+   const isLocked=found.parent.lockedChild===selectedLeafId;
+   $('selectedFrontInfo').textContent=`Wybrany front: ${Math.round(selected.h)} × ${Math.round(selected.w)} mm. Możesz zablokować jego ${axis}.`;
+   $('lockLabel').textContent=`${axis.charAt(0).toUpperCase()+axis.slice(1)} wybranego frontu [mm]`;
+   $('lockValue').disabled=false;$('lockFront').disabled=false;$('lockValue').value=Math.round(value);
+   $('lockFront').textContent=isLocked?'Odblokuj wymiar':'Zablokuj wymiar';
+ }
+}
+
+function toggleLock(){
+ const found=findNode(editDraft.frontLayout,selectedLeafId);
+ if(!found?.parent)return;
+ const parent=found.parent;
+ if(parent.lockedChild===selectedLeafId){
+   parent.lockedChild=null;parent.lockedValue=null;toast('Wymiar frontu odblokowany');
+ }else{
+   const v=+$('lockValue').value;
+   if(!v){toast('Wpisz wymiar');return}
+   parent.lockedChild=selectedLeafId;parent.lockedValue=v;toast('Wymiar frontu zablokowany');
+ }
+ renderFrontCreator();renderParts(editDraft);
+}
+
+function partsFor(item){
+ const bd=bodyDepth(item),inner=item.W-36;
+ if(item.model==='m1'){
+   return {rows:[
+     ['Front',`${item.H-7} × ${item.W-4}`,1,'Kreator Frontów'],
+     ['Bok lewy',`${item.H} × ${bd}`,1,`przód ${item.pcv}`],
+     ['Bok prawy',`${item.H} × ${bd}`,1,`przód ${item.pcv}`],
+     ['Wieniec dolny',`${inner} × ${bd}`,1,'bez PCV'],
+     ['Trawers przedni',`${inner} × 110`,1,`1 długa ${item.pcv}`],
+     ['Trawers tylny',`${inner} × 110`,1,`1 długa ${item.pcv}`],
+     ['Półka',`${inner} × ${bd-5}`,1,`przód ${item.pcv}`],
+     ['HDF biała',`${item.H-1} × ${item.W-1}`,1,'bez PCV']
+   ],warning:''};
+ }
+ if(item.model==='m2'){
+   return {rows:[
+     ['Front',`${item.H-7} × ${item.W-4}`,1,'Kreator Frontów'],
+     ['Bok lewy',`${item.H} × ${bd}`,1,`przód ${item.pcv}`],
+     ['Bok prawy',`${item.H} × ${bd}`,1,`przód ${item.pcv}`],
+     ['Wieniec dolny',`${inner} × ${bd}`,1,'bez PCV'],
+     ['Trawers przedni pionowy','DO USTALENIA',1,'—'],
+     ['HDF biała',`${item.H-1} × ${item.W-1}`,1,'bez PCV']
+   ],warning:'Model nr 2 nie ma półki ani tylnego trawersu. Dokładny wymiar przedniego pionowego trawersu pozostaje do ustalenia.'};
+ }
+ if(item.intelligent){
+   const fr=frontRects(item);
+   const frontRows=fr.rects.map((r,i)=>[`Front ${i+1}`,`${Math.round(r.h)} × ${Math.round(r.w)}`,1,'Kreator Frontów']);
+   return {rows:[
+     ['Bok lewy',`${item.H} × ${bd}`,1,`przód ${item.pcv}`],
+     ['Bok prawy',`${item.H} × ${bd}`,1,`przód ${item.pcv}`],
+     ['Wieniec dolny',`${inner} × ${bd}`,1,'bez PCV'],
+     ['Trawers przedni',`${inner} × 110`,1,`1 długa ${item.pcv}`],
+     ['Trawers tylny',`${inner} × 110`,1,`1 długa ${item.pcv}`],
+     ['HDF biała',`${item.H-1} × ${item.W-1}`,1,'bez PCV'],
+     ...frontRows
+   ],warning:''};
+ }
+ return {rows:[],warning:'Model nie ma jeszcze pełnej rozpiski.'};
+}
+
+function renderParts(item){
+ const p=partsFor(item);
+ $('partsBody').innerHTML=p.rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
+ $('editWarning').style.display=p.warning?'block':'none';$('editWarning').textContent=p.warning||'';
+}
+
+function openEdit(index=null){
+ editIndex=index;
+ editDraft=index===null?makeSnapshot():JSON.parse(JSON.stringify(state.items[index]));
+ $('editTitle').textContent=`${editDraft.catalog==='storage'?'Szafy i szafki':'Meble kuchenne'} • ${editDraft.name}`;
+ $('editSubtitle').textContent=index===null?'Nowa konfiguracja':'Edycja pozycji';
+ $('editH').value=editDraft.H;$('editW').value=editDraft.W;$('editD').value=editDraft.D;$('editPcv').value=editDraft.pcv;$('editQty').value=editDraft.qty;
+ editingUnlocked=!!editDraft.custom;selectedLeafId=editDraft.intelligent?(frontRects(editDraft).rects[0]?.id||null):null;
+ updateLock();renderFrontCreator();renderParts(editDraft);openModal('editModal');
+}
+
+function updateLock(){
+ $('dimensionArea').classList.toggle('locked',!editingUnlocked);
+ $('unlockEdit').textContent=editingUnlocked?'Zablokuj wymiary i PCV':'Odblokuj wymiary i PCV';
+ $('lockNote').textContent=editingUnlocked?'Po zmianie kliknij „Zablokuj”, aby zatwierdzić konfigurację indywidualną.':'Standard jest zabezpieczony przed przypadkową zmianą.';
+}
+
+function syncDraft(){
+ editDraft.H=+$('editH').value||0;editDraft.W=+$('editW').value||0;editDraft.D=+$('editD').value||0;
+ editDraft.pcv=$('editPcv').value;editDraft.qty=Math.max(1,+$('editQty').value||1);
+ editDraft.custom=editDraft.H!==720||editDraft.W!==600||editDraft.D!==523||editDraft.pcv!=='1MM';
+}
+
+function saveEdit(){
+ syncDraft();
+ if(editingUnlocked){toast('Najpierw zablokuj wymiary i PCV');return}
+ if(editIndex===null)state.items.push(editDraft);else state.items[editIndex]=editDraft;
+ persist();closeModal('editModal');render();toast('Konfiguracja zapisana');
+}
+
+function renderServices(){
+ document.querySelectorAll('[data-service]').forEach(sw=>sw.classList.toggle('on',!!state.services[sw.dataset.service]));
+}
+
+function render(){
+ renderCatalogs();renderModels();renderQuick();renderItems();renderServices();
+}
+
+$('qtyMinus').onclick=()=>{state.qty=Math.max(1,(+state.qty||1)-1);renderQuick()};
+$('qtyPlus').onclick=()=>{state.qty=Math.min(999,(+state.qty||1)+1);renderQuick()};
+$('qty').oninput=e=>{state.qty=Math.max(1,+e.target.value||1);renderQuick()};
+$('addModel').onclick=addCurrent;
+$('openDetails').onclick=()=>openEdit(null);
+$('nextBtn').onclick=()=>{renderServices();openModal('servicesModal')};
+$('unlockEdit').onclick=()=>{
+ if(editingUnlocked){syncDraft();editingUnlocked=false;toast('Wymiary i PCV zablokowane')}
+ else{editingUnlocked=true;toast('Odblokowano tę konkretną szafkę')}
+ updateLock();renderFrontCreator();renderParts(editDraft);
+};
+['editH','editW','editD','editPcv','editQty'].forEach(id=>$(id).oninput=()=>{if(editingUnlocked){syncDraft();renderFrontCreator();renderParts(editDraft)}});
+$('splitH').onclick=()=>splitSelected('h');
+$('splitV').onclick=()=>splitSelected('v');
+$('resetFront').onclick=resetFrontLayout;
+$('lockFront').onclick=toggleLock;
+$('saveEdit').onclick=saveEdit;
+document.querySelectorAll('[data-service]').forEach(sw=>sw.onclick=()=>{
+ const k=sw.dataset.service;state.services[k]=!state.services[k];persist();renderServices();
+});
+$('sendStage1').onclick=()=>{
+ const payload=buildStage1Payload();
+ localStorage.setItem('kms_stage1_payload',JSON.stringify(payload));
+ notifyHost('kms:meble:stage1-ready',payload);
+ closeModal('servicesModal');toast('Zamówienie przygotowane do Etapu 1');
+};
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
+document.querySelectorAll('.modal').forEach(m=>m.onclick=e=>{if(e.target===m)closeModal(m.id)});
+
+render();
+notifyHost('kms:meble:ready',{catalogs,models,state:JSON.parse(JSON.stringify(state))});
