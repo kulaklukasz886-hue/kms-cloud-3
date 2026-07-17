@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>KMS TESTOWY 2.8.0 — INTELIGENTNA SZAFKA + ROZKRÓJ</title>
+<title>KMS TESTOWY 2.8.1 — START: INTELIGENTNA SZAFKA</title>
 <style>
 body{margin:0;font-family:Arial;background:#f3f4f6;color:#111827}.app{display:flex;min-height:100vh}
 aside{width:260px;background:#111827;color:white;padding:16px}main{flex:1;padding:22px;max-width:1500px}
@@ -64,7 +64,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 .catalog-lock.ok{background:#ecf8ef;border-left-color:#4b9b62}
 .catalog-lock.bad{background:#fff0f0;border-left-color:#c94b4b}
 .oa-cutting-card{border:2px solid #2f6fa5}
-@media(max-width:760px){.module-frame{min-height:70vh}}
+@media(max-width:760px){main{padding:10px}.module-frame{min-height:1200px;border-radius:8px}}
 </style>
 
 
@@ -82,19 +82,19 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 </div>
 <div class="app auth-locked" id="kmsApp">
 <aside>
-<h2>KMS TESTOWY 2.8.0</h2>
-<div class="small">Analiza zamówień → CSV → produkcja</div>
+<h2>KMS TESTOWY 2.8.1</h2>
+<div class="small">Inteligentna Szafka → Etap 2 → Rozkrój → CSV → produkcja</div>
 <div class="nav">
-<button class="active" onclick="show('dash',this)">👔 Pulpit</button>
+<button class="active" onclick="show('meble',this)">🧠 Inteligentna Szafka</button>
+<button onclick="show('dash',this)">👔 Pulpit</button>
 <button onclick="show('import',this)">📄 Proforma / zlecenie</button>
+<button onclick="show('aiDrawing',this)">🧾 Analiza zamówień 1→2→3</button>
+<button onclick="show('cutting',this)">🪚 Kreator Rozkroju</button>
 <button onclick="show('prod',this)">📋 Produkcja</button>
 <button onclick="show('completed',this)">✅ Zrealizowane</button>
 <button onclick="show('planning',this)">📅 Terminy i przerób</button>
 <button onclick="show('alerts',this)">🚨 Alerty</button>
 <button onclick="show('sup',this)">📦 Dostawcy</button>
-<button onclick="show('aiDrawing',this)">🧾 Analiza zamówień 1→2→3</button>
-<button onclick="show('meble',this)">🧠 Inteligentna Szafka</button>
-<button onclick="show('cutting',this)">🪚 Kreator Rozkroju</button>
 <button onclick="show('files',this)">📎 Pliki zleceń</button>
 <button onclick="show('comm',this)">💬 Komunikacja hala-biuro</button>
 <button onclick="show('waste',this)">♻️ Odpady</button>
@@ -114,7 +114,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
   <div style="clear:both"></div>
 </div>
 
-<section id="dash">
+<section id="dash" class="hidden">
 <h1>👔 Pulpit</h1>
 <div class="card">
 <h3>☁️ KMS TESTOWY 2.8.0 — ANALIZA ZAMÓWIEŃ</h3>
@@ -419,7 +419,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 </div>
 </section>
 
-<section id="meble" class="hidden">
+<section id="meble">
 <h1>🧠 Meble KMS — Inteligentna Szafka</h1>
 <div class="integration-box"><b>Wspólny przepływ:</b> zbuduj szafkę → rozbij na elementy → przekaż do Etapu 1. Materiały nie są zgadywane; w Etapie 1 trzeba wybrać je z Katalogu KMS.</div>
 <iframe id="mebleFrame" class="module-frame" src="modules/inteligentna-szafka/index.html?embedded=1" title="Inteligentna Szafka KMS"></iframe>
@@ -556,7 +556,9 @@ function showApp(){
   if(screen)screen.classList.add('hidden');
   if(app)app.classList.remove('auth-locked');
   applyRoleAccess();
-  render();
+  const startSection=canAccessSection('meble')?'meble':'dash';
+  const startButton=[...document.querySelectorAll('.nav button')].find(btn=>(btn.getAttribute('onclick')||'').includes(`show('${startSection}'`));
+  show(startSection,startButton||null);
   cloudStartAutoSync();
   cloudStartCommSync();
   cloudLoadCustomers(true);
