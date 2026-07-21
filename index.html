@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>KMS CLOUD 2.5.4 STABLE — DOSTAWCY + KOMUNIKACJA</title>
+<title>KMS CLOUD 2.5.5 STABLE — SYNC LIMIT FIX</title>
 <style>
 body{margin:0;font-family:Arial;background:#f3f4f6;color:#111827}.app{display:flex;min-height:100vh}
 aside{width:260px;background:#111827;color:white;padding:16px}main{flex:1;padding:22px;max-width:1500px}
@@ -50,7 +50,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 .auth-screen.hidden{display:none}.auth-card{width:min(440px,94vw);background:white;border-radius:20px;padding:24px;box-shadow:0 25px 80px rgba(0,0,0,.4)}
 .auth-card h1{margin-top:0}.auth-error{background:#fee2e2;color:#991b1b;border-radius:10px;padding:10px;margin-top:10px}.auth-user{background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:10px;margin-bottom:12px}.app.auth-locked{display:none}
 
-/* KMS 2.5.4 STABLE — Dostawcy, komunikacja i dokument źródłowy */
+/* KMS 2.5.5 STABLE — kontrolowana synchronizacja i ochrona limitów */
 .nav button.comm-unread{color:#ef4444!important;font-weight:900;background:#2b1115!important}
 .nav button.comm-unread::after{content:'  NOWA';font-size:10px;margin-left:6px}
 .supplier-review{border:2px solid #60a5fa;background:#eff6ff}
@@ -78,7 +78,7 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 </div>
 <div class="app auth-locked" id="kmsApp">
 <aside>
-<h2>KMS CLOUD 2.5.4 STABLE — DOSTAWCY + KOMUNIKACJA</h2>
+<h2>KMS CLOUD 2.5.5 STABLE — SYNC LIMIT FIX</h2>
 <div class="small">bezpieczne logowanie + role + historia działań</div>
 <div class="nav">
 <button class="active" onclick="show('dash',this)">👔 Pulpit</button>
@@ -111,16 +111,16 @@ select.status-hall{background:#dbeafe!important;color:#1e40af!important;font-wei
 <section id="dash">
 <h1>👔 Pulpit</h1>
 <div class="card">
-<h3>☁️ KMS CLOUD 2.5.4 STABLE — DOSTAWCY + KOMUNIKACJA</h3>
+<h3>☁️ KMS CLOUD 2.5.5 STABLE — SYNC LIMIT FIX</h3>
 <button class="primary" onclick="cloudLoadOrders()">Odśwież teraz</button>
 <button class="gray" onclick="cloudSyncLocalOrders()">Wyślij lokalne zlecenia do chmury</button>
 <button class="gray" onclick="runStorageRepair(true)">Napraw pamięć lokalną</button>
 <span id="cloudStatus" class="pill todo">Cloud uruchamia się...</span>
 <span id="localStorageStatus" class="pill todo">Pamięć lokalna: sprawdzam...</span>
-<div class="small">Automatyczne wczytanie po starcie, synchronizacja co 15 sekund i zapis statusów do chmury. Duże pliki są przechowywane poza localStorage, aby nie blokować KMS.</div>
+<div class="small">Automatyczne wczytanie po starcie i kontrolna synchronizacja co 3 minuty wyłącznie w aktywnej karcie. Po ukryciu karty, utracie internetu lub wylogowaniu synchronizacja jest zatrzymywana. Duże pliki są przechowywane poza localStorage, aby nie blokować KMS.</div>
 <div id="cloudLog" class="small" style="margin-top:8px">Historia synchronizacji pojawi się tutaj.</div>
 </div>
-<div class="card"><b>🟢 KMS CLOUD 2.5.4 STABLE — DOSTAWCY + KOMUNIKACJA</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
+<div class="card"><b>🟢 KMS CLOUD 2.5.5 STABLE — SYNC LIMIT FIX</b><br>Wersja przygotowana do podmiany/publikacji na Vercel. Nie usuwać zaakceptowanych funkcji – tylko rozwijać.</div><div class="card"><b>Cel chmury:</b> wszystkie stanowiska pracują na jednej bazie danych, a pliki są przypisane do zlecenia i stanowiska.</div>
 <div class="grid">
 <div class="card"><h3>Zlecenia</h3><div class="value" id="dOrders">0</div></div>
 <div class="card"><h3>Pliki</h3><div class="value" id="dFiles">0</div></div>
@@ -436,7 +436,7 @@ function kmsReadInitialState(){
 let state=kmsReadInitialState(),lastAnalysis=null,pendingDocs=[],supplierDraft=[]; if(!state.orders)state.orders=[]; if(!state.waste)state.waste=[]; if(!state.comm)state.comm=[]; if(!state.customers)state.customers=[]; if(!state.completedOrders)state.completedOrders=[]; if(!state.materialSupplierCatalog)state.materialSupplierCatalog={};
 
 
-// ===== KMS CLOUD 2.5.4 STABLE — DOSTAWCY + KOMUNIKACJA - FRONTEND AUTH =====
+// ===== KMS CLOUD 2.5.5 STABLE — SYNC LIMIT FIX - FRONTEND AUTH =====
 let authClient=null;
 let authSession=null;
 let authProfile=null;
@@ -505,6 +505,7 @@ function applyRoleAccess(){
 
 function showLogin(message='Zaloguj się swoim kontem firmowym.', clearSession=false){
   if(clearSession){
+    if(typeof cloudStopAutoSync==='function')cloudStopAutoSync();
     authSession=null;
     authProfile=null;
   }
@@ -524,7 +525,6 @@ function showApp(){
   applyRoleAccess();
   render();
   cloudStartAutoSync();
-  cloudStartCommSync();
   cloudLoadCustomers(true);
 }
 
@@ -571,6 +571,7 @@ async function loginKms(){
 }
 
 async function logoutKms(){
+  cloudStopAutoSync();
   try{
     if(authClient)await authClient.auth.signOut();
   }catch(e){}
@@ -594,6 +595,7 @@ async function initKmsAuth(){
 
     authClient.auth.onAuthStateChange((event,session)=>{
       if(event==='SIGNED_OUT'||!session){
+        cloudStopAutoSync();
         showLogin('Zaloguj się swoim kontem firmowym.',true);
         return;
       }
@@ -612,12 +614,18 @@ async function initKmsAuth(){
     showLogin('Błąd uruchomienia logowania: '+(e.message||'Nieznany błąd'));
   }
 }
-// ===== END KMS CLOUD 2.5.4 STABLE — DOSTAWCY + KOMUNIKACJA =====
+// ===== END KMS CLOUD 2.5.5 STABLE — SYNC LIMIT FIX =====
 
 
-// ===== KMS CLOUD 2.5.4 STABLE — DOSTAWCY + KOMUNIKACJA - API -> SUPABASE =====
+// ===== KMS CLOUD 2.5.5 STABLE — SYNC LIMIT FIX - API -> SUPABASE =====
+const CLOUD_SYNC_INTERVAL_MS=3*60*1000;
+const CLOUD_SYNC_INITIAL_DELAY_MS=1200;
+const CLOUD_SYNC_MAX_BACKOFF_MS=15*60*1000;
 let cloudAutoStarted=false;
 let cloudSyncTimer=null;
+let cloudSyncRunning=false;
+let cloudSyncFailures=0;
+let cloudSyncGeneration=0;
 let cloudSaving=false;
 
 function cloudStatus(text, cls='todo'){
@@ -689,7 +697,7 @@ function mergeCloudOrders(cloudOrders){
   state.completedOrders=[...cloudOrders.filter(o=>o.completed),...localCompleted];
 }
 async function cloudLoadOrders(silent=false){
-  if(cloudSaving)return;
+  if(cloudSaving)return true;
   try{
     if(!silent)cloudStatus('Wczytuję z chmury...','progress');
     const data=await kmsApi('/api/orders');
@@ -698,9 +706,11 @@ async function cloudLoadOrders(silent=false){
     save(); render();
     cloudStatus('🟢 Połączono z chmurą','done');
     if(!silent)cloudLog('Wczytano zlecenia: '+state.orders.length);
+    return true;
   }catch(e){
     cloudStatus('🔴 Brak połączenia: '+e.message,'bad');
     if(!silent)alert('Błąd odczytu z chmury: '+e.message);
+    return false;
   }
 }
 async function cloudSaveOrder(order){
@@ -786,17 +796,103 @@ async function cloudSyncLocalOrders(){
   for(const o of all){if(!o.cloudId)await cloudSaveOrder(o);}
   alert('Synchronizacja zakończona.');
 }
+function cloudClearSyncTimer(){
+  if(cloudSyncTimer){
+    clearTimeout(cloudSyncTimer);
+    cloudSyncTimer=null;
+  }
+}
+function cloudCanAutoSync(){
+  return !!authSession&&!document.hidden&&navigator.onLine;
+}
+function cloudScheduleNext(delay=CLOUD_SYNC_INTERVAL_MS){
+  cloudClearSyncTimer();
+  if(!cloudAutoStarted||!authSession)return;
+  if(document.hidden){
+    cloudStatus('⏸️ Synchronizacja wstrzymana — karta w tle','todo');
+    return;
+  }
+  if(!navigator.onLine){
+    cloudStatus('⏸️ Synchronizacja wstrzymana — brak internetu','progress');
+    return;
+  }
+  cloudSyncTimer=setTimeout(()=>cloudRunAutoSync(),Math.max(500,delay));
+}
+function cloudBackoffDelay(){
+  if(cloudSyncFailures<=0)return CLOUD_SYNC_INTERVAL_MS;
+  return Math.min(CLOUD_SYNC_INTERVAL_MS*Math.pow(2,cloudSyncFailures),CLOUD_SYNC_MAX_BACKOFF_MS);
+}
+async function cloudRunAutoSync(){
+  if(!cloudAutoStarted||!authSession)return;
+  if(!cloudCanAutoSync()){
+    cloudScheduleNext();
+    return;
+  }
+  if(cloudSyncRunning){
+    cloudScheduleNext(5000);
+    return;
+  }
+  const generation=cloudSyncGeneration;
+  cloudSyncRunning=true;
+  let ordersOk=false;
+  let commOk=false;
+  try{
+    ordersOk=await cloudLoadOrders(true);
+    if(generation!==cloudSyncGeneration||!cloudAutoStarted||!authSession)return;
+    commOk=await cloudLoadComm(true);
+    if(ordersOk&&commOk){
+      cloudSyncFailures=0;
+      cloudStatus('🟢 Połączono z chmurą','done');
+    }else{
+      cloudSyncFailures=Math.min(cloudSyncFailures+1,4);
+    }
+  }catch(e){
+    cloudSyncFailures=Math.min(cloudSyncFailures+1,4);
+    console.error('KMS controlled sync',e);
+  }finally{
+    cloudSyncRunning=false;
+    if(generation===cloudSyncGeneration&&cloudAutoStarted&&authSession){
+      cloudScheduleNext(cloudBackoffDelay());
+    }
+  }
+}
 function cloudStartAutoSync(){
   if(!authSession)return;
-  if(cloudAutoStarted)return;
+  if(cloudAutoStarted){
+    if(cloudCanAutoSync()&&!cloudSyncTimer&&!cloudSyncRunning)cloudScheduleNext(800);
+    return;
+  }
   cloudAutoStarted=true;
-  setTimeout(()=>cloudLoadOrders(true),800);
-  if(cloudSyncTimer)clearInterval(cloudSyncTimer);
-  cloudSyncTimer=setInterval(()=>cloudLoadOrders(true),15000);
-  cloudLog('Auto synchronizacja uruchomiona.');
+  cloudSyncFailures=0;
+  cloudScheduleNext(CLOUD_SYNC_INITIAL_DELAY_MS);
+  cloudLog('Kontrolowana synchronizacja uruchomiona — co 3 minuty w aktywnej karcie.');
 }
+function cloudStopAutoSync(){
+  cloudAutoStarted=false;
+  cloudSyncGeneration++;
+  cloudClearSyncTimer();
+}
+function cloudPauseAutoSync(message){
+  cloudClearSyncTimer();
+  if(message)cloudStatus(message,'todo');
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){
+    cloudPauseAutoSync('⏸️ Synchronizacja wstrzymana — karta w tle');
+  }else if(authSession){
+    if(!cloudAutoStarted)cloudStartAutoSync();
+    else cloudScheduleNext(800);
+  }
+});
+window.addEventListener('offline',()=>cloudPauseAutoSync('⏸️ Synchronizacja wstrzymana — brak internetu'));
+window.addEventListener('online',()=>{
+  if(authSession){
+    if(!cloudAutoStarted)cloudStartAutoSync();
+    else cloudScheduleNext(800);
+  }
+});
 
-// ===== END KMS CLOUD 2.5.4 STABLE — DOSTAWCY + KOMUNIKACJA =====
+// ===== END KMS CLOUD 2.5.5 STABLE — SYNC LIMIT FIX =====
 
 // ===== KMS CLOUD 2.3.1 - COMMUNICATION Hala-Biuro FIX =====
 function commUserKey(){return String(authSession?.user?.id||authSession?.user?.email||kmsUserName||'local').replace(/[^0-9A-Za-z_.-]/g,'_')}
@@ -831,9 +927,11 @@ async function cloudLoadComm(silent=true){
     renderComm();
     updateCommNavAlert();
     if(!silent)cloudLog('Wczytano komunikaty: '+state.comm.length);
+    return true;
   }catch(e){
     if(!silent)alert('Błąd komunikatora: '+e.message);
     console.error('cloudLoadComm',e);
+    return false;
   }
 }
 async function cloudSaveComm(c){
@@ -863,10 +961,11 @@ async function cloudUpdateComm(c){
   }
 }
 function cloudStartCommSync(){
-  setTimeout(()=>cloudLoadComm(true),1800);
-  setInterval(()=>cloudLoadComm(true),15000);
+  // Zachowane dla zgodności ze starszym kodem. Synchronizację zleceń i komunikatów
+  // obsługuje jeden kontrolowany mechanizm cloudStartAutoSync().
+  cloudStartAutoSync();
 }
-// ===== END KMS CLOUD 2.5.4 STABLE — DOSTAWCY + KOMUNIKACJA =====
+// ===== END KMS CLOUD 2.5.5 STABLE — SYNC LIMIT FIX =====
 
 
 async function cloudLoadCustomers(silent=true){
