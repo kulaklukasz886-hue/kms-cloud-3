@@ -18,6 +18,8 @@
 10. Zlecenie zapisuje `rulesVersion: V1.6` przy zatwierdzeniu.
 11. Dokument źródłowy lub świadomie wybrany tryb ręczny/Inteligentna Szafka są widocznym warunkiem Etapu 1.
 12. Zachowano działający Kreator Rozkroju TEST 0.8.1: 2800×2070, pole 2770×2040, rzaz 4,4 mm, regresja 240.REMIK.
+13. Inteligentna Szafka 0.5.9: półka ruchoma i półka stała konstrukcyjna zajmują pełną szerokość wolnej komory. Sam pionowy podział frontów nie skraca półki; ograniczeniem staje się dopiero rzeczywiście dodana ścianka działowa.
+14. Ta sama geometria półki jest używana w widoku 2D, widoku 3D i rozpisce elementów, aby wynik był powtarzalny.
 
 ## Nie zmieniono
 - logowania Supabase i uprawnień stanowisk,
@@ -36,3 +38,5 @@
 8. Fronty A/1.1, A/1.2 — osobne wiersze, ilość 1, symbol w ELEMENT.
 9. Test 240.REMIK — 9 elementów na jednej płycie.
 10. Odświeżenie strony i ponowne otwarcie zlecenia.
+11. Szafka z dwoma frontami, ale bez ścianki działowej — półka ma pełną szerokość wewnętrzną korpusu.
+12. Ta sama szafka po dodaniu ścianki działowej — półka kończy się na ściance i nie przechodzi do sąsiedniej komory.

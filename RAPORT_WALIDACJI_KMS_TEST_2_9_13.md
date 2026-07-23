@@ -13,7 +13,7 @@
 - `package.json`, `vercel.json` i `BUILD_INFO.json` są poprawnymi plikami JSON.
 - Składnia głównego skryptu JavaScript przechodzi `node --check`.
 - Składnia wszystkich plików API przechodzi `node --check`.
-- Składnia osadzonej Inteligentnej Szafki 0.5.8 przechodzi `node --check`.
+- Składnia osadzonej Inteligentnej Szafki 0.5.9 przechodzi `node --check`.
 - Składnia osadzonego Kreatora Rozkroju 0.8.1 przechodzi `node --check`.
 - Nie występuje stary timer synchronizacji `15000` ms.
 - KMS-002 używa jednego interwału 180000 ms oraz zatrzymania w ukrytej karcie i po wylogowaniu.
@@ -21,6 +21,8 @@
 - Osobny CSV etykiet frontów zachowuje ilość 1 i indywidualny symbol ELEMENT.
 - Serwer statyczny lokalnie zwrócił prawidłowy `index.html`.
 - Integralność końcowego ZIP została sprawdzona.
+- Moduł Inteligentnej Szafki osadzony w `index.html` jest identyczny ze sprawdzonym źródłem 0.5.9.
+- Test geometrii półki bez ścianki: dla korpusu W=1000 mm i boków 18 mm półka ma 964 mm, czyli pełną szerokość wewnętrzną.
 
 ## Pozostaje do sprawdzenia na Vercel Preview
 - rzeczywiste logowanie Supabase,
