@@ -1,18 +1,39 @@
 {
-  "version": 2,
-  "functions": {
-    "api/*.js": {
-      "maxDuration": 60
-    }
+  "id": "MEBLE_KMS",
+  "name": "Meble KMS — Inteligentna Szafka",
+  "version": "0.6.0-post-audit-v1.6",
+  "status": "TESTY_PRODUKCYJNE",
+  "entry": "index.html",
+  "storage_key": "kms_module_meble_test_010",
+  "audit_registry": "docs/KMS_INTELIGENTNA_SZAFKA_REJESTR_REGUL_V1_6.md",
+  "features_active": [
+    "konstrukcja korpusu według zatwierdzonych reguł V1.6",
+    "materiały korpusu, frontów i HDF z dokładnym symbolem",
+    "PCV 1MM i 2MM oraz zatwierdzone standardy oklejania",
+    "HDF od tyłu jako standard oraz HDF w frezie jako opcja",
+    "cokół i metadane Häfele AXILO",
+    "fronty, symbole A/1.1 i ciągłość usłojenia",
+    "automatyczne przekazanie formatek do widocznego Etapu 2",
+    "osobny CSV produkcyjny i CSV etykiet frontów",
+    "modele konstrukcyjne SZ bez utrwalania materiałów zamówienia"
+  ],
+  "features_deferred": [
+    "nowe generowanie i modyfikacja MPRX/CNC",
+    "parametryczny frez LED",
+    "pełny proces standardowej szuflady i dobór prowadnic",
+    "dodatkowy bok 36MM za frontem szuflady"
+  ],
+  "host_events": {
+    "ready": "kms:meble:ready",
+    "state_changed": "kms:meble:state-changed",
+    "stage2_ready": "kms:meble:stage2-ready"
   },
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
+  "compatibility_events": {
+    "stage1_ready": "kms:meble:stage1-ready"
+  },
+  "global_api": "window.KMSMebleModule",
+  "author": {
+    "name": "Łukasz Kułak",
+    "role": "Właściciel reguł i Strażnik KMS AI"
+  }
 }

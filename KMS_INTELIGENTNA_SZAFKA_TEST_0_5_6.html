@@ -1,0 +1,21 @@
+{
+  "application": "KMS CLOUD",
+  "release": "2.10.0-post-audit-v1.6",
+  "status": "TESTY_PRODUKCYJNE",
+  "entry": "index.html",
+  "canonical_rules": "KMS_INTELIGENTNA_SZAFKA_REJESTR_REGUL_V1_6.md",
+  "modules": {
+    "inteligentna_szafka": {
+      "version": "0.6.0-post-audit-v1.6",
+      "entry": "modules/inteligentna-szafka/index.html"
+    },
+    "kreator_rozkroju": {
+      "version": "0.8.1",
+      "entry": "modules/kreator-rozkroju/index.html"
+    }
+  },
+  "policy": {
+    "new_cnc_development": "DEFERRED_UNTIL_POST_TEST_AUDIT",
+    "stable_promotion": "ONLY_AFTER_LUKASZ_APPROVAL"
+  }
+}

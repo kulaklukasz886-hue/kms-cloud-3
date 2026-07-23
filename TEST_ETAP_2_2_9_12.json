@@ -1,0 +1,26 @@
+{
+  "test": "240.REMIK",
+  "status": "PASS",
+  "input": {
+    "material": "W1000 ST9",
+    "thicknessMm": 18,
+    "fullBoardMm": [2800, 2070],
+    "workAreaMm": [2770, 2040],
+    "kerfMm": 4.4,
+    "positions": 6,
+    "physicalPieces": 9
+  },
+  "result": {
+    "physicalBoards": 1,
+    "netBoards": 0.5,
+    "productionAreaM2": 2.95207,
+    "edge2mmProductionMb": 15.625,
+    "edge2mmSupplierOrderMb": 18.75
+  },
+  "rules": {
+    "stage2Info": "240.REMIK",
+    "csvHhaDimensions": "1:1 without edge deduction",
+    "supplierEdgeReservePercent": 20
+  },
+  "testedAt": "2026-07-20"
+}

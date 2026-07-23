@@ -1,0 +1,13 @@
+# KMS TESTOWY 2.9.9
+
+- dodano osobny przycisk **Półka stała konstrukcyjna**;
+- półkę można dodać w dowolnej wysokości wybranego pola wnętrza;
+- półka jest widoczna w widoku 2D i 3D;
+- można dodać kilka półek konstrukcyjnych i usuwać je pojedynczo;
+- półka trafia na testową listę elementów jako element fizyczny;
+- położenie półki jest zapisywane w modelu szafki;
+- wiercenie i mocowanie CNC celowo pozostają oznaczone jako **DO USTALENIA**;
+- półka ruchoma, półka stała na łączeniu i ścianka działowa pozostają oddzielnymi funkcjami.
+
+## Uwaga testowa
+Wymiar półki w testowej liście elementów jest obliczany z bieżącej geometrii pola. Przed produkcyjnym przekazaniem na CNC musi zostać przypisany zatwierdzony wzorzec wiercenia.

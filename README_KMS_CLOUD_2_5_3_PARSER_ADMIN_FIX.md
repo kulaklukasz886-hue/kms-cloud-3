@@ -1,37 +1,21 @@
-# KMS CLOUD 2.5.3 — PARSER + ADMIN FIX
+# KMS TESTOWY 2.10.0 — PO AUDYCIE V1.6
 
-Baza: KMS CLOUD 2.5.1 AUTH FIX + zachowany mechanizm STORAGE FIX.
+To jest wersja przygotowana do testów na rzeczywistych zleceniach.
 
-## Zmiany
+## Uruchomienie
 
-1. Parser proformy został przywrócony **1:1 z KMS CLOUD 2.4 STABLE**.
-   - klient,
-   - numer zlecenia,
-   - pozycje,
-   - materiały,
-   - PCV,
-   - dostawcy,
-   - zadania produkcyjne.
+- Główny plik aplikacji: `index.html`
+- Cały folder należy wdrożyć razem, ponieważ aplikacja korzysta również z katalogów `api`, `data` i `modules`.
+- Samodzielny plik główny do szybkiego otwarcia: `KMS_TESTOWY_2_10_0_PO_AUDYCIE_V1_6.html`
+- Samodzielny moduł Inteligentna Szafka: `KMS_INTELIGENTNA_SZAFKA_TEST_0_6_0_PO_AUDYCIE_V1_6.html`
 
-2. Usuwanie zleceń:
-   - przyciski są widoczne wyłącznie dla roli `ADMIN`,
-   - funkcja jest zabezpieczona również w kodzie,
-   - API `DELETE /api/orders` dopuszcza wyłącznie `ADMIN`,
-   - wymagane jest podwójne potwierdzenie,
-   - działa dla zleceń aktywnych i zrealizowanych.
+## Dokumenty obowiązujące
 
-3. Notatki przy zleceniu:
-   - pracownicy mogą zapisywać i aktualizować notatkę,
-   - pracownicy nie mogą usunąć istniejącej notatki ani zapisać pustej treści w jej miejsce,
-   - przycisk „Usuń notatkę” jest widoczny wyłącznie dla `ADMIN`,
-   - kontrola została dodana także w API, więc nie jest to wyłącznie blokada wizualna.
+- `KMS_INTELIGENTNA_SZAFKA_REJESTR_REGUL_V1_6.md` — kanoniczny rejestr reguł.
+- `RELEASE_KMS_TEST_2_10_0_POST_AUDIT_V1_6.md` — zakres wydania.
+- `POST_AUDYT_CHECKPOINT.md` — kolejność dalszych prac.
+- `BUILD_INFO.json` — informacje techniczne i stan testów.
 
-4. Pamięć lokalna:
-   - duże pliki są przenoszone do IndexedDB,
-   - `localStorage` przechowuje odchudzony stan,
-   - na pulpicie pozostał przycisk „Napraw pamięć lokalną”.
+## Ważne
 
-## Publikacja
-
-Wgraj do repozytorium całą zawartość folderu/ZIP, a następnie wykonaj redeploy na Vercel.
-Nie podmieniaj wyłącznie `index.html`, ponieważ poprawka uprawnień notatek obejmuje również `api/orders.js`.
+Nowy rozwój CNC/MPRX, frez LED oraz pełny proces szuflady są świadomie odłożone do czasu zakończenia testów i audytu powdrożeniowego. Ta wersja pozostaje TESTOWA do czasu zatwierdzenia przez Łukasza Kułaka.

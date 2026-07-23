@@ -1,0 +1,13 @@
+# KMS TESTOWY 2.9.8
+
+- pełny Katalog KMS: 5784 wariantów, 823 symboli, 5 producentów;
+- NIEMANN POLSKA podłączony do selektora i walidatora Etapu 1;
+- brakujący dekor może dodać wyłącznie Łukasz — Administrator główny;
+- dodany produkt otrzymuje historię administratora i status ceny;
+- naprawione dodawanie ścianki działowej jednym kliknięciem przy pionowym łączeniu;
+- naprawione dodawanie półki stałej jednym kliknięciem przy poziomym łączeniu;
+- półka ruchoma pozostaje bez zmian;
+- nie dodano półki stałej konstrukcyjnej.
+
+## Zakres testowy zapisu administratora
+Ręcznie dodane produkty są zapisywane w danych testowych KMS w przeglądarce i w backupie JSON. Ta paczka nie tworzy nowej tabeli katalogowej Supabase; centralny zapis wielostanowiskowy wymaga osobnej migracji bazy po zatwierdzeniu testów.

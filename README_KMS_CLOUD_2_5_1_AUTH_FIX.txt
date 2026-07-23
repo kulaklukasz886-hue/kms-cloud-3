@@ -1,24 +1,13 @@
-KMS CLOUD 2.5.1 AUTH FIX
+# KMS — CHECKPOINT PO AUDYCIE
 
-NAPRAWA:
-- dodano brakującą funkcję loginKms();
-- dodano inicjalizację Supabase Auth;
-- dodano odczyt profilu i roli z /api/me;
-- dodano obsługę sesji i wylogowania;
-- dodano filtrowanie modułów według ról;
-- moduł ODPADY pozostaje dostępny dla wszystkich ról.
+**Aktualny etap:** wdrożenie wersji 2.10.0 po audycie V1.6.
 
-WDROŻENIE:
-1. W GitHub podmień tylko index.html z tej paczki.
-2. Folder api z wersji 2.5 AUTH pozostaje bez zmian.
-3. Poczekaj na Vercel Ready.
-4. Otwórz KMS i wykonaj Ctrl+F5.
-5. Zaloguj się adresem i hasłem utworzonym w Supabase Authentication.
+Kolejność dalszych prac:
+1. Uruchomienie wersji testowej na prawdziwych zleceniach.
+2. Rejestrowanie wyłącznie rzeczywistych błędów, braków i utrudnień.
+3. Audyt powdrożeniowy moduł po module.
+4. Jedna uporządkowana paczka poprawek.
+5. Ponowne testy i dopiero świadome wdrożenie do STABLE.
+6. Po ustabilizowaniu wersji — osobny etap CNC.
 
-JEŻELI POJAWI SIĘ BŁĄD:
-- „Brak SUPABASE_URL lub klucza publicznego”:
-  sprawdź zmienne SUPABASE_URL i SUPABASE_ANON_KEY w Vercel i wykonaj Redeploy.
-- „Brak profilu użytkownika”:
-  sprawdź rekord w tabeli public.profiles.
-- „Konto nieaktywne”:
-  ustaw active = TRUE.
+Nowe funkcje CNC, MPRX, frez LED i pełna szuflada są świadomie odłożone. Nie wolno ich wprowadzać jako ukrytych założeń.
