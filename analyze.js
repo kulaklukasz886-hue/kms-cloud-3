@@ -1,65 +1,12 @@
 import {sendCors,requireAuth,fail} from './_auth.js';
 import formidable from 'formidable';
 import fs from 'fs/promises';
-import path from 'path';
 import OpenAI from 'openai';
 
 export const config = { api: { bodyParser: false } };
 function parseForm(req){const form=formidable({multiples:false,maxFileSize:25*1024*1024});return new Promise((resolve,reject)=>form.parse(req,(err,fields,files)=>err?reject(err):resolve({fields,files})))}
 function first(v){return Array.isArray(v)?v[0]:v}
 function dataUrl(mime,b64){return `data:${mime||'application/octet-stream'};base64,${b64}`}
-
-let materialCatalogCache=null;
-function normCatalog(v){return String(v||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[._,;:()\[\]-]+/g,' ').replace(/\s+/g,' ').trim()}
-async function loadMaterialCatalog(){
- if(materialCatalogCache)return materialCatalogCache;
- const file=path.join(process.cwd(),'data','kms-material-catalog.json');
- const raw=await fs.readFile(file,'utf8');const parsed=JSON.parse(raw);
- materialCatalogCache=Array.isArray(parsed.products)?parsed.products:[];return materialCatalogCache
-}
-function selectedManufacturerList(raw){
- try{const arr=JSON.parse(String(raw||'[]'));return [...new Set((Array.isArray(arr)?arr:[]).map(x=>String(x||'').trim()).filter(Boolean))].slice(0,2)}catch{return[]}
-}
-function uniqueByLabel(rows){const map=new Map();for(const p of rows){const k=normCatalog(p.materialLabel);if(k&&!map.has(k))map.set(k,p)}return [...map.values()]}
-function productMatchFromText(text,allowed,thickness){
- const t=normCatalog(text);if(!t)return null;const candidates=[];
- for(const p of allowed){
-  const symbol=normCatalog(p.symbol),structure=normCatalog(p.structure),label=normCatalog(p.materialLabel),name=normCatalog(p.name);
-  if(label&&t.includes(label))candidates.push(p);
-  else if(symbol&&t.includes(symbol)&&(!structure||t.includes(structure)))candidates.push(p);
-  else if(symbol&&t===symbol)candidates.push(p);
-  else if(name&&name.length>5&&t.includes(name))candidates.push(p);
- }
- if(!candidates.length)return null;
- const labels=uniqueByLabel(candidates);if(labels.length>1){
-  const exactThickness=labels.filter(p=>Math.abs(Number(p.thickness)-Number(thickness))<.2);
-  if(exactThickness.length===1)return exactThickness[0];
-  return null
- }
- const sameLabel=candidates.filter(p=>normCatalog(p.materialLabel)===normCatalog(labels[0].materialLabel));
- return sameLabel.find(p=>Math.abs(Number(p.thickness)-Number(thickness))<.2)||sameLabel[0]
-}
-function applyCatalogRestriction(parsed,selected,allProducts){
- const selectedKeys=new Set(selected.map(normCatalog));
- const allowed=allProducts.filter(p=>selectedKeys.has(normCatalog(p.manufacturer)));
- const items=Array.isArray(parsed.items)?parsed.items:[];let active=null;
- const rawMaterials=items.map(x=>String(x.material||''));
- for(let i=0;i<items.length;i++){
-  const item=items[i];const windowText=rawMaterials.slice(i,i+4).join(' ');
-  const direct=productMatchFromText(windowText,allowed,item.thickness);
-  const currentRaw=String(item.material||'').trim();
-  const hasCodeLike=/\b[A-Z]{1,4}\s*\d{2,6}\b/i.test(currentRaw)||/\b\d{3,6}\b/.test(currentRaw);
-  if(direct)active=direct;else if(hasCodeLike&&currentRaw&&!productMatchFromText(currentRaw,allowed,item.thickness))active=null;
-  if(active){
-   item.material=String(active.materialLabel||'').trim();item.materialCatalogStatus='MATCHED';item.catalogProductId=active.id;item.manufacturer=active.manufacturer;item.materialName=active.name||'';item.catalogRotatable=active.rotatable;item.catalogLength=active.length;item.catalogWidth=active.width
-  }else{
-   const rejected=currentRaw;item.material='';item.materialCatalogStatus='BLOCKED_NOT_IN_CATALOG';item.catalogProductId='';item.manufacturer='';item.uncertain=true;item.notes=[String(item.notes||'').trim(),rejected?`ZABLOKOWANO MATERIAŁ SPOZA KATALOGU: ${rejected}`:'BRAK PEWNEGO MATERIAŁU W WYBRANYM KATALOGU'].filter(Boolean).join(' | ')
-  }
- }
- parsed.selectedManufacturers=selected;
- parsed.catalogValidation={selectedManufacturers:selected,allowedProducts:allowed.length,blockedItems:items.filter(x=>x.materialCatalogStatus!=='MATCHED').length};
- return parsed
-}
 
 const edge={type:'string',enum:['','1MM','2MM']};
 const schema={type:'object',additionalProperties:false,properties:{
@@ -94,12 +41,6 @@ export default async function handler(req,res){
  try{
   if(!process.env.OPENAI_API_KEY)return res.status(500).json({ok:false,error:'Brak OPENAI_API_KEY w Vercel Environment Variables.'});
   const {fields,files}=await parseForm(req);const file=first(files.file);if(!file)return res.status(400).json({ok:false,error:'Brak pliku.'});
-  const selectedManufacturers=selectedManufacturerList(first(fields.selectedManufacturers));
-  if(!selectedManufacturers.length)return res.status(400).json({ok:false,error:'Wybierz producenta płyty przed analizą.'});
-  const materialCatalog=await loadMaterialCatalog();
-  const availableManufacturers=new Set(materialCatalog.map(p=>normCatalog(p.manufacturer)));
-  const invalidManufacturers=selectedManufacturers.filter(m=>!availableManufacturers.has(normCatalog(m)));
-  if(invalidManufacturers.length)return res.status(400).json({ok:false,error:`Nieprawidłowy producent: ${invalidManufacturers.join(', ')}`});
   const bytes=await fs.readFile(file.filepath);const mime=String(file.mimetype||'application/octet-stream').toLowerCase();
   const fileName=String(file.originalFilename||'zamowienie');
   const spreadsheetText=String(first(fields.spreadsheetText)||'').slice(0,120000);
@@ -118,7 +59,6 @@ export default async function handler(req,res){
   const prompt=`Jesteś modułem KMS — ETAP 1: wierne mapowanie zamówienia klienta z odręcznej rozpiski, zdjęcia lub PDF.
 
 NADRZĘDNE ZASADY:
-0. WYBRANI PRODUCENCI: ${selectedManufacturers.join(' + ')}. Materiał może pochodzić wyłącznie z katalogu tych producentów. Nie twórz symbolu, którego nie widzisz na źródle. Fragmenty symbolu, struktury i nazwy rozłożone w kolejnych wierszach traktuj jako opis jednego materiału i dziedzicz go do następnego prawidłowego symbolu.
 1. Przepisz dane 1:1. Na Etapie 1 nie stosuj zmian technologicznych i nie poprawiaj wymiarów klienta.
 2. Zachowaj pełny symbol materiału dokładnie tak, jak jest zapisany. Nie skracaj i nie zgaduj dekoru.
 3. Długość zapisuj jako pierwszy wymiar, szerokość jako drugi. Wszystkie wymiary w mm.
@@ -224,7 +164,6 @@ ${JSON.stringify(rowsForAudit)}`;
   if(pcvAudit){
    parsed.notes=[String(parsed.notes||'').trim(),`Kontrola PCV: ${pcvAudit.globalPcv||'nie odczytano'}; ${pcvAudit.notes||''}`].filter(Boolean).join(' | ');
   }
-  parsed=applyCatalogRestriction(parsed,selectedManufacturers,materialCatalog);
   return res.status(200).json(parsed);
  }catch(e){console.error(e);return res.status(500).json({ok:false,error:e.message||'Błąd analizy AI',details:'Sprawdź OPENAI_API_KEY, model i logi Vercel.'})}
 }
