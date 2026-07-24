@@ -1,10 +1,9 @@
 {
-  "name": "kms-cloud-test-audyt-v16",
-  "version": "2.9.13",
-  "private": true,
+  "name": "kms-cloud-v2",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "build": "echo \"KMS 2.9.13 static HTML - no build required\""
+    "build": "echo \"KMS CLOUD V2 - static HTML, no build required\""
   },
   "dependencies": {
     "openai": "latest",
