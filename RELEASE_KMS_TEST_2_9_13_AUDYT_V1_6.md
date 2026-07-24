@@ -20,6 +20,9 @@
 12. Zachowano działający Kreator Rozkroju TEST 0.8.1: 2800×2070, pole 2770×2040, rzaz 4,4 mm, regresja 240.REMIK.
 13. Inteligentna Szafka 0.5.9: półka ruchoma i półka stała konstrukcyjna zajmują pełną szerokość wolnej komory. Sam pionowy podział frontów nie skraca półki; ograniczeniem staje się dopiero rzeczywiście dodana ścianka działowa.
 14. Ta sama geometria półki jest używana w widoku 2D, widoku 3D i rozpisce elementów, aby wynik był powtarzalny.
+15. Inteligentna Szafka 0.5.10: rozpiska obejmuje boki, standardowy dolny i górny wieniec, półki ruchome, półki stałe, ścianki oraz HDF.
+16. KOR-KMS-001: grubość korpusu inna niż 18 mm wymaga jawnego zatwierdzenia wyjątku.
+17. HDF-001–004: użytkownik wybiera HDF bez frezu albo HDF w frezie; program stosuje odpowiednio W−2/H−2 albo W−14/H−9.
 
 ## Nie zmieniono
 - logowania Supabase i uprawnień stanowisk,
@@ -40,3 +43,7 @@
 10. Odświeżenie strony i ponowne otwarcie zlecenia.
 11. Szafka z dwoma frontami, ale bez ścianki działowej — półka ma pełną szerokość wewnętrzną korpusu.
 12. Ta sama szafka po dodaniu ścianki działowej — półka kończy się na ściance i nie przechodzi do sąsiedniej komory.
+13. Korpus W600, T18 — wieńce i pełna półka między bokami mają 564 mm.
+14. HDF bez frezu dla W600×H720 — wynik 598×718 mm.
+15. HDF w frezie dla W600×H720 — wynik 586×711 mm niezależnie od odsunięcia rowka.
+16. Grubość korpusu inna niż 18 mm — blokada rozpiski do czasu zaznaczenia świadomego wyjątku.
