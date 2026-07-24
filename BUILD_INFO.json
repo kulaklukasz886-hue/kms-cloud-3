@@ -1,15 +1,13 @@
 {
-  "version": "2.5.4",
-  "release": "STABLE_DOSTAWCY_KOMUNIKACJA",
-  "base_version": "2.5.3",
-  "supplier_only_do_zamowienia": true,
-  "supplier_excludes_started_production": true,
-  "supplier_review_before_final": true,
-  "supplier_material_assignment": true,
-  "communication_red_unread_label": true,
-  "client_source_document_required": true,
-  "client_source_excel_supported": true,
-  "admin_order_delete": true,
-  "admin_note_delete_only": true,
-  "storage_fix": true
+  "product": "KMS CLOUD TEST",
+  "version": "2.9.13",
+  "status": "TEST",
+  "base": "KMS TESTOWY 2.9.12 — gałąź kms-test-analiza-zamowien",
+  "rulesVersion": "V1.6",
+  "sync": "KMS-002 controlled 180000 ms, pause hidden/logout",
+  "smartCabinet": "0.5.11 V1.6",
+  "cutOptimizer": "0.8.1",
+  "created": "2026-07-23",
+  "owner": "Łukasz Kułak",
+  "productionPromotion": "ONLY AFTER OWNER TEST AND APPROVAL"
 }
