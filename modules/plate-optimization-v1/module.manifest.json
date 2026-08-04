@@ -1,7 +1,7 @@
 {
   "id": "kms-plate-optimization-v1",
   "name": "KMS Plate Optimization",
-  "version": "1.0.0-alpha.4",
+  "version": "1.0.0-alpha.5",
   "status": "experimental",
   "enabled": false,
   "entry": "./src/index.mjs",
@@ -15,6 +15,7 @@
   "engine": {
     "type": "deterministic-multistart-guillotine",
     "referenceCases": ["320.REMIK", "955.FIZYK"],
+    "diagnosticCases": ["902.ANTROPIK"],
     "hhaReferenceTests": [
       "TEST_KMS_HHA_U708_ST9_001",
       "TEST_KMS_HHA_U708_ST9_002"
@@ -43,6 +44,20 @@
         "areaLowerBound": 8,
         "status": "matched",
         "referenceSource": "verified production cut plan"
+      }
+    ],
+    "optimizationDiagnosticCases": [
+      {
+        "caseId": "902.ANTROPIK",
+        "material": "D9163 BS",
+        "thicknessMm": 18,
+        "sourceRows": 37,
+        "pieceCount": 93,
+        "kmsPhysicalBoardCount": 7,
+        "productionPlanMaterialUsage": 6.5,
+        "status": "diagnostic-separated-values",
+        "decision": "Do not equate fractional plan usage with physical full-board count or purchase quantity",
+        "purchasePlanEvaluated": false
       }
     ],
     "hhaMachineTests": [
@@ -82,6 +97,7 @@
     "requireGeometryValidation": true,
     "requirePanelCutFeasibility": true,
     "requireMaterialGrouping": true,
+    "separatePhysicalBoardsFromFractionalUsage": true,
     "ownerApprovalRequired": true,
     "machineSimulationRequired": true
   }
