@@ -1,25 +1,30 @@
 {
   "id": "kms-plate-optimization-v1",
   "name": "KMS Plate Optimization",
-  "version": "1.0.0-alpha.2",
+  "version": "1.0.0-alpha.3",
   "status": "experimental",
   "enabled": false,
   "entry": "./src/index.mjs",
+  "hhaEntry": "./src/hha.mjs",
   "integration": {
     "mainKms": false,
     "automaticPurchasing": false,
-    "holzHerFinalOptimization": true
+    "holzHerFinalOptimization": true,
+    "hhaProductionExport": false
   },
   "engine": {
     "type": "deterministic-multistart-guillotine",
-    "referenceCases": ["320.REMIK"]
+    "referenceCases": ["320.REMIK"],
+    "hhaReferenceTest": "TEST_KMS_HHA_U708_ST9_001"
   },
   "safety": {
     "pcvDimensionDeductionInKms": false,
+    "hhaDimensionsOneToOne": true,
     "requireCompleteLayout": true,
     "requireGeometryValidation": true,
     "requirePanelCutFeasibility": true,
     "requireMaterialGrouping": true,
-    "ownerApprovalRequired": true
+    "ownerApprovalRequired": true,
+    "machineSimulationRequired": true
   }
 }
