@@ -3,7 +3,9 @@
   "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "build": "echo \"KMS CLOUD V2 - static HTML, no build required\""
+    "build": "echo \"KMS CLOUD V2 - static HTML, no build required\"",
+    "test": "npm run test:plate-optimization",
+    "test:plate-optimization": "node modules/plate-optimization-v1/tests/contracts.test.mjs && node modules/plate-optimization-v1/tests/remik.test.mjs"
   },
   "dependencies": {
     "openai": "latest",
