@@ -35,25 +35,29 @@ const elements = [
 const prepared = validateAndGroupElements(elements);
 assert.deepEqual(prepared.board, DEFAULT_BOARD);
 assert.equal(prepared.groups.length, 1);
-assert.equal(prepared.groups[0].elements.length, 2);
-assert.equal(prepared.groups[0].elements[0].lengthMm, 1000,
-  'KMS must not reduce dimensions because of PCV');
-assert.equal(prepared.groups[0].elements[0].widthMm, 500,
-  'KMS must not reduce dimensions because of PCV');
+assert.equal(prepared.groups[0].elements[0].lengthMm, 1000);
+assert.equal(prepared.groups[0].elements[0].widthMm, 500);
 assert.equal(prepared.groups[0].elements[0].edges.front, '2MM');
 
 const result = estimatePlateRequirement(elements);
-assert.equal(result.status, 'blocked');
-assert.equal(result.physicalBoardCount, null);
+assert.equal(result.status, 'test-result');
+assert.equal(result.physicalBoardCount, 1);
 assert.equal(result.purchasePlan.newBoardsToPurchase, null);
 assert.equal(result.automaticPurchasingAllowed, false);
 assert.equal(result.validation.materialGroupsValid, true);
-assert.equal(result.validation.complete, false);
-assert.equal(result.safeForTestDisplay, false);
+assert.equal(result.validation.complete, true);
+assert.equal(result.validation.geometryValid, true);
+assert.equal(result.validation.panelCutFeasible, true);
+assert.equal(result.safeForTestDisplay, true);
 
-assert.throws(() => validateAndGroupElements([{
-  ...elements[0],
-  lengthMm: 2800
-}]), /does not fit|exceeds maximum/);
+const mixed = estimatePlateRequirement([
+  ...elements,
+  { ...elements[0], id: 3, decorCode: 'W960 SM', materialCode: 'EGGER-W960', quantity: 1 }
+]);
+assert.equal(mixed.materialGroups.length, 2);
+assert.equal(mixed.physicalBoardCount, 2, 'each material group requires its own physical board');
 
-console.log('OK: KMS Plate Optimization v1 foundation contracts verified.');
+assert.throws(() => validateAndGroupElements([{ ...elements[0], lengthMm: 2800 }]),
+  /does not fit|exceeds maximum/);
+
+console.log('OK: KMS Plate Optimization v1 contracts and material grouping verified.');
