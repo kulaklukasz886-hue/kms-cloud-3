@@ -23,8 +23,6 @@
 15. Inteligentna Szafka 0.5.10: rozpiska obejmuje boki, standardowy dolny i górny wieniec, półki ruchome, półki stałe, ścianki oraz HDF.
 16. KOR-KMS-001: grubość korpusu inna niż 18 mm wymaga jawnego zatwierdzenia wyjątku.
 17. HDF-001–004: użytkownik wybiera HDF bez frezu albo HDF w frezie; program stosuje odpowiednio W−2/H−2 albo W−14/H−9.
-18. Inteligentna Szafka 0.5.11: wdrożono standardowy dolny i górny wieniec, dolny wieniec od dołu oraz dwa zatwierdzone rodzaje górnego wieńca od góry.
-19. Standardowy front uwzględnia luz 2 mm na górze i 2 mm na dole; rodzaj 2 skraca go o kolejne 20 mm.
 
 ## Nie zmieniono
 - logowania Supabase i uprawnień stanowisk,

@@ -1,0 +1,38 @@
+name: Repair experimental index
+on:
+  push:
+    branches:
+      - experimental-cennik-uslug-test
+    paths:
+      - .repair-upload/manifest.txt
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: experimental-cennik-uslug-test
+          fetch-depth: 0
+      - name: Rebuild complete index
+        run: |
+          cat .repair-upload/part-*.b64 | base64 --decode | gzip --decompress > index.html
+      - name: Validate inline JavaScript
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const html=fs.readFileSync('index.html','utf8');
+          if(html.includes('tokens truncated')) throw new Error('Truncation marker remains');
+          const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(s=>s.trim());
+          if(!scripts.length) throw new Error('No inline scripts');
+          scripts.forEach((s,i)=>{try{new Function(s)}catch(e){throw new Error('Inline script '+i+': '+e.message)}});
+          console.log('Validated',scripts.length,'inline script(s),',html.length,'characters');
+          NODE
+      - name: Publish repaired index
+        run: |
+          git config user.name "KMS repair"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git commit -m "Napraw kompletny plik wersji eksperymentalnej"
+          git push origin HEAD:experimental-cennik-uslug-test
