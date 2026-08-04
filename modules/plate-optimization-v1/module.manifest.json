@@ -15,31 +15,53 @@
   "engine": {
     "type": "deterministic-multistart-guillotine",
     "referenceCases": ["320.REMIK"],
-    "hhaReferenceTest": "TEST_KMS_HHA_U708_ST9_001"
+    "hhaReferenceTests": [
+      "TEST_KMS_HHA_U708_ST9_001",
+      "TEST_KMS_HHA_U708_ST9_002"
+    ]
   },
   "validation": {
-    "hhaMachineTest": {
-      "status": "passed",
-      "confirmedByOwner": true,
-      "confirmedAt": "2026-08-04",
-      "machine": "HolzHer panel saw",
-      "material": "U708 ST9",
-      "thicknessMm": 18,
-      "sourceRows": 33,
-      "pieceCount": 96,
-      "dimensionsPolicy": "one-to-one",
-      "result": "opened-and-worked-correctly"
-    },
-    "nextHhaMachineTest": {
-      "status": "awaiting-machine-test",
-      "testId": "TEST_KMS_HHA_U708_ST9_002",
-      "scope": [
-        "rotation-allowed-minus-one",
-        "rotation-blocked-zero",
-        "mixed-pcv-layouts",
-        "dimensions-one-to-one"
-      ]
-    }
+    "hhaMachineTests": [
+      {
+        "testId": "TEST_KMS_HHA_U708_ST9_001",
+        "status": "passed",
+        "confirmedByOwner": true,
+        "confirmedAt": "2026-08-04",
+        "machine": "HolzHer panel saw",
+        "material": "U708 ST9",
+        "thicknessMm": 18,
+        "sourceRows": 33,
+        "pieceCount": 96,
+        "scope": [
+          "hha-structure",
+          "dimensions-one-to-one",
+          "pcv-metadata",
+          "material-recognition",
+          "full-machine-simulation"
+        ],
+        "result": "opened-and-worked-correctly"
+      },
+      {
+        "testId": "TEST_KMS_HHA_U708_ST9_002",
+        "status": "passed",
+        "confirmedByOwner": true,
+        "confirmedAt": "2026-08-04",
+        "machine": "HolzHer panel saw",
+        "material": "U708 ST9",
+        "thicknessMm": 18,
+        "sourceRows": 5,
+        "pieceCount": 8,
+        "scope": [
+          "rotation-allowed-minus-one",
+          "rotation-blocked-zero",
+          "mixed-pcv-layouts",
+          "dimensions-one-to-one",
+          "full-machine-simulation"
+        ],
+        "result": "opened-and-worked-correctly"
+      }
+    ],
+    "hhaStageStatus": "validated-for-u708-st9-test-workflow"
   },
   "safety": {
     "pcvDimensionDeductionInKms": false,
