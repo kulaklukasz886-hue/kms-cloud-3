@@ -11,6 +11,10 @@
       "destination": "/api/$1"
     },
     {
+      "source": "/optymalizacja-test",
+      "destination": "/modules/plate-optimization-v1/demo/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
