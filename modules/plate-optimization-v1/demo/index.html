@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>KMS — test optymalizacji płyt</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">KMS PLATE OPTIMIZATION · ALPHA TEST</p>
+        <h1>Test optymalizacji płyt</h1>
+        <p>Samodzielny ekran badawczy. Wynik pokazuje fizyczne arkusze wykorzystane przez układ testowy. Nie uruchamia zakupów i nie zmienia KMS.</p>
+      </div>
+      <div class="warning-badge">TEST · BEZ ZAKUPU</div>
+    </header>
+
+    <section class="input-panel">
+      <div class="file-area">
+        <label for="csv-file">Wczytaj CSV KMS</label>
+        <input id="csv-file" type="file" accept=".csv,text/csv">
+        <p>Format: 17 pól oddzielonych średnikiem, bez nagłówka.</p>
+      </div>
+      <div>
+        <span class="label">Przypadki referencyjne</span>
+        <div id="example-buttons" class="example-buttons"></div>
+      </div>
+      <label class="paste-area" for="csv-paste">
+        <span>CSV</span>
+        <textarea id="csv-paste" spellcheck="false" placeholder="Wklej dane CSV tutaj…"></textarea>
+      </label>
+      <div class="actions">
+        <button id="analyze-button" class="primary" type="button">Optymalizuj</button>
+        <button id="clear-button" type="button">Wyczyść</button>
+        <button id="download-json" type="button" disabled>Pobierz wynik JSON</button>
+        <button id="download-hha" type="button" disabled>Pobierz HHA 1:1</button>
+      </div>
+      <p id="status" class="status" data-type="info" role="status"></p>
+    </section>
+
+    <section id="summary" class="summary-grid" aria-label="Podsumowanie"></section>
+    <section id="groups" class="groups" aria-label="Grupy materiałowe"></section>
+    <section id="boards" class="boards" aria-label="Rysunki rozkroju"></section>
+
+    <footer>
+      <strong>Zasada:</strong> KMS przekazuje wymiary 1:1 i metadane PCV. HolzHer wykonuje finalną optymalizację i korekty technologiczne.
+    </footer>
+  </main>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>
