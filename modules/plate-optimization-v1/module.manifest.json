@@ -1,7 +1,7 @@
 {
   "id": "kms-plate-optimization-v1",
   "name": "KMS Plate Optimization",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "status": "experimental",
   "enabled": false,
   "entry": "./src/index.mjs",
@@ -9,6 +9,10 @@
     "mainKms": false,
     "automaticPurchasing": false,
     "holzHerFinalOptimization": true
+  },
+  "engine": {
+    "type": "deterministic-multistart-guillotine",
+    "referenceCases": ["320.REMIK"]
   },
   "safety": {
     "pcvDimensionDeductionInKms": false,
