@@ -1,7 +1,7 @@
 {
   "id": "kms-plate-optimization-v1",
   "name": "KMS Plate Optimization",
-  "version": "1.0.0-alpha.3",
+  "version": "1.0.0-alpha.4",
   "status": "experimental",
   "enabled": false,
   "entry": "./src/index.mjs",
@@ -14,13 +14,37 @@
   },
   "engine": {
     "type": "deterministic-multistart-guillotine",
-    "referenceCases": ["320.REMIK"],
+    "referenceCases": ["320.REMIK", "955.FIZYK"],
     "hhaReferenceTests": [
       "TEST_KMS_HHA_U708_ST9_001",
       "TEST_KMS_HHA_U708_ST9_002"
     ]
   },
   "validation": {
+    "optimizationReferenceCases": [
+      {
+        "caseId": "320.REMIK",
+        "material": "U708 ST9",
+        "thicknessMm": 18,
+        "sourceRows": 33,
+        "pieceCount": 96,
+        "holzHerBoardCount": 5,
+        "kmsBoardCount": 5,
+        "status": "matched"
+      },
+      {
+        "caseId": "955.FIZYK",
+        "material": "W1000 ST9",
+        "thicknessMm": 18,
+        "sourceRows": 22,
+        "pieceCount": 104,
+        "holzHerBoardCount": 9,
+        "kmsBoardCount": 9,
+        "areaLowerBound": 8,
+        "status": "matched",
+        "referenceSource": "verified production cut plan"
+      }
+    ],
     "hhaMachineTests": [
       {
         "testId": "TEST_KMS_HHA_U708_ST9_001",
@@ -32,13 +56,7 @@
         "thicknessMm": 18,
         "sourceRows": 33,
         "pieceCount": 96,
-        "scope": [
-          "hha-structure",
-          "dimensions-one-to-one",
-          "pcv-metadata",
-          "material-recognition",
-          "full-machine-simulation"
-        ],
+        "scope": ["hha-structure", "dimensions-one-to-one", "pcv-metadata", "material-recognition", "full-machine-simulation"],
         "result": "opened-and-worked-correctly"
       },
       {
@@ -51,13 +69,7 @@
         "thicknessMm": 18,
         "sourceRows": 5,
         "pieceCount": 8,
-        "scope": [
-          "rotation-allowed-minus-one",
-          "rotation-blocked-zero",
-          "mixed-pcv-layouts",
-          "dimensions-one-to-one",
-          "full-machine-simulation"
-        ],
+        "scope": ["rotation-allowed-minus-one", "rotation-blocked-zero", "mixed-pcv-layouts", "dimensions-one-to-one", "full-machine-simulation"],
         "result": "opened-and-worked-correctly"
       }
     ],
