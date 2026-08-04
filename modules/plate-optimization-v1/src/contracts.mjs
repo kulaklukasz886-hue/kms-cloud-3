@@ -1,4 +1,4 @@
-export const PLATE_OPTIMIZATION_CONTRACT_VERSION = '1.0.0-alpha.1';
+export const PLATE_OPTIMIZATION_CONTRACT_VERSION = '1.0.0-alpha.2';
 
 export function createPurchasePlan({
   status = 'not-evaluated',
@@ -25,9 +25,12 @@ export function createPurchasePlan({
 
 export function createOptimizationResult({
   status = 'blocked',
+  engine = {},
+  sourceDimensionPolicy = 'nominal-hha',
   materialGroups = [],
   physicalBoardCount = null,
   boards = [],
+  metrics = {},
   warnings = [],
   validation = {}
 } = {}) {
@@ -41,16 +44,18 @@ export function createOptimizationResult({
     panelCutFeasible: validation.panelCutFeasible === true,
     materialGroupsValid: validation.materialGroupsValid === true
   };
-
   const safeForTestDisplay = Object.values(normalizedValidation).every(Boolean);
 
   return {
     contract: 'PlateOptimizationResult',
     contractVersion: PLATE_OPTIMIZATION_CONTRACT_VERSION,
     status: safeForTestDisplay ? status : 'blocked',
+    engine: { ...engine },
+    sourceDimensionPolicy,
     materialGroups: [...materialGroups],
     physicalBoardCount,
     boards: [...boards],
+    metrics: { ...metrics },
     purchasePlan: createPurchasePlan(),
     warnings: [...warnings],
     validation: normalizedValidation,
