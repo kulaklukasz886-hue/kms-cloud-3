@@ -17,6 +17,20 @@
     "referenceCases": ["320.REMIK"],
     "hhaReferenceTest": "TEST_KMS_HHA_U708_ST9_001"
   },
+  "validation": {
+    "hhaMachineTest": {
+      "status": "passed",
+      "confirmedByOwner": true,
+      "confirmedAt": "2026-08-04",
+      "machine": "HolzHer panel saw",
+      "material": "U708 ST9",
+      "thicknessMm": 18,
+      "sourceRows": 33,
+      "pieceCount": 96,
+      "dimensionsPolicy": "one-to-one",
+      "result": "opened-and-worked-correctly"
+    }
+  },
   "safety": {
     "pcvDimensionDeductionInKms": false,
     "hhaDimensionsOneToOne": true,
