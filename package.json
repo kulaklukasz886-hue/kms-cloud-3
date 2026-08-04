@@ -5,7 +5,8 @@
   "scripts": {
     "build": "echo \"KMS CLOUD V2 - static HTML, no build required\"",
     "test": "npm run test:plate-optimization",
-    "test:plate-optimization": "node modules/plate-optimization-v1/tests/branch-guard.mjs && node modules/plate-optimization-v1/tests/contracts.test.mjs && node modules/plate-optimization-v1/tests/remik.test.mjs && node modules/plate-optimization-v1/tests/fizyk.test.mjs && node modules/plate-optimization-v1/tests/antropik.test.mjs && node modules/plate-optimization-v1/tests/hha-remik.test.mjs && node modules/plate-optimization-v1/tests/hha-rotation-u708.test.mjs"
+    "test:plate-optimization": "node modules/plate-optimization-v1/tests/branch-guard.mjs && node modules/plate-optimization-v1/tests/contracts.test.mjs && node modules/plate-optimization-v1/tests/remik.test.mjs && node modules/plate-optimization-v1/tests/fizyk.test.mjs && node modules/plate-optimization-v1/tests/antropik.test.mjs && node modules/plate-optimization-v1/tests/hha-remik.test.mjs && node modules/plate-optimization-v1/tests/hha-rotation-u708.test.mjs",
+    "demo:plate-optimization": "node modules/plate-optimization-v1/demo/server.mjs"
   },
   "dependencies": {
     "openai": "latest",
