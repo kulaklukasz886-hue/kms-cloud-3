@@ -29,6 +29,16 @@
       "pieceCount": 96,
       "dimensionsPolicy": "one-to-one",
       "result": "opened-and-worked-correctly"
+    },
+    "nextHhaMachineTest": {
+      "status": "awaiting-machine-test",
+      "testId": "TEST_KMS_HHA_U708_ST9_002",
+      "scope": [
+        "rotation-allowed-minus-one",
+        "rotation-blocked-zero",
+        "mixed-pcv-layouts",
+        "dimensions-one-to-one"
+      ]
     }
   },
   "safety": {
