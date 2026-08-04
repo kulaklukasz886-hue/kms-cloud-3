@@ -1,0 +1,21 @@
+{
+  "id": "kms-plate-optimization-v1",
+  "name": "KMS Plate Optimization",
+  "version": "1.0.0-alpha.1",
+  "status": "experimental",
+  "enabled": false,
+  "entry": "./src/index.mjs",
+  "integration": {
+    "mainKms": false,
+    "automaticPurchasing": false,
+    "holzHerFinalOptimization": true
+  },
+  "safety": {
+    "pcvDimensionDeductionInKms": false,
+    "requireCompleteLayout": true,
+    "requireGeometryValidation": true,
+    "requirePanelCutFeasibility": true,
+    "requireMaterialGrouping": true,
+    "ownerApprovalRequired": true
+  }
+}
