@@ -24,6 +24,20 @@
     ]
   },
   "validation": {
+    "standalonePreviewTest": {
+      "status": "passed",
+      "confirmedByOwner": true,
+      "confirmedAt": "2026-08-05",
+      "environment": "Vercel Preview",
+      "route": "/optymalizacja-test",
+      "scope": [
+        "html-loaded",
+        "styles-loaded",
+        "javascript-loaded",
+        "optimization-result-visible"
+      ],
+      "result": "worked-correctly-in-browser"
+    },
     "optimizationReferenceCases": [
       {
         "caseId": "320.REMIK",
